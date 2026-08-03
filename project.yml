@@ -1,0 +1,87 @@
+name: Fathom
+
+options:
+  bundleIdPrefix: com.exhibinaut
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  FathomCore:
+    path: .
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ARCHS: arm64
+
+targets:
+  Fathom:
+    type: application
+    platform: macOS
+    sources:
+      - path: Fathom
+        excludes:
+          - Resources
+      - path: Fathom/Resources/Assets.xcassets
+        buildPhase: resources
+      - path: Fathom/Resources/Fonts
+        buildPhase: resources
+      - path: Fathom/Resources/CountryFlags
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: FathomCore
+        product: FathomKit
+      - target: FathomBar
+    postBuildScripts:
+      - name: Embed menu bar agent
+        script: |
+          set -eu
+          agents="${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Library/LaunchAgents"
+          mkdir -p "$agents"
+          cp "${SRCROOT}/FathomBar/LaunchAgent/com.exhibinaut.fathom.bar.plist" "$agents/com.exhibinaut.fathom.bar.plist"
+        inputFiles:
+          - $(SRCROOT)/FathomBar/LaunchAgent/com.exhibinaut.fathom.bar.plist
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Library/LaunchAgents/com.exhibinaut.fathom.bar.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.exhibinaut.fathom
+        PRODUCT_NAME: FATHOM
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_CFBundleDisplayName: FATHOM
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
+        INFOPLIST_KEY_NSHighResolutionCapable: true
+        INFOPLIST_KEY_NSLocationUsageDescription: FATHOM uses location only when you ask to read the connected Wi-Fi network name.
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: FATHOM reads paired Bluetooth devices only to show their connection state and, where the device reports it, its battery level.
+        CODE_SIGN_ENTITLEMENTS: Fathom/App/Fathom.entitlements
+        ENABLE_HARDENED_RUNTIME: true
+        ENABLE_APP_SANDBOX: false
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    scheme:
+      testTargets: []
+  FathomBar:
+    type: application
+    platform: macOS
+    sources:
+      - path: FathomBar
+        excludes:
+          - LaunchAgent
+    dependencies:
+      - package: FathomCore
+        product: FathomKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.exhibinaut.fathom.bar
+        PRODUCT_NAME: FATHOM Bar
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_CFBundleDisplayName: FATHOM Bar
+        INFOPLIST_KEY_LSUIElement: true
+        INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
+        ENABLE_HARDENED_RUNTIME: true
+        ENABLE_APP_SANDBOX: false
+    scheme:
+      testTargets: []

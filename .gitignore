@@ -1,0 +1,9 @@
+.build/
+.DS_Store
+DerivedData/
+*.xcuserstate
+
+# Stale 30 July snapshot of AGENTS.md and docs/ that are tracked here already.
+# Kept on disk, out of the repo, so the duplicate cannot drift from the originals.
+FATHOM-handoff.zip
+FATHOM-handoff/

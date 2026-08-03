@@ -1,0 +1,56 @@
+[
+  {
+    "identifier": "xcode.derived-data",
+    "version": 1,
+    "root": "xcodeDerivedData",
+    "glob": "*",
+    "maximumMatches": 2000,
+    "regenerationCost": "One full Xcode rebuild, about 8 minutes",
+    "safetyClass": "safe"
+  },
+  {
+    "identifier": "xcode.device-support",
+    "version": 1,
+    "root": "xcodeDeviceSupport",
+    "glob": "*",
+    "maximumMatches": 200,
+    "regenerationCost": "Reconnect each device to restore its support files",
+    "safetyClass": "safe"
+  },
+  {
+    "identifier": "swiftui.previews",
+    "version": 1,
+    "root": "swiftUIPreviews",
+    "glob": "*",
+    "maximumMatches": 2000,
+    "regenerationCost": "SwiftUI previews regenerate when opened",
+    "safetyClass": "safe"
+  },
+  {
+    "identifier": "npm.download-cache",
+    "version": 1,
+    "root": "npmCache",
+    "glob": "*",
+    "maximumMatches": 10000,
+    "regenerationCost": "Packages must be downloaded again",
+    "safetyClass": "safe"
+  },
+  {
+    "identifier": "cargo.registry",
+    "version": 1,
+    "root": "cargoRegistry",
+    "glob": "*",
+    "maximumMatches": 10000,
+    "regenerationCost": "Crates must be downloaded and indexed again",
+    "safetyClass": "safe"
+  },
+  {
+    "identifier": "user.logs",
+    "version": 1,
+    "root": "userLogs",
+    "glob": "*",
+    "maximumMatches": 10000,
+    "regenerationCost": "No rebuild; historical diagnostic logs are lost",
+    "safetyClass": "requiresPerItemConfirmation"
+  }
+]

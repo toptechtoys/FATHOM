@@ -1,0 +1,2 @@
+docs/*.png filter=lfs diff=lfs merge=lfs -text
+Fathom/Resources/Assets.xcassets/**/*.png filter=lfs diff=lfs merge=lfs -text

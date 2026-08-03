@@ -1,0 +1,922 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02D47A10C5BBAEE1F6E52975 /* NetworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C24DE280F30F263E1A8C02C /* NetworkView.swift */; };
+		1397EAEDAF312842109F94E8 /* FathomKit in Frameworks */ = {isa = PBXBuildFile; productRef = D081A305E24079B45FA59C2F /* FathomKit */; };
+		19A14AC1502DF38A8E4ED8A7 /* HardwareAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4A2EE215BDF8ED6EF0EA7A /* HardwareAppModel.swift */; };
+		19C174555493B4F2811212B8 /* HistoryAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F92D2353D8A317AE7363F76 /* HistoryAppModel.swift */; };
+		1C4B9BA6913DD27AF1EA57DF /* ReclaimAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2862F6DE16E0C36F54151D94 /* ReclaimAppModel.swift */; };
+		1DB47E259FD47D4DA0F9B3E2 /* DeepScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEE6651EBD25A86CA7B6BE8 /* DeepScanView.swift */; };
+		1DF8C8D2CB4747FF2737150D /* CPUView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8341C837ABC0DBF21863688C /* CPUView.swift */; };
+		224D999EBC11B0E0FD314388 /* FathomKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9EC85ED3F402750C6713C7DA /* FathomKit */; };
+		247FBC85DA9C41C0D3D1A57B /* BluetoothView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AAA420D99CCBAA8D33CD09F /* BluetoothView.swift */; };
+		2787064A4C984CA855F56D72 /* FathomDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = B151F28FCD074A2973C21BDE /* FathomDesign.swift */; };
+		2C34A2C7529A22F71CD97CB4 /* FathomSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0006F7DD089D4E9B9019F6 /* FathomSidebar.swift */; };
+		322EC26D48C9E6A8BB71F879 /* OnboardingAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38F3DE0081B92E7A276145C /* OnboardingAppModel.swift */; };
+		349332E244F94C2FADA5B9DA /* EnduranceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B489D4B03A2890ED96B9DD /* EnduranceView.swift */; };
+		47C3FB2D7C451FF73B190BAE /* SSDHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 561ADBF0D541A8F725DAD8FE /* SSDHealthView.swift */; };
+		56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 545DAABC5837C80A39A8A968 /* FathomRootView.swift */; };
+		5CD71D496F23B9A964B3C344 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F45B1BBF1E502165377975 /* MemoryView.swift */; };
+		5DD2A3A07A8CA8F173C4C97F /* ReclaimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8779E0AEA77AD830E2CCC2E7 /* ReclaimView.swift */; };
+		628172EE3332DD184B6F7A4F /* FathomWorldBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5A1184E63B9E35E804089D /* FathomWorldBackground.swift */; };
+		6CC701C6C4D89F7AAE2912A8 /* JB-400.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */; };
+		70EF4FB835B04058A9FD97E4 /* FathomApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2C90C6B8600E922850878FE /* FathomApp.swift */; };
+		7346A8557B8ADF960BDCDF77 /* JB-500.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 449451493A035832EBCE933B /* JB-500.woff2 */; };
+		798ED73E3ECE1FD2E49BAE1E /* FathomBar.app in Resources */ = {isa = PBXBuildFile; fileRef = D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7E354ACCE4D66513004556BC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EF2F32D0634162F1B5FDDBF5 /* Assets.xcassets */; };
+		7F8B6E2991590E7F6AC98D17 /* CommandPaletteModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97FCFDAE0C6C91C52E86ABF /* CommandPaletteModel.swift */; };
+		8212DC930A138E0FDAB03B2E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1ADA735ABF89778889AD712 /* HomeView.swift */; };
+		83ABE218205B9202A23BC3C5 /* CountryFlags in Resources */ = {isa = PBXBuildFile; fileRef = AF1A329A8585A05C86AED6C1 /* CountryFlags */; };
+		85DC372D591591F19CE9239D /* AttributionAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BFB8BBAA63E7647C56F02D /* AttributionAppModel.swift */; };
+		86990F7F83D93C511C8065AA /* ApplicationsAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0DCC3F5DC17CC8479C114D /* ApplicationsAppModel.swift */; };
+		86D66191B509594994E5E926 /* HardwareMeasurementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */; };
+		88DD0719259B1367D339C749 /* DigestNotificationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C36AF54286367ED1515DD1 /* DigestNotificationModel.swift */; };
+		8C9CF78A2EB0072AA592493A /* Instrument-400-700.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 06E4AAE7EA26F36F2113797A /* Instrument-400-700.woff2 */; };
+		8EB854C3F6F93AC56FF3E7B8 /* FathomBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC84EF52CDA7D3DCC028872A /* FathomBarApp.swift */; };
+		8F4B019527E761D3BC4055B4 /* SensorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 539B24AFD3D55C78D146787E /* SensorsView.swift */; };
+		9827274436CD35514F03A74A /* CloudAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A188703CB9CC4BFC475BFA /* CloudAppModel.swift */; };
+		9C981B0DC1980DD3FF683C86 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F35CCAB9746A8E5D6566F9A /* TimelineView.swift */; };
+		A3940CBC432586E91CCCBA98 /* CloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CCB0D1EC7444D9DF70926E /* CloudView.swift */; };
+		A68931E29E500188A92CDE37 /* StorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71CCD5AC346A305E1CE6936 /* StorageView.swift */; };
+		A97004A6606AB562BAB260B5 /* FathomFontRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53B5538B1862593EC3EDFEC /* FathomFontRegistrar.swift */; };
+		AB1942B7E5580B03317DC486 /* SystemMonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625BFF69D5841D411A910A7C /* SystemMonitorModel.swift */; };
+		AE23B39487BB0C123D10CB6E /* ConsequenceAlertScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EED15A282F01428377BDB5 /* ConsequenceAlertScheduler.swift */; };
+		B07EFBCE3966CE0364961007 /* PublicIPAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FCBB73760F21E3ACF21283 /* PublicIPAppModel.swift */; };
+		B3EAEA6C47065479B65ACE6B /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B53C4851511439539956F03 /* ExploreView.swift */; };
+		BB5B49218EBCCB6395777AA7 /* MenuBarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031FE88C093F3A66F0287C00 /* MenuBarSettingsView.swift */; };
+		BD887A1E1388390E24271165 /* StorageAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777FCF0EA20710D67810D800 /* StorageAppModel.swift */; };
+		C35495DA37820DECDB6566FC /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */; };
+		CCBD91DF100B410904841964 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */; };
+		CFA9CC050D160625B46590F4 /* FathomPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1808B04B2E72D33D172481FD /* FathomPoster.swift */; };
+		D1E3B8F76C6F117645E1DE04 /* FathomBarSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C5696753C976CE6ED50826 /* FathomBarSampler.swift */; };
+		D29E9019C325B8C87B0887B8 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A927F52F7D48D2D39328DA48 /* AttributionView.swift */; };
+		DD5413373807F480D68DC1DA /* Bricolage-200-800.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = A0CF38A4B87D9BDFFF9157AC /* Bricolage-200-800.woff2 */; };
+		E08DA37B5FA5E29C9591113A /* WeeklyDigestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8576B6B198461A3F8D5E0B75 /* WeeklyDigestView.swift */; };
+		E27B078D696D1F69D7B39DCB /* GPUView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F927B51C8F9363546595F4 /* GPUView.swift */; };
+		E8BDD357ED9F649EEF505493 /* MaintenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFBFB98D440B3C4B66B38142 /* MaintenanceView.swift */; };
+		E9ADB1FFDF48D30FFC3BBD89 /* FathomBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F516517F811E44D1E159AAE6 /* FathomBarController.swift */; };
+		F93B533607615A17A594B6AA /* CountryFlagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */; };
+		FCBDFEC1CD86E50AFF1C27B5 /* MeasurementValueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281148293D3C18632623158F /* MeasurementValueView.swift */; };
+		FD944092E0514237EEAF5CAF /* ApplicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7647E769F99C4551F5240FE2 /* ApplicationsView.swift */; };
+		FEAE9ECA7F01C92ECDE892BB /* HonestUnavailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1462B4CBB0C807581885D9E /* HonestUnavailableView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		62420F05867E6C855395758E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 677CBAC0065F331D162F97F2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3BD5CD31808A8EA108F2BFE9;
+			remoteInfo = FathomBar;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		031FE88C093F3A66F0287C00 /* MenuBarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsView.swift; sourceTree = "<group>"; };
+		03F45B1BBF1E502165377975 /* MemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryView.swift; sourceTree = "<group>"; };
+		06E4AAE7EA26F36F2113797A /* Instrument-400-700.woff2 */ = {isa = PBXFileReference; path = "Instrument-400-700.woff2"; sourceTree = "<group>"; };
+		0AAA420D99CCBAA8D33CD09F /* BluetoothView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothView.swift; sourceTree = "<group>"; };
+		1808B04B2E72D33D172481FD /* FathomPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomPoster.swift; sourceTree = "<group>"; };
+		19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryFlagView.swift; sourceTree = "<group>"; };
+		1C24DE280F30F263E1A8C02C /* NetworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkView.swift; sourceTree = "<group>"; };
+		281148293D3C18632623158F /* MeasurementValueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasurementValueView.swift; sourceTree = "<group>"; };
+		2862F6DE16E0C36F54151D94 /* ReclaimAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReclaimAppModel.swift; sourceTree = "<group>"; };
+		2CEE6651EBD25A86CA7B6BE8 /* DeepScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepScanView.swift; sourceTree = "<group>"; };
+		3B0DCC3F5DC17CC8479C114D /* ApplicationsAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsAppModel.swift; sourceTree = "<group>"; };
+		4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		449451493A035832EBCE933B /* JB-500.woff2 */ = {isa = PBXFileReference; path = "JB-500.woff2"; sourceTree = "<group>"; };
+		45B489D4B03A2890ED96B9DD /* EnduranceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnduranceView.swift; sourceTree = "<group>"; };
+		4F35CCAB9746A8E5D6566F9A /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
+		4F5A1184E63B9E35E804089D /* FathomWorldBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomWorldBackground.swift; sourceTree = "<group>"; };
+		4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
+		51C5696753C976CE6ED50826 /* FathomBarSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomBarSampler.swift; sourceTree = "<group>"; };
+		52EED15A282F01428377BDB5 /* ConsequenceAlertScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsequenceAlertScheduler.swift; sourceTree = "<group>"; };
+		539B24AFD3D55C78D146787E /* SensorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorsView.swift; sourceTree = "<group>"; };
+		545DAABC5837C80A39A8A968 /* FathomRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomRootView.swift; sourceTree = "<group>"; };
+		561ADBF0D541A8F725DAD8FE /* SSDHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSDHealthView.swift; sourceTree = "<group>"; };
+		5F92D2353D8A317AE7363F76 /* HistoryAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryAppModel.swift; sourceTree = "<group>"; };
+		625BFF69D5841D411A910A7C /* SystemMonitorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorModel.swift; sourceTree = "<group>"; };
+		67FCBB73760F21E3ACF21283 /* PublicIPAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicIPAppModel.swift; sourceTree = "<group>"; };
+		6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */ = {isa = PBXFileReference; path = "JB-400.woff2"; sourceTree = "<group>"; };
+		7647E769F99C4551F5240FE2 /* ApplicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsView.swift; sourceTree = "<group>"; };
+		777FCF0EA20710D67810D800 /* StorageAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageAppModel.swift; sourceTree = "<group>"; };
+		77C36AF54286367ED1515DD1 /* DigestNotificationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigestNotificationModel.swift; sourceTree = "<group>"; };
+		7C0006F7DD089D4E9B9019F6 /* FathomSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSidebar.swift; sourceTree = "<group>"; };
+		7C6BAEC548FF99B9E87DDD7E /* FATHOM */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FATHOM; path = .; sourceTree = SOURCE_ROOT; };
+		8341C837ABC0DBF21863688C /* CPUView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUView.swift; sourceTree = "<group>"; };
+		8576B6B198461A3F8D5E0B75 /* WeeklyDigestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyDigestView.swift; sourceTree = "<group>"; };
+		8779E0AEA77AD830E2CCC2E7 /* ReclaimView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReclaimView.swift; sourceTree = "<group>"; };
+		8ABEC91B120D4F6001235AE5 /* Fathom.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fathom.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B53C4851511439539956F03 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		A0CF38A4B87D9BDFFF9157AC /* Bricolage-200-800.woff2 */ = {isa = PBXFileReference; path = "Bricolage-200-800.woff2"; sourceTree = "<group>"; };
+		A1462B4CBB0C807581885D9E /* HonestUnavailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HonestUnavailableView.swift; sourceTree = "<group>"; };
+		A2C90C6B8600E922850878FE /* FathomApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomApp.swift; sourceTree = "<group>"; };
+		A38F3DE0081B92E7A276145C /* OnboardingAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingAppModel.swift; sourceTree = "<group>"; };
+		A927F52F7D48D2D39328DA48 /* AttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionView.swift; sourceTree = "<group>"; };
+		AD22D5F5363F8E53F1D5C7CF /* Fathom.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fathom.entitlements; sourceTree = "<group>"; };
+		AF1A329A8585A05C86AED6C1 /* CountryFlags */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CountryFlags; path = Fathom/Resources/CountryFlags; sourceTree = SOURCE_ROOT; };
+		B151F28FCD074A2973C21BDE /* FathomDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomDesign.swift; sourceTree = "<group>"; };
+		B6BFB8BBAA63E7647C56F02D /* AttributionAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionAppModel.swift; sourceTree = "<group>"; };
+		BE4A2EE215BDF8ED6EF0EA7A /* HardwareAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareAppModel.swift; sourceTree = "<group>"; };
+		C97FCFDAE0C6C91C52E86ABF /* CommandPaletteModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteModel.swift; sourceTree = "<group>"; };
+		CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareMeasurementView.swift; sourceTree = "<group>"; };
+		D3A188703CB9CC4BFC475BFA /* CloudAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudAppModel.swift; sourceTree = "<group>"; };
+		D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FathomBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5CCB0D1EC7444D9DF70926E /* CloudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudView.swift; sourceTree = "<group>"; };
+		DFBFB98D440B3C4B66B38142 /* MaintenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceView.swift; sourceTree = "<group>"; };
+		E53B5538B1862593EC3EDFEC /* FathomFontRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomFontRegistrar.swift; sourceTree = "<group>"; };
+		E71CCD5AC346A305E1CE6936 /* StorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageView.swift; sourceTree = "<group>"; };
+		EC84EF52CDA7D3DCC028872A /* FathomBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomBarApp.swift; sourceTree = "<group>"; };
+		EF2F32D0634162F1B5FDDBF5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F1ADA735ABF89778889AD712 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		F516517F811E44D1E159AAE6 /* FathomBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomBarController.swift; sourceTree = "<group>"; };
+		F7F927B51C8F9363546595F4 /* GPUView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		12971DB105C309C9B9E0B1B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1397EAEDAF312842109F94E8 /* FathomKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE5DF6C4A732237BB7AE21F0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				224D999EBC11B0E0FD314388 /* FathomKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		175EB6620180D370C6263916 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				1C24DE280F30F263E1A8C02C /* NetworkView.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		1AC4814A777B84C945D27EA2 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				3B0DCC3F5DC17CC8479C114D /* ApplicationsAppModel.swift */,
+				B6BFB8BBAA63E7647C56F02D /* AttributionAppModel.swift */,
+				D3A188703CB9CC4BFC475BFA /* CloudAppModel.swift */,
+				C97FCFDAE0C6C91C52E86ABF /* CommandPaletteModel.swift */,
+				4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */,
+				52EED15A282F01428377BDB5 /* ConsequenceAlertScheduler.swift */,
+				77C36AF54286367ED1515DD1 /* DigestNotificationModel.swift */,
+				AD22D5F5363F8E53F1D5C7CF /* Fathom.entitlements */,
+				A2C90C6B8600E922850878FE /* FathomApp.swift */,
+				545DAABC5837C80A39A8A968 /* FathomRootView.swift */,
+				BE4A2EE215BDF8ED6EF0EA7A /* HardwareAppModel.swift */,
+				5F92D2353D8A317AE7363F76 /* HistoryAppModel.swift */,
+				A38F3DE0081B92E7A276145C /* OnboardingAppModel.swift */,
+				4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */,
+				67FCBB73760F21E3ACF21283 /* PublicIPAppModel.swift */,
+				2862F6DE16E0C36F54151D94 /* ReclaimAppModel.swift */,
+				777FCF0EA20710D67810D800 /* StorageAppModel.swift */,
+				625BFF69D5841D411A910A7C /* SystemMonitorModel.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		1FC3F487F2796132DEE92622 /* Cloud */ = {
+			isa = PBXGroup;
+			children = (
+				D5CCB0D1EC7444D9DF70926E /* CloudView.swift */,
+			);
+			path = Cloud;
+			sourceTree = "<group>";
+		};
+		1FEF803424E10C5F30112DF4 /* Sensors */ = {
+			isa = PBXGroup;
+			children = (
+				539B24AFD3D55C78D146787E /* SensorsView.swift */,
+			);
+			path = Sensors;
+			sourceTree = "<group>";
+		};
+		2CCA03E62C59ABC20B9BF057 /* SSDHealth */ = {
+			isa = PBXGroup;
+			children = (
+				561ADBF0D541A8F725DAD8FE /* SSDHealthView.swift */,
+			);
+			path = SSDHealth;
+			sourceTree = "<group>";
+		};
+		3489981FAA3B5B29411A733F /* Fathom */ = {
+			isa = PBXGroup;
+			children = (
+				1AC4814A777B84C945D27EA2 /* App */,
+				41FE5F6678E1026B86379598 /* Components */,
+				D35BCE44F32361321C429C63 /* Design */,
+				D7D02B5405443C110ABAA180 /* Resources */,
+				EA8C3100DB751368BD52A723 /* Sections */,
+			);
+			path = Fathom;
+			sourceTree = "<group>";
+		};
+		3B0B253771E657EA1BCA789E /* Timeline */ = {
+			isa = PBXGroup;
+			children = (
+				4F35CCAB9746A8E5D6566F9A /* TimelineView.swift */,
+			);
+			path = Timeline;
+			sourceTree = "<group>";
+		};
+		3E410B3947AA0F7FFA688B3C /* Applications */ = {
+			isa = PBXGroup;
+			children = (
+				7647E769F99C4551F5240FE2 /* ApplicationsView.swift */,
+			);
+			path = Applications;
+			sourceTree = "<group>";
+		};
+		41FE5F6678E1026B86379598 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */,
+				1808B04B2E72D33D172481FD /* FathomPoster.swift */,
+				7C0006F7DD089D4E9B9019F6 /* FathomSidebar.swift */,
+				CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */,
+				A1462B4CBB0C807581885D9E /* HonestUnavailableView.swift */,
+				281148293D3C18632623158F /* MeasurementValueView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		458BBB7272A32AEFDB011F5F /* DeepScan */ = {
+			isa = PBXGroup;
+			children = (
+				2CEE6651EBD25A86CA7B6BE8 /* DeepScanView.swift */,
+			);
+			path = DeepScan;
+			sourceTree = "<group>";
+		};
+		480C59CC2F44837417B91FD8 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				A0CF38A4B87D9BDFFF9157AC /* Bricolage-200-800.woff2 */,
+				06E4AAE7EA26F36F2113797A /* Instrument-400-700.woff2 */,
+				6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */,
+				449451493A035832EBCE933B /* JB-500.woff2 */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		49F25A6610FE3CC302EC82DF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8ABEC91B120D4F6001235AE5 /* Fathom.app */,
+				D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		632B24E2F95F60CC638677D6 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				031FE88C093F3A66F0287C00 /* MenuBarSettingsView.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		64D0C0D08A0F5B491E5A764D /* Endurance */ = {
+			isa = PBXGroup;
+			children = (
+				45B489D4B03A2890ED96B9DD /* EnduranceView.swift */,
+			);
+			path = Endurance;
+			sourceTree = "<group>";
+		};
+		79A56AB9F45EFCD59F1FAA47 /* Attribution */ = {
+			isa = PBXGroup;
+			children = (
+				A927F52F7D48D2D39328DA48 /* AttributionView.swift */,
+			);
+			path = Attribution;
+			sourceTree = "<group>";
+		};
+		7C58E9359D618FD12D34F498 /* CPU */ = {
+			isa = PBXGroup;
+			children = (
+				8341C837ABC0DBF21863688C /* CPUView.swift */,
+			);
+			path = CPU;
+			sourceTree = "<group>";
+		};
+		904D8DC0FA81DEC48021EC8E /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				E71CCD5AC346A305E1CE6936 /* StorageView.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		9A69176B35203301C70F6135 /* Bluetooth */ = {
+			isa = PBXGroup;
+			children = (
+				0AAA420D99CCBAA8D33CD09F /* BluetoothView.swift */,
+			);
+			path = Bluetooth;
+			sourceTree = "<group>";
+		};
+		A5D0683359786F516C028EFA /* FathomBar */ = {
+			isa = PBXGroup;
+			children = (
+				EC84EF52CDA7D3DCC028872A /* FathomBarApp.swift */,
+				F516517F811E44D1E159AAE6 /* FathomBarController.swift */,
+				51C5696753C976CE6ED50826 /* FathomBarSampler.swift */,
+			);
+			path = FathomBar;
+			sourceTree = "<group>";
+		};
+		AAAE67AA58463E4AC221893A /* Explore */ = {
+			isa = PBXGroup;
+			children = (
+				9B53C4851511439539956F03 /* ExploreView.swift */,
+			);
+			path = Explore;
+			sourceTree = "<group>";
+		};
+		BD63281907BFE427A2AE2366 = {
+			isa = PBXGroup;
+			children = (
+				3489981FAA3B5B29411A733F /* Fathom */,
+				A5D0683359786F516C028EFA /* FathomBar */,
+				CA0497E5CA03B461459F5C3B /* Packages */,
+				49F25A6610FE3CC302EC82DF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C43B3F7D2573B974177D9D45 /* Digest */ = {
+			isa = PBXGroup;
+			children = (
+				8576B6B198461A3F8D5E0B75 /* WeeklyDigestView.swift */,
+			);
+			path = Digest;
+			sourceTree = "<group>";
+		};
+		CA0497E5CA03B461459F5C3B /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				7C6BAEC548FF99B9E87DDD7E /* FATHOM */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		D35BCE44F32361321C429C63 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				B151F28FCD074A2973C21BDE /* FathomDesign.swift */,
+				E53B5538B1862593EC3EDFEC /* FathomFontRegistrar.swift */,
+				4F5A1184E63B9E35E804089D /* FathomWorldBackground.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		D7D02B5405443C110ABAA180 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				EF2F32D0634162F1B5FDDBF5 /* Assets.xcassets */,
+				AF1A329A8585A05C86AED6C1 /* CountryFlags */,
+				480C59CC2F44837417B91FD8 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		E3306559BCAB6C4D1DE8402F /* Memory */ = {
+			isa = PBXGroup;
+			children = (
+				03F45B1BBF1E502165377975 /* MemoryView.swift */,
+			);
+			path = Memory;
+			sourceTree = "<group>";
+		};
+		E949DBA7509246DDA887B9A8 /* Maintenance */ = {
+			isa = PBXGroup;
+			children = (
+				DFBFB98D440B3C4B66B38142 /* MaintenanceView.swift */,
+			);
+			path = Maintenance;
+			sourceTree = "<group>";
+		};
+		E9FC444B5FC7E0B9A065C842 /* Reclaim */ = {
+			isa = PBXGroup;
+			children = (
+				8779E0AEA77AD830E2CCC2E7 /* ReclaimView.swift */,
+			);
+			path = Reclaim;
+			sourceTree = "<group>";
+		};
+		EA8C3100DB751368BD52A723 /* Sections */ = {
+			isa = PBXGroup;
+			children = (
+				3E410B3947AA0F7FFA688B3C /* Applications */,
+				79A56AB9F45EFCD59F1FAA47 /* Attribution */,
+				9A69176B35203301C70F6135 /* Bluetooth */,
+				1FC3F487F2796132DEE92622 /* Cloud */,
+				7C58E9359D618FD12D34F498 /* CPU */,
+				458BBB7272A32AEFDB011F5F /* DeepScan */,
+				C43B3F7D2573B974177D9D45 /* Digest */,
+				64D0C0D08A0F5B491E5A764D /* Endurance */,
+				AAAE67AA58463E4AC221893A /* Explore */,
+				F25D4546C80F6E03BE62B309 /* GPU */,
+				EFA02FEEECA2B825DB2DEAC2 /* Home */,
+				E949DBA7509246DDA887B9A8 /* Maintenance */,
+				E3306559BCAB6C4D1DE8402F /* Memory */,
+				632B24E2F95F60CC638677D6 /* MenuBar */,
+				175EB6620180D370C6263916 /* Network */,
+				E9FC444B5FC7E0B9A065C842 /* Reclaim */,
+				1FEF803424E10C5F30112DF4 /* Sensors */,
+				2CCA03E62C59ABC20B9BF057 /* SSDHealth */,
+				904D8DC0FA81DEC48021EC8E /* Storage */,
+				3B0B253771E657EA1BCA789E /* Timeline */,
+			);
+			path = Sections;
+			sourceTree = "<group>";
+		};
+		EFA02FEEECA2B825DB2DEAC2 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				F1ADA735ABF89778889AD712 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		F25D4546C80F6E03BE62B309 /* GPU */ = {
+			isa = PBXGroup;
+			children = (
+				F7F927B51C8F9363546595F4 /* GPUView.swift */,
+			);
+			path = GPU;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3BD5CD31808A8EA108F2BFE9 /* FathomBar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1FDDB9ACB755D4E746868213 /* Build configuration list for PBXNativeTarget "FathomBar" */;
+			buildPhases = (
+				0F5491F0298F092DC441E609 /* Sources */,
+				12971DB105C309C9B9E0B1B1 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FathomBar;
+			packageProductDependencies = (
+				D081A305E24079B45FA59C2F /* FathomKit */,
+			);
+			productName = FathomBar;
+			productReference = D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B217A4083BB788E448CC4535 /* Fathom */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 473022B3EB867CD3D4347D40 /* Build configuration list for PBXNativeTarget "Fathom" */;
+			buildPhases = (
+				9F450E3B4F9F0A8B25C33317 /* Sources */,
+				55E5048A2075C44C3D598EF8 /* Resources */,
+				DE5DF6C4A732237BB7AE21F0 /* Frameworks */,
+				669008E3091FDBCECB6715B5 /* Embed menu bar agent */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E75A9762F45AC7FA02BAC210 /* PBXTargetDependency */,
+			);
+			name = Fathom;
+			packageProductDependencies = (
+				9EC85ED3F402750C6713C7DA /* FathomKit */,
+			);
+			productName = Fathom;
+			productReference = 8ABEC91B120D4F6001235AE5 /* Fathom.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		677CBAC0065F331D162F97F2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = 1A23DB94EE140EE8ACDEA09A /* Build configuration list for PBXProject "Fathom" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = BD63281907BFE427A2AE2366;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				69165C6EDF540D8EFFBFBB46 /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B217A4083BB788E448CC4535 /* Fathom */,
+				3BD5CD31808A8EA108F2BFE9 /* FathomBar */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		55E5048A2075C44C3D598EF8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E354ACCE4D66513004556BC /* Assets.xcassets in Resources */,
+				DD5413373807F480D68DC1DA /* Bricolage-200-800.woff2 in Resources */,
+				83ABE218205B9202A23BC3C5 /* CountryFlags in Resources */,
+				8C9CF78A2EB0072AA592493A /* Instrument-400-700.woff2 in Resources */,
+				6CC701C6C4D89F7AAE2912A8 /* JB-400.woff2 in Resources */,
+				7346A8557B8ADF960BDCDF77 /* JB-500.woff2 in Resources */,
+				798ED73E3ECE1FD2E49BAE1E /* FathomBar.app in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		669008E3091FDBCECB6715B5 /* Embed menu bar agent */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/FathomBar/LaunchAgent/com.exhibinaut.fathom.bar.plist",
+			);
+			name = "Embed menu bar agent";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Library/LaunchAgents/com.exhibinaut.fathom.bar.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\nagents=\"${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Library/LaunchAgents\"\nmkdir -p \"$agents\"\ncp \"${SRCROOT}/FathomBar/LaunchAgent/com.exhibinaut.fathom.bar.plist\" \"$agents/com.exhibinaut.fathom.bar.plist\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0F5491F0298F092DC441E609 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8EB854C3F6F93AC56FF3E7B8 /* FathomBarApp.swift in Sources */,
+				E9ADB1FFDF48D30FFC3BBD89 /* FathomBarController.swift in Sources */,
+				D1E3B8F76C6F117645E1DE04 /* FathomBarSampler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F450E3B4F9F0A8B25C33317 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				86990F7F83D93C511C8065AA /* ApplicationsAppModel.swift in Sources */,
+				FD944092E0514237EEAF5CAF /* ApplicationsView.swift in Sources */,
+				85DC372D591591F19CE9239D /* AttributionAppModel.swift in Sources */,
+				D29E9019C325B8C87B0887B8 /* AttributionView.swift in Sources */,
+				247FBC85DA9C41C0D3D1A57B /* BluetoothView.swift in Sources */,
+				1DF8C8D2CB4747FF2737150D /* CPUView.swift in Sources */,
+				9827274436CD35514F03A74A /* CloudAppModel.swift in Sources */,
+				A3940CBC432586E91CCCBA98 /* CloudView.swift in Sources */,
+				7F8B6E2991590E7F6AC98D17 /* CommandPaletteModel.swift in Sources */,
+				C35495DA37820DECDB6566FC /* CommandPaletteView.swift in Sources */,
+				AE23B39487BB0C123D10CB6E /* ConsequenceAlertScheduler.swift in Sources */,
+				F93B533607615A17A594B6AA /* CountryFlagView.swift in Sources */,
+				1DB47E259FD47D4DA0F9B3E2 /* DeepScanView.swift in Sources */,
+				88DD0719259B1367D339C749 /* DigestNotificationModel.swift in Sources */,
+				349332E244F94C2FADA5B9DA /* EnduranceView.swift in Sources */,
+				B3EAEA6C47065479B65ACE6B /* ExploreView.swift in Sources */,
+				70EF4FB835B04058A9FD97E4 /* FathomApp.swift in Sources */,
+				2787064A4C984CA855F56D72 /* FathomDesign.swift in Sources */,
+				A97004A6606AB562BAB260B5 /* FathomFontRegistrar.swift in Sources */,
+				CFA9CC050D160625B46590F4 /* FathomPoster.swift in Sources */,
+				56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */,
+				2C34A2C7529A22F71CD97CB4 /* FathomSidebar.swift in Sources */,
+				628172EE3332DD184B6F7A4F /* FathomWorldBackground.swift in Sources */,
+				E27B078D696D1F69D7B39DCB /* GPUView.swift in Sources */,
+				19A14AC1502DF38A8E4ED8A7 /* HardwareAppModel.swift in Sources */,
+				86D66191B509594994E5E926 /* HardwareMeasurementView.swift in Sources */,
+				19C174555493B4F2811212B8 /* HistoryAppModel.swift in Sources */,
+				8212DC930A138E0FDAB03B2E /* HomeView.swift in Sources */,
+				FEAE9ECA7F01C92ECDE892BB /* HonestUnavailableView.swift in Sources */,
+				E8BDD357ED9F649EEF505493 /* MaintenanceView.swift in Sources */,
+				FCBDFEC1CD86E50AFF1C27B5 /* MeasurementValueView.swift in Sources */,
+				5CD71D496F23B9A964B3C344 /* MemoryView.swift in Sources */,
+				BB5B49218EBCCB6395777AA7 /* MenuBarSettingsView.swift in Sources */,
+				02D47A10C5BBAEE1F6E52975 /* NetworkView.swift in Sources */,
+				322EC26D48C9E6A8BB71F879 /* OnboardingAppModel.swift in Sources */,
+				CCBD91DF100B410904841964 /* OnboardingView.swift in Sources */,
+				B07EFBCE3966CE0364961007 /* PublicIPAppModel.swift in Sources */,
+				1C4B9BA6913DD27AF1EA57DF /* ReclaimAppModel.swift in Sources */,
+				5DD2A3A07A8CA8F173C4C97F /* ReclaimView.swift in Sources */,
+				47C3FB2D7C451FF73B190BAE /* SSDHealthView.swift in Sources */,
+				8F4B019527E761D3BC4055B4 /* SensorsView.swift in Sources */,
+				BD887A1E1388390E24271165 /* StorageAppModel.swift in Sources */,
+				A68931E29E500188A92CDE37 /* StorageView.swift in Sources */,
+				AB1942B7E5580B03317DC486 /* SystemMonitorModel.swift in Sources */,
+				9C981B0DC1980DD3FF683C86 /* TimelineView.swift in Sources */,
+				E08DA37B5FA5E29C9591113A /* WeeklyDigestView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E75A9762F45AC7FA02BAC210 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3BD5CD31808A8EA108F2BFE9 /* FathomBar */;
+			targetProxy = 62420F05867E6C855395758E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		136179C2F4213A53887E7564 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Fathom/App/Fathom.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = FATHOM;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSMinimumSystemVersion = 14.0;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "FATHOM reads paired Bluetooth devices only to show their connection state and, where the device reports it, its battery level.";
+				INFOPLIST_KEY_NSHighResolutionCapable = YES;
+				INFOPLIST_KEY_NSLocationUsageDescription = "FATHOM uses location only when you ask to read the connected Wi-Fi network name.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.exhibinaut.fathom;
+				PRODUCT_NAME = FATHOM;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		50C29948E5730D1D29E6E536 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "FATHOM Bar";
+				INFOPLIST_KEY_LSMinimumSystemVersion = 14.0;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.exhibinaut.fathom.bar;
+				PRODUCT_NAME = "FATHOM Bar";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		9BB3C1FCA9EB4D9543D1C91F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		B102FD4DAC55EC780A08CE66 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D7D480DF92E0558FACC9F892 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "FATHOM Bar";
+				INFOPLIST_KEY_LSMinimumSystemVersion = 14.0;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.exhibinaut.fathom.bar;
+				PRODUCT_NAME = "FATHOM Bar";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		E5D49AE37F0281AA80EA05A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Fathom/App/Fathom.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = FATHOM;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSMinimumSystemVersion = 14.0;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "FATHOM reads paired Bluetooth devices only to show their connection state and, where the device reports it, its battery level.";
+				INFOPLIST_KEY_NSHighResolutionCapable = YES;
+				INFOPLIST_KEY_NSLocationUsageDescription = "FATHOM uses location only when you ask to read the connected Wi-Fi network name.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.exhibinaut.fathom;
+				PRODUCT_NAME = FATHOM;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A23DB94EE140EE8ACDEA09A /* Build configuration list for PBXProject "Fathom" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BB3C1FCA9EB4D9543D1C91F /* Debug */,
+				B102FD4DAC55EC780A08CE66 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1FDDB9ACB755D4E746868213 /* Build configuration list for PBXNativeTarget "FathomBar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				50C29948E5730D1D29E6E536 /* Debug */,
+				D7D480DF92E0558FACC9F892 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		473022B3EB867CD3D4347D40 /* Build configuration list for PBXNativeTarget "Fathom" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				136179C2F4213A53887E7564 /* Debug */,
+				E5D49AE37F0281AA80EA05A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		69165C6EDF540D8EFFBFBB46 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9EC85ED3F402750C6713C7DA /* FathomKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FathomKit;
+		};
+		D081A305E24079B45FA59C2F /* FathomKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FathomKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 677CBAC0065F331D162F97F2 /* Project object */;
+}

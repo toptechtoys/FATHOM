@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: brew install bats-core xcodegen shellcheck
+      - name: Validate release shell
+        run: |
+          shellcheck scripts/release.sh
+          bats tests/release.bats
+      - name: Generate project
+        run: xcodegen generate
+      - name: Test FathomKit
+        run: swift test
+      - name: Build arm64 applications
+        run: |
+          xcodebuild -quiet -project Fathom.xcodeproj -scheme Fathom \
+            -configuration Release -destination 'generic/platform=macOS' \
+            -derivedDataPath build-dd \
+            CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -quiet -project Fathom.xcodeproj -scheme FathomBar \
+            -configuration Release -destination 'generic/platform=macOS' \
+            -derivedDataPath build-dd \
+            CODE_SIGNING_ALLOWED=NO build
+      - name: Verify shipped privacy usage descriptions
+        run: |
+          # A TCC-gated read without its usage string terminates the process at
+          # runtime, which no build or unit test can catch.
+          plist=build-dd/Build/Products/Release/FATHOM.app/Contents/Info.plist
+          test -f "$plist"
+          /usr/libexec/PlistBuddy -c 'Print :NSBluetoothAlwaysUsageDescription' "$plist"
+          /usr/libexec/PlistBuddy -c 'Print :NSLocationUsageDescription' "$plist"
+      - name: Audit forbidden shipping APIs
+        run: |
+          ! rg -n 'unlink\(|removeItem\(|Process\(|NSTask|system_profiler|tmutil|diskutil' \
+            Fathom FathomKit FathomBar
+          test "$(rg -l 'URLSession|URLRequest' Fathom FathomKit FathomBar | wc -l | tr -d ' ')" = 1
+          rg -n 'cloudflare\.com/cdn-cgi/trace' FathomKit/System/PublicIPService.swift
