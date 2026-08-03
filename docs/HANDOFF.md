@@ -112,7 +112,52 @@ established in `MeasurementValueView`.
 - `RELEASE-GATES.md` — gate 1 gains the disk-headroom requirement (§4), plus new
   gates 5 (Bluetooth on the signed build) and 6 (section-navigation lifecycle).
 
-### 1.7 Files changed
+### 1.7 Version control, and Git LFS for the images
+
+The workspace had no `.git`. It is now a repository on `main` with four commits:
+
+```
+267c6a5  Check every app icon for an LFS pointer, not just the 1024
+f472c7f  Fail the build when the app icon is an unresolved Git LFS pointer
+b1494f4  Keep the app icon intact now that the artwork lives in Git LFS
+802a1a2  Initial import: FATHOM at its first honestly-green build
+```
+
+The import is a single commit because the pre-session state was unrecoverable —
+there was no history to diff against, so a split would have been fabricated.
+`.gitignore` already covered `.build/` (1.6 GB); `FATHOM-handoff.zip` was added
+to it after inspection showed it to be a stale 30 July copy of `AGENTS.md` and
+`docs/` that this repository already tracks. It remains on disk, untracked, so
+the duplicate cannot drift from the originals.
+
+**Ten images are stored in Git LFS**: three `docs/*.png` — 11.7 MB of the
+16.1 MB initial import, so roughly three-quarters of it — and the seven
+`AppIcon-*.png`. `.gitattributes` carries both patterns. LFS does not shrink the
+local repository; the win is that re-exporting a screenshot adds one object
+instead of welding another 5 MB blob into history permanently.
+
+Two things about this are worth knowing before touching it:
+
+- `git lfs migrate import` leaves the working tree holding **132-byte pointer
+  files**, not the images. It happened on both migrations. `git lfs checkout`
+  materialises them. Checksums were taken before each migration and re-verified
+  after; all ten files are byte-identical to their pre-LFS originals.
+- **An unresolved pointer is a readable file.** `actool` compiles one into the
+  asset catalog without complaint, so a clone without git-lfs produces a green
+  build and an app whose icon is 132 bytes of text. Three guards now prevent
+  that, and each was tested in both directions by corrupting `AppIcon-16.png` —
+  the file a 1024-only probe would have missed:
+
+  | Entry point | Guard | On a pointer |
+  |---|---|---|
+  | CI | `lfs: true` on `actions/checkout@v4` | objects fetched, so no pointer reaches the build |
+  | `scripts/release.sh` | refuses before archiving | **exit 3**, names the file |
+  | `xcodebuild` | pre-build phase in `project.yml` | **exit 65**, names the file |
+
+  Both scripted guards walk every PNG in `AppIcon.appiconset` and fail if the
+  directory yields none, so a moved or emptied iconset cannot pass silently.
+
+### 1.8 Files changed
 
 ```
 Fathom/App/SystemMonitorModel.swift          Fathom/Sections/Bluetooth/BluetoothView.swift
@@ -121,6 +166,7 @@ FathomKitTests/SystemReaderTests.swift       FathomKitTests/ReclaimEngineTests.s
 project.yml                                  scripts/release.sh
 .github/workflows/ci.yml                     docs/FATHOM-DATA-SOURCES.md
 docs/RELEASE-GATES.md                        docs/HANDOFF.md (this file)
+.gitignore                                   .gitattributes (new)
 ```
 
 Test count 110 → 112 (two added). No unrelated work was modified.
@@ -152,6 +198,9 @@ Contract constraints, each checked rather than assumed:
 | Three `Measurement` states | `Measurement.swift:6-8` — `known` / `notPublished` / `notAttributable`, no `.unknown` |
 | SSD Health read-only | 0 mutation matches in `SSDHealthView.swift` |
 | Privacy disclosures ship | `PlistBuddy` prints both strings from the built `FATHOM.app/Contents/Info.plist` |
+| LFS images intact | all 10 SHA-256s match the checksums taken before migration |
+| Icon survives the asset compiler | Release build produces a 2.9 MB `Assets.car`, `CFBundleIconName = AppIcon` |
+| Pointer guards fire | `AppIcon-16.png` corrupted → `release.sh` **exit 3**, `xcodebuild` **exit 65**, each naming the file |
 
 ### Runtime evidence — the engine was exercised, not only read
 
@@ -198,6 +247,15 @@ surfaced a real CI failure (§1.2).
 
 Follow `docs/RELEASE-GATES.md`; these are the items this session added or
 sharpened.
+
+**Before anything else: install git-lfs on that machine and fetch the objects.**
+The app icons are LFS objects, so this is now a build prerequisite, not a
+convenience. `git clone` followed by `git lfs pull` (or a clone with git-lfs
+already installed) is required; `git lfs ls-files` must list **10** files. A
+checkout without them fails the build deliberately — `xcodebuild` exits 65
+naming the offending icon — so the failure is loud rather than a silently
+wrong app icon. `xcodebuild`, `scripts/release.sh` and CI each enforce this
+independently.
 
 1. **Benchmark, including disk headroom.** The under-300 MB budget is a *memory*
    budget. The staged pipeline meets it by writing to SQLite instead of holding

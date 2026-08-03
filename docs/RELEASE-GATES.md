@@ -4,6 +4,19 @@ The implementation is buildable and testable without release credentials, but
 the following measurements must be made on the reference Apple-silicon Mac
 before a release can be called complete.
 
+## Prerequisite: Git LFS
+
+The app icons and the `docs/` screenshots are Git LFS objects, so **git-lfs is a
+build requirement, not a convenience**. Clone with git-lfs installed, or run
+`git lfs pull` afterwards; `git lfs ls-files` must list 10 files.
+
+An unresolved LFS pointer is a readable file that `actool` will happily compile,
+which would otherwise produce a green build and an app whose icon is 132 bytes
+of text. Three guards make that failure loud instead: CI checks out with
+`lfs: true`, `scripts/release.sh` refuses before archiving, and a pre-build phase
+in `project.yml` fails the build. The scripted guards check every PNG in
+`AppIcon.appiconset` and name the offending file.
+
 ## Reference Mac mini M4 Pro
 
 1. Build the Release CLI and run
