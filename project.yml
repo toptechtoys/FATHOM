@@ -39,23 +39,28 @@ targets:
       # The asset-catalog artwork is stored in Git LFS. An unresolved pointer is
       # a readable file, so actool compiles it without complaint and the app
       # ships with 132 bytes of text as its icon. Fail before that can happen.
-      - name: Verify app icon is not a Git LFS pointer
+      - name: Verify app icons are not Git LFS pointers
         basedOnDependencyAnalysis: false
         script: |
           set -eu
-          icon="${SRCROOT}/Fathom/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
-          if [ ! -f "$icon" ]; then
-            echo "error: missing app icon: $icon"
+          iconset="${SRCROOT}/Fathom/Resources/Assets.xcassets/AppIcon.appiconset"
+          checked=0
+          for icon in "$iconset"/*.png; do
+            [ -f "$icon" ] || continue
+            checked=$((checked + 1))
+            case "$(head -c 64 -- "$icon")" in
+              *git-lfs.github.com*)
+                echo "error: $icon is an unresolved Git LFS pointer. Run: git lfs checkout"
+                exit 1
+                ;;
+              *)
+                ;;
+            esac
+          done
+          if [ "$checked" -eq 0 ]; then
+            echo "error: no app icons found in $iconset"
             exit 1
           fi
-          case "$(head -c 64 -- "$icon")" in
-            *git-lfs.github.com*)
-              echo "error: app icons are unresolved Git LFS pointers. Run: git lfs checkout"
-              exit 1
-              ;;
-            *)
-              ;;
-          esac
     postBuildScripts:
       - name: Embed menu bar agent
         script: |

@@ -115,17 +115,24 @@ for prerequisite in xcodegen xcodebuild codesign xcrun ditto hdiutil spctl; do
 done
 
 # The app icons are Git LFS objects. An unresolved pointer still compiles, so a
-# release could ship with 132 bytes of text where the icon belongs. Refuse.
-readonly icon_path="${PROJECT_ROOT}/Fathom/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
-[[ -f "${icon_path}" ]] || fail "missing app icon: ${icon_path}" 3
-icon_header="$(head -c 64 -- "${icon_path}")"
-case "${icon_header}" in
-  *git-lfs.github.com*)
-    fail "app icons are unresolved Git LFS pointers; run: git lfs checkout" 3
-    ;;
-  *)
-    ;;
-esac
+# release could ship with 132 bytes of text where the icon belongs. Check every
+# icon, not just one: a partially materialised checkout is exactly the case a
+# single-file probe would wave through.
+readonly icon_directory="${PROJECT_ROOT}/Fathom/Resources/Assets.xcassets/AppIcon.appiconset"
+icons_checked=0
+for icon_path in "${icon_directory}"/*.png; do
+  [[ -f "${icon_path}" ]] || continue
+  icons_checked=$((icons_checked + 1))
+  icon_header="$(head -c 64 -- "${icon_path}")"
+  case "${icon_header}" in
+    *git-lfs.github.com*)
+      fail "unresolved Git LFS pointer: ${icon_path}; run: git lfs checkout" 3
+      ;;
+    *)
+      ;;
+  esac
+done
+[[ "${icons_checked}" -gt 0 ]] || fail "no app icons found in ${icon_directory}" 3
 
 readonly archive_path="${output_directory}/FATHOM-${release_version}.xcarchive"
 readonly zip_path="${output_directory}/FATHOM-${release_version}.zip"

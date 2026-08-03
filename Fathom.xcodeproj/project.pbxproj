@@ -490,7 +490,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 473022B3EB867CD3D4347D40 /* Build configuration list for PBXNativeTarget "Fathom" */;
 			buildPhases = (
-				D7353B96C80FAB02F4AD1A8F /* Verify app icon is not a Git LFS pointer */,
+				E24122F232EEA84AD3D60939 /* Verify app icons are not Git LFS pointers */,
 				9F450E3B4F9F0A8B25C33317 /* Sources */,
 				55E5048A2075C44C3D598EF8 /* Resources */,
 				DE5DF6C4A732237BB7AE21F0 /* Frameworks */,
@@ -579,7 +579,7 @@
 			shellPath = /bin/sh;
 			shellScript = "set -eu\nagents=\"${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Library/LaunchAgents\"\nmkdir -p \"$agents\"\ncp \"${SRCROOT}/FathomBar/LaunchAgent/com.exhibinaut.fathom.bar.plist\" \"$agents/com.exhibinaut.fathom.bar.plist\"\n";
 		};
-		D7353B96C80FAB02F4AD1A8F /* Verify app icon is not a Git LFS pointer */ = {
+		E24122F232EEA84AD3D60939 /* Verify app icons are not Git LFS pointers */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -589,14 +589,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Verify app icon is not a Git LFS pointer";
+			name = "Verify app icons are not Git LFS pointers";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\nicon=\"${SRCROOT}/Fathom/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png\"\nif [ ! -f \"$icon\" ]; then\n  echo \"error: missing app icon: $icon\"\n  exit 1\nfi\ncase \"$(head -c 64 -- \"$icon\")\" in\n  *git-lfs.github.com*)\n    echo \"error: app icons are unresolved Git LFS pointers. Run: git lfs checkout\"\n    exit 1\n    ;;\n  *)\n    ;;\nesac\n";
+			shellScript = "set -eu\niconset=\"${SRCROOT}/Fathom/Resources/Assets.xcassets/AppIcon.appiconset\"\nchecked=0\nfor icon in \"$iconset\"/*.png; do\n  [ -f \"$icon\" ] || continue\n  checked=$((checked + 1))\n  case \"$(head -c 64 -- \"$icon\")\" in\n    *git-lfs.github.com*)\n      echo \"error: $icon is an unresolved Git LFS pointer. Run: git lfs checkout\"\n      exit 1\n      ;;\n    *)\n      ;;\n  esac\ndone\nif [ \"$checked\" -eq 0 ]; then\n  echo \"error: no app icons found in $iconset\"\n  exit 1\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
