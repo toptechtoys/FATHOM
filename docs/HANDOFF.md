@@ -219,7 +219,9 @@ Test count 110 → 112 (two added). No unrelated work was modified.
 
 ## 2. Exact commands and results
 
-All run on the host named above, against the final tree.
+All run on the host named above. The whole set was re-run end to end after the
+CI, Git LFS and portability work landed, so these are results against the final
+tree rather than figures carried forward from when each fix was made.
 
 | Command | Result |
 |---|---|
@@ -237,15 +239,17 @@ Contract constraints, each checked rather than assumed:
 
 | Constraint | Evidence |
 |---|---|
-| No shipping shell-outs or permanent deletion | `rg 'unlink\(\|removeItem\(\|Process\(\|NSTask\|system_profiler\|tmutil\|diskutil'` → **0 matches** |
-| One outbound request | `rg -l 'URLSession\|URLRequest'` → **1 file**, `FathomKit/System/PublicIPService.swift` |
+| No shipping shell-outs or permanent deletion | CI's audit script, run locally: **0 matches** for `unlink(` / `removeItem(` / `Process(` / `NSTask` / `system_profiler` / `tmutil` / `diskutil` |
+| One outbound request | Same script: **exactly 1** file matches `URLSession\|URLRequest` — `FathomKit/System/PublicIPService.swift` |
 | Removal via Trash only | `FathomKit/Actions/ReclaimEngine.swift:168` `FileManager.default.trashItem` |
 | Three `Measurement` states | `Measurement.swift:6-8` — `known` / `notPublished` / `notAttributable`, no `.unknown` |
 | SSD Health read-only | 0 mutation matches in `SSDHealthView.swift` |
 | Privacy disclosures ship | `PlistBuddy` prints both strings from the built `FATHOM.app/Contents/Info.plist` |
 | LFS images intact | all 10 SHA-256s match the checksums taken before migration |
 | Icon survives the asset compiler | Release build produces a 2.9 MB `Assets.car`, `CFBundleIconName = AppIcon` |
-| Pointer guards fire | `AppIcon-16.png` corrupted → `release.sh` **exit 3**, `xcodebuild` **exit 65**, each naming the file |
+| Pointer guards fire | A different icon was corrupted on each pass — `AppIcon-1024`, `-16`, `-256`, `-64` — and every time `release.sh` **exit 3** and `xcodebuild` **exit 65**, naming that file. Rotating the target is what proves the guards walk the whole set rather than probing one path |
+| C layer builds on an older SDK | `CFathomStorage.c` compiles with all five `SNAPSHOT_MNT_*` names forcibly undefined, reproducing the runner condition that broke CI |
+| Local matches what CI verified | `git rev-parse HEAD` == `origin/main`, clean tree, latest CI run green |
 
 ### Runtime evidence — the engine was exercised, not only read
 
