@@ -114,6 +114,19 @@ for prerequisite in xcodegen xcodebuild codesign xcrun ditto hdiutil spctl; do
   require_command "${prerequisite}"
 done
 
+# The app icons are Git LFS objects. An unresolved pointer still compiles, so a
+# release could ship with 132 bytes of text where the icon belongs. Refuse.
+readonly icon_path="${PROJECT_ROOT}/Fathom/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
+[[ -f "${icon_path}" ]] || fail "missing app icon: ${icon_path}" 3
+icon_header="$(head -c 64 -- "${icon_path}")"
+case "${icon_header}" in
+  *git-lfs.github.com*)
+    fail "app icons are unresolved Git LFS pointers; run: git lfs checkout" 3
+    ;;
+  *)
+    ;;
+esac
+
 readonly archive_path="${output_directory}/FATHOM-${release_version}.xcarchive"
 readonly zip_path="${output_directory}/FATHOM-${release_version}.zip"
 readonly dmg_path="${output_directory}/FATHOM-${release_version}.dmg"

@@ -13,6 +13,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The app icons and docs images are Git LFS objects. checkout does not
+          # fetch them by default, and without this the asset-catalog compiler
+          # would consume 132-byte pointer files as artwork.
+          lfs: true
       - name: Install build tools
         run: brew install bats-core xcodegen shellcheck
       - name: Validate release shell
