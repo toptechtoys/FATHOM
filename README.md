@@ -1,5 +1,7 @@
 # FATHOM
 
+[![CI](https://github.com/toptechtoys/FATHOM/actions/workflows/ci.yml/badge.svg)](https://github.com/toptechtoys/FATHOM/actions/workflows/ci.yml)
+
 FATHOM is a native macOS utility for Apple silicon that reports storage,
 memory, and SSD endurance without disguising what macOS does not publish.
 Every measured value retains its source and one of three states: known, not

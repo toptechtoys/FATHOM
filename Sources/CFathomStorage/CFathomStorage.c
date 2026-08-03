@@ -14,6 +14,40 @@
 #include <sys/mount.h>
 #include <unistd.h>
 
+/* The SNAPSHOT_MNT_* names appeared in a later SDK than this project's macOS 14
+ * deployment target, so building against an older SDK cannot find them even
+ * though fs_snapshot_mount() itself has been available since macOS 10.12.
+ * <sys/snapshot.h> documents each flag as "same as MNT_*", and the values in
+ * <sys/mount.h> match exactly, so fall back to those long-standing constants
+ * rather than to bare literals. The assertions below fail loudly if a future
+ * SDK ever breaks that documented equivalence. */
+#ifndef SNAPSHOT_MNT_NOEXEC
+#define SNAPSHOT_MNT_NOEXEC MNT_NOEXEC
+#endif
+#ifndef SNAPSHOT_MNT_NOSUID
+#define SNAPSHOT_MNT_NOSUID MNT_NOSUID
+#endif
+#ifndef SNAPSHOT_MNT_NODEV
+#define SNAPSHOT_MNT_NODEV MNT_NODEV
+#endif
+#ifndef SNAPSHOT_MNT_DONTBROWSE
+#define SNAPSHOT_MNT_DONTBROWSE MNT_DONTBROWSE
+#endif
+#ifndef SNAPSHOT_MNT_NOFOLLOW
+#define SNAPSHOT_MNT_NOFOLLOW MNT_NOFOLLOW
+#endif
+
+_Static_assert(SNAPSHOT_MNT_NOEXEC == MNT_NOEXEC,
+               "SNAPSHOT_MNT_NOEXEC no longer matches MNT_NOEXEC");
+_Static_assert(SNAPSHOT_MNT_NOSUID == MNT_NOSUID,
+               "SNAPSHOT_MNT_NOSUID no longer matches MNT_NOSUID");
+_Static_assert(SNAPSHOT_MNT_NODEV == MNT_NODEV,
+               "SNAPSHOT_MNT_NODEV no longer matches MNT_NODEV");
+_Static_assert(SNAPSHOT_MNT_DONTBROWSE == MNT_DONTBROWSE,
+               "SNAPSHOT_MNT_DONTBROWSE no longer matches MNT_DONTBROWSE");
+_Static_assert(SNAPSHOT_MNT_NOFOLLOW == MNT_NOFOLLOW,
+               "SNAPSHOT_MNT_NOFOLLOW no longer matches MNT_NOFOLLOW");
+
 static uint64_t nonnegative_u64(int64_t value) {
     return value > 0 ? (uint64_t)value : 0;
 }
