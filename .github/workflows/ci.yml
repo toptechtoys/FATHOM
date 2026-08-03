@@ -59,7 +59,28 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :NSLocationUsageDescription' "$plist"
       - name: Audit forbidden shipping APIs
         run: |
-          ! rg -n 'unlink\(|removeItem\(|Process\(|NSTask|system_profiler|tmutil|diskutil' \
-            Fathom FathomKit FathomBar
-          test "$(rg -l 'URLSession|URLRequest' Fathom FathomKit FathomBar | wc -l | tr -d ' ')" = 1
-          rg -n 'cloudflare\.com/cdn-cgi/trace' FathomKit/System/PublicIPService.swift
+          set -eu
+          # grep, not ripgrep: rg is absent from the runner image, so this audit
+          # exited "command not found" and had never actually run. These are the
+          # product's non-negotiables; the check has to work.
+          if grep -rnE 'unlink\(|removeItem\(|Process\(|NSTask|system_profiler|tmutil|diskutil' \
+               --include='*.swift' Fathom FathomKit FathomBar; then
+            echo "::error::forbidden shipping API above (nothing is deleted; production reads the API)"
+            exit 1
+          fi
+          if ! outbound=$(grep -rlE 'URLSession|URLRequest' \
+                 --include='*.swift' Fathom FathomKit FathomBar); then
+            echo "::error::no outbound-network file found; expected PublicIPService.swift"
+            exit 1
+          fi
+          count=$(printf '%s\n' "$outbound" | wc -l | tr -d ' ')
+          if [ "$count" != "1" ]; then
+            echo "::error::one outbound request, ever — found $count files:"
+            printf '  %s\n' "$outbound"
+            exit 1
+          fi
+          grep -qE 'cloudflare\.com/cdn-cgi/trace' FathomKit/System/PublicIPService.swift || {
+            echo "::error::the public IP endpoint changed"
+            exit 1
+          }
+          echo "audit passed: 0 forbidden APIs, exactly 1 outbound-network file"
