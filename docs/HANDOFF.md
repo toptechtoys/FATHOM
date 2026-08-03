@@ -157,7 +157,50 @@ Two things about this are worth knowing before touching it:
   Both scripted guards walk every PNG in `AppIcon.appiconset` and fail if the
   directory yields none, so a moved or emptied iconset cannot pass silently.
 
-### 1.8 Files changed
+### 1.8 CI ran for the first time, and failed three times
+
+Pushing to GitHub triggered the workflow, which had never executed before —
+there was no remote. It failed three times, and every failure was real. None of
+them could have been found on this host, because this machine has the same
+macOS 26 SDK the code was written against.
+
+**A portability defect in the C layer.** `CFathomStorage.c` used the
+`SNAPSHOT_MNT_*` flag names, which older SDKs do not declare, so the build
+failed outright on anything but a macOS 26 SDK. `fs_snapshot_mount()` itself has
+been available since macOS 10.12 — only the names are new.
+`<sys/snapshot.h>` documents each flag as *"same as MNT_\*"* and the values in
+`<sys/mount.h>` match exactly, so the flags now fall back to those long-standing
+constants rather than to bare literals, with `_Static_assert`s that fail the
+build if a future SDK ever breaks that documented equivalence. Verified by
+compiling the translation unit with all five names forcibly undefined, which
+reproduces the runner's exact condition.
+
+**CI was on a toolchain the project never claimed to support.** The build then
+failed with strict-concurrency errors on `UNUserNotificationCenter` in
+`ConsequenceAlertScheduler` and `DigestNotificationModel`. Those were not app
+defects: the runner was `macos-15` with Xcode 16.4 and the macOS 15.5 SDK, where
+those UserNotifications types are not yet `Sendable`. `README.md` and
+`scripts/release.sh` both require **Xcode 26**; macOS 14 is the *deployment*
+target — what the app runs on — not the SDK it is built with. The job now runs
+on `macos-26`, which reports macOS 26.5.2, Xcode 26.6 and Swift 6.3.3, and a new
+step records `sw_vers`, `xcodebuild -version` and `swift --version` so every run
+proves which toolchain produced it.
+
+**The shipping-API audit had never executed.** It invoked `ripgrep`, which is
+absent from the runner image, so the step exited `rg: command not found`. Every
+earlier failure happened upstream of it, which is why nobody noticed: the check
+enforcing two non-negotiables — *nothing is deleted* and *one outbound request,
+ever* — was dead from the day it was written. It is now built on `grep`, always
+present, and each rule reports the rule it broke. Verified in four directions:
+passes on a clean tree; fails naming the file when a `removeItem` call is
+injected; fails reporting "found 2 files" when a second `URLSession` file is
+injected; passes again once both are removed.
+
+The workflow is now green — all ten steps, 1m58s, run `30826426803`. The README
+carries a CI badge. The repository is private, so that badge renders only for
+viewers signed in with access; fetched anonymously it returns HTTP 404.
+
+### 1.9 Files changed
 
 ```
 Fathom/App/SystemMonitorModel.swift          Fathom/Sections/Bluetooth/BluetoothView.swift
@@ -167,6 +210,7 @@ project.yml                                  scripts/release.sh
 .github/workflows/ci.yml                     docs/FATHOM-DATA-SOURCES.md
 docs/RELEASE-GATES.md                        docs/HANDOFF.md (this file)
 .gitignore                                   .gitattributes (new)
+Sources/CFathomStorage/CFathomStorage.c      README.md
 ```
 
 Test count 110 → 112 (two added). No unrelated work was modified.
@@ -187,6 +231,7 @@ All run on the host named above, against the final tree.
 | `swift build -c release --arch arm64 --disable-sandbox` | **EXIT=0** |
 | `shellcheck scripts/release.sh` | **EXIT=0** *(was: exit 1)* |
 | `bats tests/release.bats` | **EXIT=0** — 2/2 |
+| GitHub Actions `CI` on `macos-26` | **success** — 10/10 steps, 1m58s, run `30826426803` *(was: 3 consecutive failures)* |
 
 Contract constraints, each checked rather than assumed:
 
@@ -239,7 +284,8 @@ from this host.
 
 *Closed this session:* `shellcheck` and `bats` were previously unavailable
 locally. Both are now installed and run clean, and `shellcheck` immediately
-surfaced a real CI failure (§1.2).
+surfaced a real CI failure (§1.2). CI itself is no longer theoretical either — it
+runs on GitHub against `macos-26` and is green (§1.8).
 
 ---
 
@@ -298,8 +344,15 @@ M4 measurements and the signing and notarization evidence do not exist.
 
 What changed is that the build is now honestly green rather than green by
 assertion: the test suite genuinely passes instead of aborting, CI genuinely
-passes instead of failing at its first shell step, and the app no longer contains
-a guaranteed launch crash on the target OS.
+passes **on a real runner** rather than by local inference, and the app no longer
+contains a guaranteed launch crash on the target OS.
+
+That distinction was earned the hard way. An earlier draft of this file claimed
+CI passed because `shellcheck` had stopped failing locally. That was an
+inference, and it was wrong: the first real CI run failed three times for three
+unrelated reasons (§1.8), including a step that had never executed at all.
+Nothing here should be read as passing until something has actually run it —
+which is the same standard the product applies to its own measurements.
 
 One open observation, flagged rather than changed: the app's shared monitor still
 samples CPU, memory, GPU and network every second for whichever section is
