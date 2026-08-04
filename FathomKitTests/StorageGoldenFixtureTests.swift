@@ -170,6 +170,64 @@ import Testing
     #expect(try goldenKnown(entry.freedIfDeleted) == 0)
 }
 
+/// A real APFS tree holding a plain file, a clone of it, a second name for it,
+/// and a sparse file — the whole two-number argument in one directory.
+///
+/// The expected total is derived from `stat(2)` rather than hardcoded, because
+/// allocation policy is the runner's business. What the fixture pins down is the
+/// relationship: the clone and the hardlink must add nothing to the tree total,
+/// and the sparse file must cost its allocation rather than its length.
+@Test func cloneHardlinkAndSparseTreeIsCreditedExactlyOnce() async throws {
+    let fixture = try GoldenFilesystemFixture()
+    defer { fixture.remove() }
+
+    let plain = fixture.root.appending(path: "plain.bin")
+    try Data(repeating: 0xA5, count: 8 * 1_024 * 1_024).write(to: plain)
+
+    // An APFS clone shares every extent with its source until one diverges.
+    let clone = fixture.root.appending(path: "clone.bin")
+    try #require(clonefile(plain.path, clone.path, 0) == 0)
+
+    // A second name for the same inode, not a second copy of the bytes.
+    let hardlink = fixture.root.appending(path: "hardlink.bin")
+    try FileManager.default.linkItem(at: plain, to: hardlink)
+
+    // 64 MB long, one byte of data. Everything between is a hole.
+    let sparse = fixture.root.appending(path: "sparse.bin")
+    let sparseLength: UInt64 = 64 * 1_024 * 1_024
+    #expect(FileManager.default.createFile(atPath: sparse.path, contents: nil))
+    let handle = try FileHandle(forWritingTo: sparse)
+    try handle.seek(toOffset: sparseLength - 1)
+    try handle.write(contentsOf: Data([0xFF]))
+    try handle.close()
+
+    let plainAllocated = try goldenAllocatedBytes(at: plain)
+    let sparseAllocated = try goldenAllocatedBytes(at: sparse)
+    // If the filesystem materialised the hole the fixture proves nothing, and a
+    // passing assertion below would be meaningless.
+    #expect(sparseAllocated < sparseLength)
+    #expect(try goldenLogicalBytes(at: sparse) == sparseLength)
+    // The clone must really share storage, or this is just three plain files.
+    #expect(try goldenAllocatedBytes(at: clone) == plainAllocated)
+
+    let result = try await StorageEngine().scan(
+        at: fixture.root,
+        scope: .subtree
+    )
+    let snapshot = try goldenKnown(
+        StorageAccountingBuilder().build(from: result)
+    )
+    let root = snapshot.nodes[Int(snapshot.rootID.rawValue)]
+
+    #expect(snapshot.cloneFamilies.count == 1)
+    // The clone contributes nothing beyond the extents it shares, and the
+    // hardlink contributes nothing at all.
+    #expect(
+        try goldenKnown(root.subtreeSizeOnDisk)
+            == plainAllocated + sparseAllocated
+    )
+}
+
 @Test func physicalTraversalDoesNotFollowASymlinkCycle() throws {
     let fixture = try GoldenFilesystemFixture()
     defer { fixture.remove() }
@@ -356,6 +414,24 @@ private func goldenFile(
 }
 
 private struct ExpectedGoldenKnownValue: Error {}
+
+private struct GoldenStatFailed: Error {}
+
+private func goldenStat(at url: URL) throws -> stat {
+    var value = stat()
+    guard lstat(url.path, &value) == 0 else {
+        throw GoldenStatFailed()
+    }
+    return value
+}
+
+private func goldenAllocatedBytes(at url: URL) throws -> UInt64 {
+    UInt64(max(try goldenStat(at: url).st_blocks, 0)) * 512
+}
+
+private func goldenLogicalBytes(at url: URL) throws -> UInt64 {
+    UInt64(max(try goldenStat(at: url).st_size, 0))
+}
 
 private func goldenKnown<Value: Sendable>(
     _ measurement: FathomKit.Measurement<Value>
