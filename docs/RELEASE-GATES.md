@@ -51,6 +51,19 @@ in `project.yml` fails the build. The scripted guards check every PNG in
 4. Exercise onboarding, menu-bar visibility guidance, sleep/wake suspension,
    memory-pressure second-row rendering, VoiceOver, keyboard navigation,
    Dynamic Type and Reduce Motion.
+
+   **This gate cannot pass today.** `scripts/check-contrast.py` measures body
+   text — `white` at 82% — against each world's bottom stop, the worst case
+   `FATHOM-DESIGN.md` names, and **all twenty worlds fail** the 4.5:1 rule in
+   `AGENTS.md`. The range is 2.02:1 (network) to 4.32:1 (memory). The text sits
+   directly on the gradient: no card, no material, and a `white` 15% radial
+   highlight lightens the upper field further, so these figures are optimistic.
+   Even at full opacity 16 of 20 still fail, so this cannot be fixed by dropping
+   the text alpha alone. Resolving it means changing locked colour tokens, which
+   `AGENTS.md` requires be approved on the prototype first. Run the script; it
+   exits non-zero while any world fails. It is deliberately not yet a CI gate,
+   because wiring it in before the design decision would simply hold the build
+   red.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it. `SystemMonitorModel` reads
    paired devices on its sampling loop, so a missing or rejected

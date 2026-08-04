@@ -362,6 +362,17 @@ independently.
 FATHOM is **not** release-complete, and M1 is **not** signed off. The physical
 M4 measurements and the signing and notarization evidence do not exist.
 
+**One defect found in this session is still open, and it is not external.**
+Body text fails the 4.5:1 contrast rule on **all twenty colour worlds**, from
+2.02:1 (network) to 4.32:1 (memory) — measured by `scripts/check-contrast.py`,
+which reads the tokens and the text alpha from source so it cannot drift. The
+text sits directly on the gradient with no card or material behind it, and a
+`white` 15% radial highlight lightens the upper field further, so those numbers
+are the optimistic case. It is not fixable by opacity alone: at full white, 16
+of 20 still fail. Every remedy changes locked colour tokens, so per `AGENTS.md`
+it needs a prototype change and approval rather than a silent Swift edit. This
+blocks the accessibility gate, not the reference-machine measurements.
+
 What changed is that the build is now honestly green rather than green by
 assertion: the test suite genuinely passes instead of aborting, CI genuinely
 passes **on a real runner** rather than by local inference, and the app no longer
