@@ -211,9 +211,12 @@ project.yml                                  scripts/release.sh
 docs/RELEASE-GATES.md                        docs/HANDOFF.md (this file)
 .gitignore                                   .gitattributes (new)
 Sources/CFathomStorage/CFathomStorage.c      README.md
+FathomKitTests/StorageGoldenFixtureTests.swift
 ```
 
-Test count 110 → 112 (two added). No unrelated work was modified.
+Test count 110 → 113 (three added: the Bluetooth usage-description refusal, the
+reclaim protected-path bypass, and the clone/hardlink/sparse golden fixture). No
+unrelated work was modified.
 
 ---
 
@@ -225,7 +228,7 @@ tree rather than figures carried forward from when each fix was made.
 
 | Command | Result |
 |---|---|
-| `swift test --disable-sandbox` | **EXIT=0** — 112 tests passed *(was: SIGABRT, exit 1)* |
+| `swift test --disable-sandbox` | **EXIT=0** — 113 tests passed *(was: SIGABRT, exit 1)* |
 | `xcodegen generate` | **EXIT=0** |
 | `xcodebuild … -scheme Fathom -configuration Release ARCHS=arm64` | **EXIT=0** — 0 errors, 0 warnings |
 | `xcodebuild … -scheme FathomBar -configuration Release ARCHS=arm64` | **EXIT=0** — 0 errors, 0 warnings |
@@ -253,11 +256,24 @@ Contract constraints, each checked rather than assumed:
 
 ### Runtime evidence — the engine was exercised, not only read
 
-- **Two-number engine.** A fixture with a hardlink pair, an APFS clone and a
-  sparse file returned `accounted on disk: 8392704 bytes` — 8 MB counted once
-  (hardlink not double-counted, clone family credited once at the LCA) plus 4 KB
-  for the sparse file. Exact. `explain` correctly refused to publish
-  freed-if-deleted in subtree mode, naming the reason.
+- **Two-number engine — now an automated fixture, not a hand check.** A scratch
+  directory holding a hardlink pair, an APFS clone and a sparse file returned
+  `accounted on disk: 8392704 bytes`: 8 MB counted once, with the hardlink not
+  double-counted and the clone family credited once at the LCA, plus 4 KB for
+  the sparse file. `explain` also refused to publish freed-if-deleted in subtree
+  mode, naming the reason.
+
+  That check existed only as a scratch directory and a pair of eyes, so it died
+  with the scratchpad. It is now
+  `cloneHardlinkAndSparseTreeIsCreditedExactlyOnce` in
+  `StorageGoldenFixtureTests`, which builds the same tree with `clonefile(2)`
+  and `link(2)`, scans it with the real engine, and asserts the total. The
+  expected value is derived from `stat(2)` rather than carrying 8392704 forward,
+  because allocation policy belongs to the runner; what the fixture pins is the
+  relationship. It asserts its own preconditions too — the hole stayed a hole,
+  the clone really shares storage — so it cannot pass on a filesystem that
+  quietly materialised either, and it was verified to fail when the expectation
+  is changed to credit the clone twice.
 - **Honest degradation.** `fathom doctor` on this Intel host: NVMe SMART denied →
   *not published*; 4119 IOReport channels resolved but **refused to label them**
   without a signed map for `MacBookPro16,1`; real SMC reads (`PSTR` 24.36 W);
