@@ -378,6 +378,33 @@ What remains is what a script cannot settle: whether the darker cards read
 correctly on a real display, and whether the scrim is the treatment the design
 owner actually wants. The measurement is closed; the visual judgement is not.
 
+**The rest of the accessibility list in `FATHOM-DESIGN.md` was then audited
+line by line rather than assumed.** Four of the five requirements hold:
+
+| Requirement | State |
+|---|---|
+| Contrast ≥ 4.5:1 | Enforced by `check-contrast.py`, in CI, proven to catch a regression in each input it reads |
+| Never colour alone | Holds — the one semantic-colour use carries a full sentence |
+| VoiceOver states value *and* provenance | **Was broken in 18 places**, now fixed |
+| Dynamic Type to Accessibility Large | Holds — every font is declared `relativeTo:`, which is what makes a custom face scale |
+| Keyboard navigation, focus ring 2px white 60% | **Diverges** — see below |
+
+The VoiceOver failure is worth naming because of how it hid. Provenance and
+not-published reasons were attached with `.help()`, which renders a tooltip and
+is never spoken. Sighted review cannot catch it; the value looks labelled. It
+was fixed once in `BluetoothView` earlier in this session without sweeping the
+class, and was still present across ten files. A sweep for `.help()` without an
+accessible equivalent now reports nothing.
+
+**Open divergence: the focus ring.** `FATHOM-DESIGN.md` specifies "a visible
+focus ring at 2px white, 60% opacity". Navigation is built from `Button`s, so
+it is fully keyboard-navigable, but it draws the macOS system ring rather than
+that one. This was left alone deliberately: the system ring honours the user's
+own accessibility settings, including increased contrast, and overriding it can
+regress the very users the requirement exists for. Either implement the custom
+ring or amend the spec to adopt the system ring — both are one-line changes, and
+which one is right is a design-owner call, not an engineering one.
+
 What changed is that the build is now honestly green rather than green by
 assertion: the test suite genuinely passes instead of aborting, CI genuinely
 passes **on a real runner** rather than by local inference, and the app no longer
