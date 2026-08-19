@@ -38,7 +38,7 @@ struct SensorsView: View {
                         .tracking(1)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(.white.opacity(0.14))
+                        .background(FathomSurface.badge)
                         .clipShape(Capsule())
                         .accessibilityLabel("Live sensor sampling")
                 }
@@ -212,7 +212,7 @@ struct SensorsView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
-                        .background(.white.opacity(0.07))
+                        .background(FathomSurface.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }

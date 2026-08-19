@@ -57,6 +57,11 @@ jobs:
           test -f "$plist"
           /usr/libexec/PlistBuddy -c 'Print :NSBluetoothAlwaysUsageDescription' "$plist"
           /usr/libexec/PlistBuddy -c 'Print :NSLocationUsageDescription' "$plist"
+      - name: Verify body-text contrast
+        run: |
+          # Reads the colour worlds, the scrim and the text alpha from source,
+          # so it measures what the app renders rather than a restated copy.
+          python3 scripts/check-contrast.py
       - name: Audit forbidden shipping APIs
         run: |
           set -eu

@@ -52,18 +52,15 @@ in `project.yml` fails the build. The scripted guards check every PNG in
    memory-pressure second-row rendering, VoiceOver, keyboard navigation,
    Dynamic Type and Reduce Motion.
 
-   **This gate cannot pass today.** `scripts/check-contrast.py` measures body
-   text — `white` at 82% — against each world's bottom stop, the worst case
-   `FATHOM-DESIGN.md` names, and **all twenty worlds fail** the 4.5:1 rule in
-   `AGENTS.md`. The range is 2.02:1 (network) to 4.32:1 (memory). The text sits
-   directly on the gradient: no card, no material, and a `white` 15% radial
-   highlight lightens the upper field further, so these figures are optimistic.
-   Even at full opacity 16 of 20 still fail, so this cannot be fixed by dropping
-   the text alpha alone. Resolving it means changing locked colour tokens, which
-   `AGENTS.md` requires be approved on the prototype first. Run the script; it
-   exits non-zero while any world fails. It is deliberately not yet a CI gate,
-   because wiring it in before the design decision would simply hold the build
-   red.
+   Contrast is now enforced rather than assumed. Body text — `white` at 82% —
+   previously sat straight on the gradient and failed the 4.5:1 rule on **all
+   twenty worlds**, from 2.02:1 (network) to 4.32:1 (memory). It now sits on a
+   black scrim at 45%, which takes the worst world to 5.06:1 with the colour
+   worlds themselves untouched. `scripts/check-contrast.py` proves it from
+   source and runs in CI, so a token change that breaks it fails the build.
+   What still needs a human on the reference machine is everything the numbers
+   cannot settle: that the darker cards read correctly on a real display, and
+   that VoiceOver, keyboard focus, Dynamic Type and Reduce Motion behave.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it. `SystemMonitorModel` reads
    paired devices on its sampling loop, so a missing or rejected

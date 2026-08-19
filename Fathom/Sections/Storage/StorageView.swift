@@ -275,7 +275,7 @@ private struct SummaryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
-        .background(.white.opacity(0.105))
+        .background(FathomSurface.card)
         .background(.ultraThinMaterial.opacity(0.15))
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay {

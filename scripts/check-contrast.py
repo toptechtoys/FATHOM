@@ -4,8 +4,11 @@
 AGENTS.md requires contrast >= 4.5:1 on every surface, and FATHOM-DESIGN.md
 names the worst case: "the bottom stop is the worst case, test there."
 
-Both inputs are read from source rather than restated here, so this cannot drift
-from what the app actually renders. Exits non-zero if any world fails.
+Body text does not sit on the gradient directly. It sits on FathomSurface's
+scrim, laid over the world's bottom stop, so that is what gets measured. Every
+input -- the colour worlds, the scrim opacity, the text alpha -- is read from
+source rather than restated here, so this cannot drift from what the app
+renders. Exits non-zero if any world fails.
 """
 
 import re
@@ -24,6 +27,7 @@ WORLD = re.compile(
     r"bottom: Color\(hex: 0x([0-9A-Fa-f]{6})\)"
 )
 BODY_TEXT = re.compile(r"\.foregroundStyle\(\.white\.opacity\(([01]?\.\d+)\)\)")
+SCRIM = re.compile(r"static let textScrimOpacity: Double = ([01]?\.\d+)")
 
 
 def channel(value):
@@ -46,10 +50,21 @@ def composite(foreground, alpha, background):
 
 
 def main():
-    worlds = WORLD.findall(DESIGN.read_text())
+    design = DESIGN.read_text()
+    worlds = WORLD.findall(design)
     if not worlds:
         print(f"error: no colour worlds parsed from {DESIGN}", file=sys.stderr)
         return 2
+
+    scrims = SCRIM.findall(design)
+    if len(scrims) != 1:
+        print(
+            f"error: expected one textScrimOpacity in {DESIGN.name}, "
+            f"found {scrims or 'none'}",
+            file=sys.stderr,
+        )
+        return 2
+    scrim = float(scrims[0])
 
     alphas = set(BODY_TEXT.findall(TEXT_SOURCE.read_text()))
     if len(alphas) != 1:
@@ -61,18 +76,24 @@ def main():
         return 2
     alpha = float(alphas.pop())
 
-    print(f"body text: white @ {alpha} over each world's bottom stop")
+    print(f"body text: white @ {alpha}")
+    print(f"surface:   black @ {scrim} over each world's bottom stop")
     print(f"required:  {REQUIRED}:1 (AGENTS.md)\n")
-    print(f"{'world':<14}{'bottom':<10}{'ratio':>7}  verdict")
+    print(f"{'world':<14}{'bottom':<10}{'bare':>7}{'on scrim':>10}  verdict")
 
     failures = []
     for name, bottom in worlds:
-        background = tuple(int(bottom[i : i + 2], 16) for i in (0, 2, 4))
-        ratio = contrast(composite((255, 255, 255), alpha, background), background)
+        world = tuple(int(bottom[i : i + 2], 16) for i in (0, 2, 4))
+        bare = contrast(composite((255, 255, 255), alpha, world), world)
+        panel = composite((0, 0, 0), scrim, world)
+        ratio = contrast(composite((255, 255, 255), alpha, panel), panel)
         passed = ratio >= REQUIRED
         if not passed:
             failures.append((name, bottom, ratio))
-        print(f"{name:<14}#{bottom:<9}{ratio:>6.2f}  {'ok' if passed else 'FAILS'}")
+        print(
+            f"{name:<14}#{bottom:<9}{bare:>6.2f}{ratio:>10.2f}  "
+            f"{'ok' if passed else 'FAILS'}"
+        )
 
     print(f"\n{len(worlds)} worlds, {len(failures)} failing")
     if failures:

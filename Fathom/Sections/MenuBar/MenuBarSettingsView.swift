@@ -111,7 +111,7 @@ struct MenuBarSettingsView: View {
         }
         .toggleStyle(.switch)
         .padding(16)
-        .background(.white.opacity(0.08))
+        .background(FathomSurface.card)
         .clipShape(RoundedRectangle(cornerRadius: 13))
     }
 }

@@ -171,7 +171,7 @@ struct CPUView: View {
                         .frame(height: 7)
                     }
                     .padding(14)
-                    .background(.white.opacity(0.07))
+                    .background(FathomSurface.card)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
@@ -195,7 +195,7 @@ struct CPUView: View {
                 .tracking(1)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
-                .background(.white.opacity(0.14))
+                .background(FathomSurface.badge)
                 .clipShape(Capsule())
         }
     }

@@ -260,6 +260,30 @@ focus ring at 2px white, 60% opacity. VoiceOver labels state value *and*
 provenance: *"Freed if deleted, 0 gigabytes, sparse file."* Dynamic Type to
 Accessibility Large without clipping.
 
+### The text scrim, and why the cards are dark
+
+Body text is white at 82%. Directly on the fields that lands between 2.02:1
+(Network) and 4.32:1 (Memory) — every one of the twenty short of the rule above.
+The cards used to be white at 10.5%, which made it worse: tinting a card white
+lightens the very field the text is trying to contrast against.
+
+Body text therefore never sits on a field. It sits on a **black scrim at 45%**,
+laid over the field. The twenty colour worlds are unchanged — the scrim is what
+moved. The worst world reaches 5.06:1, leaving margin for the white 15% radial
+highlight across the upper field.
+
+| Surface | Value | Worst world |
+|---|---|---|
+| Card, tile, row — `.tile` `.fi` `.row` `.dev` | `rgba(0,0,0,.45)` | 5.06:1 |
+| Hover | `rgba(0,0,0,.55)` | 6.42:1 |
+
+**Hover deepens, it never lightens.** On a dark scrim a lighter hover walks the
+contrast back toward the field the scrim exists to escape, which is how the
+first draft of this change broke the rule it was written to satisfy.
+
+`scripts/check-contrast.py` reads the worlds, the scrim and the text alpha from
+source and fails if any world drops below 4.5:1. It runs in CI.
+
 ---
 
 ## What is deliberately absent

@@ -232,7 +232,7 @@ private struct ExploreRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.white.opacity(0.07))
+        .background(FathomSurface.card)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .contain)
     }

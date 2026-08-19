@@ -168,6 +168,28 @@ struct FathomColorWorld: Equatable {
     )
 }
 
+/// The surface body text sits on.
+///
+/// Body text is white at 82%. Directly on the colour worlds that lands between
+/// 2.02:1 (network) and 4.32:1 (memory), short of the 4.5:1 `AGENTS.md`
+/// requires on every surface. White-tinted cards made it worse, because they
+/// lighten the field the text is trying to contrast against.
+///
+/// Every surface carrying body text uses this scrim instead. At 45% the worst
+/// world reaches 5.06:1, which leaves margin for the white 15% radial highlight
+/// `FathomWorldBackground` paints across the upper field. The colour worlds
+/// themselves are untouched. `scripts/check-contrast.py` reads this value and
+/// the worlds from source and proves the result, so the two cannot drift.
+enum FathomSurface {
+    static let textScrimOpacity: Double = 0.45
+
+    /// Cards and tiles that carry body text.
+    static var card: Color { .black.opacity(textScrimOpacity) }
+
+    /// Small badges and pills that carry body text over the same field.
+    static var badge: Color { .black.opacity(textScrimOpacity) }
+}
+
 extension Animation {
     static let fathomWorld = Animation.timingCurve(
         0.16,
