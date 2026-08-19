@@ -171,11 +171,13 @@ struct TimelineView: View {
                                 format: signedBytes
                             )
                             .help("On-disk change · \(source.rawValue)")
+                            .accessibilityHint("On-disk change")
                             HardwareMeasurementView(
                                 measurement: row.freedIfDeleted,
                                 format: signedBytes
                             )
                             .help("Freeable change · \(source.rawValue)")
+                            .accessibilityHint("Freeable change")
                         }
                     }
                 }
@@ -184,6 +186,9 @@ struct TimelineView: View {
             Text("Top-level comparison not published")
                 .foregroundStyle(.white.opacity(0.82))
                 .help(reason)
+                .accessibilityLabel(
+                    "Top-level comparison not published. \(reason)"
+                )
         case .notAttributable:
             Text("Top-level comparison not attributable")
         }

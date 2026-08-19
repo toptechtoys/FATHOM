@@ -37,6 +37,9 @@ struct BluetoothView: View {
                         Text("No paired devices")
                             .foregroundStyle(.white.opacity(0.82))
                             .help(source.rawValue)
+                            .accessibilityLabel(
+                                "No paired devices, source \(source.rawValue)"
+                            )
                     } else {
                         ForEach(devices) { device in
                             deviceCard(device)
@@ -89,6 +92,9 @@ struct BluetoothView: View {
             Text("\(value)%")
                 .font(.fathomData(19, weight: .semibold))
                 .help(source.rawValue)
+                .accessibilityLabel(
+                    "Battery \(value) percent, source \(source.rawValue)"
+                )
         case let .notPublished(reason):
             Text(reason.contains("does not report") ? "does not report" : "not published")
                 .font(.fathomData(14, weight: .medium))

@@ -221,12 +221,12 @@ struct ReclaimView: View {
     private var recoveryBanner: some View {
         switch reclaim.recovery {
         case let .known(intents, source) where !intents.isEmpty:
+            let sentence = "\(intents.count) reclaim operation\(intents.count == 1 ? "" : "s") stopped after journaling intent. Completion is not assumed."
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
-                Text(
-                    "\(intents.count) reclaim operation\(intents.count == 1 ? "" : "s") stopped after journaling intent. Completion is not assumed."
-                )
+                Text(sentence)
                 .font(.fathomSystem(12, weight: .semibold))
+                .accessibilityLabel("\(sentence) Source \(source.rawValue)")
                 Spacer()
                 Button("Review", action: { showsRecovery = true })
             }

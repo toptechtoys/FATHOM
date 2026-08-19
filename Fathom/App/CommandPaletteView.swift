@@ -120,6 +120,7 @@ struct CommandPaletteView: View {
                             }
                             .buttonStyle(.plain)
                             .help(source.rawValue)
+                            .accessibilityHint("Source \(source.rawValue)")
                             .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 8))
                         }
                     }

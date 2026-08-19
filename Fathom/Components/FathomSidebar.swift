@@ -119,6 +119,8 @@ struct FathomSidebar: View {
             .font(.fathomSystem(11))
             .foregroundStyle(.white.opacity(0.82))
             .help(reason)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Public IP not published. \(reason)")
         case .notAttributable:
             Text("Public IP not attributable")
                 .font(.fathomSystem(11))

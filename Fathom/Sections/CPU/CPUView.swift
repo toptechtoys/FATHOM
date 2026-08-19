@@ -179,6 +179,7 @@ struct CPUView: View {
             Text("not published")
                 .foregroundStyle(.white.opacity(0.82))
                 .help(reason)
+                .accessibilityLabel("Per-core load not published. \(reason)")
         case .notAttributable:
             Text("not attributable")
         }

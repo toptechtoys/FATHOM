@@ -97,6 +97,7 @@ struct WeeklyDigestView: View {
         switch notifications.state {
         case let .known(value, source):
             Text(value).font(.fathomSystem(12)).help(source.rawValue)
+                .accessibilityLabel("\(value), source \(source.rawValue)")
         case let .notPublished(reason):
             Text("not published — \(reason)")
                 .font(.fathomSystem(12))
@@ -111,6 +112,7 @@ struct WeeklyDigestView: View {
         switch notifications.directoryAlertState {
         case let .known(value, source):
             Text(value).font(.fathomSystem(12)).help(source.rawValue)
+                .accessibilityLabel("\(value), source \(source.rawValue)")
         case let .notPublished(reason):
             Text("not published — \(reason)")
                 .font(.fathomSystem(12))
@@ -139,15 +141,18 @@ struct WeeklyDigestView: View {
         switch measurement {
         case let .known(delta, source):
             let magnitude = UInt64(delta.magnitude)
-            Text(delta < 0
+            let phrase = delta < 0
                 ? "Disk is \(hardwareByteString(magnitude)) fuller"
-                : "Disk has \(hardwareByteString(magnitude)) more free")
+                : "Disk has \(hardwareByteString(magnitude)) more free"
+            Text(phrase)
                 .font(.fathomData(20, weight: .semibold))
                 .help(source.rawValue)
+                .accessibilityLabel("\(phrase), source \(source.rawValue)")
         case let .notPublished(reason):
             Text("not published")
                 .foregroundStyle(.white.opacity(0.82))
                 .help(reason)
+                .accessibilityLabel("Not published. \(reason)")
         case .notAttributable:
             Text("not attributable")
         }

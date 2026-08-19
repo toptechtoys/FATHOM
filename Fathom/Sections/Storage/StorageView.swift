@@ -211,6 +211,10 @@ private struct DiskThroughputPanel: View {
                     }
                 }
                 .help(source.rawValue)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(
+                    "\(snapshot.driverCount) publishing drivers, source \(source.rawValue)"
+                )
             case let .notPublished(reason):
                 Text("not published")
                     .font(.fathomData(16, weight: .semibold))

@@ -69,10 +69,14 @@ struct MaintenanceView: View {
             Text("\(snapshots.count) published")
                 .font(.fathomData(20, weight: .semibold))
                 .help(source.rawValue)
+                .accessibilityLabel(
+                    "\(snapshots.count) snapshots published, source \(source.rawValue)"
+                )
         case let .notPublished(reason):
             Text("not published")
                 .foregroundStyle(.white.opacity(0.82))
                 .help(reason)
+                .accessibilityLabel("Not published. \(reason)")
         case .notAttributable:
             Text("not attributable")
         }

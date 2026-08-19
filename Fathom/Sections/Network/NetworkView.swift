@@ -34,6 +34,9 @@ struct NetworkView: View {
                         Text("No active non-loopback interfaces")
                             .foregroundStyle(.white.opacity(0.82))
                             .help(source.rawValue)
+                            .accessibilityLabel(
+                                "No active non-loopback interfaces, source \(source.rawValue)"
+                            )
                     } else {
                         ForEach(interfaces) { interface in
                             interfaceCard(interface)
@@ -131,6 +134,7 @@ struct NetworkView: View {
                 Text("not published")
                     .foregroundStyle(.white.opacity(0.82))
                     .help(reason)
+                    .accessibilityLabel("Not published. \(reason)")
             case .notAttributable:
                 Text("not attributable")
             }
