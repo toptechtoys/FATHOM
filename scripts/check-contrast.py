@@ -28,6 +28,11 @@ WORLD = re.compile(
 )
 BODY_TEXT = re.compile(r"\.foregroundStyle\(\.white\.opacity\(([01]?\.\d+)\)\)")
 SCRIM = re.compile(r"static let textScrimOpacity: Double = ([01]?\.\d+)")
+CHIP = re.compile(
+    r"\.foregroundStyle\(\.black\.opacity\(([01]?\.\d+)\)\)\s*"
+    r"\.background\(\.white\.opacity\(([01]?\.\d+)\)\)"
+)
+MENU_BAR = ROOT / "Fathom/Sections/MenuBar/MenuBarSettingsView.swift"
 
 
 def channel(value):
@@ -95,10 +100,55 @@ def main():
             f"{'ok' if passed else 'FAILS'}"
         )
 
+    # The MenuBar preview chip inverts the treatment: black text on a light
+    # surface. It is the one text surface that does not take the scrim, so it
+    # is measured separately rather than assumed to be safe.
+    chip = CHIP.search(MENU_BAR.read_text())
+    if not chip:
+        print(
+            f"error: could not read the preview chip treatment from "
+            f"{MENU_BAR.name}; it may no longer be black-on-light",
+            file=sys.stderr,
+        )
+        return 2
+    chip_text, chip_surface = float(chip.group(1)), float(chip.group(2))
+    chip_worst, chip_world = min(
+        (
+            (
+                contrast(
+                    composite(
+                        (0, 0, 0),
+                        chip_text,
+                        composite(
+                            (255, 255, 255),
+                            chip_surface,
+                            tuple(int(b[i : i + 2], 16) for i in (0, 2, 4)),
+                        ),
+                    ),
+                    composite(
+                        (255, 255, 255),
+                        chip_surface,
+                        tuple(int(b[i : i + 2], 16) for i in (0, 2, 4)),
+                    ),
+                ),
+                n,
+            )
+            for n, b in worlds
+        ),
+        key=lambda pair: pair[0],
+    )
+    chip_ok = chip_worst >= REQUIRED
+    print(
+        f"\nmenu-bar preview chip: black @ {chip_text} on white @ "
+        f"{chip_surface} -- worst world {chip_world} at {chip_worst:.2f}:1  "
+        f"{'ok' if chip_ok else 'FAILS'}"
+    )
+
     print(f"\n{len(worlds)} worlds, {len(failures)} failing")
     if failures:
         worst = min(failures, key=lambda f: f[2])
         print(f"worst: {worst[0]} #{worst[1]} at {worst[2]:.2f}:1")
+    if failures or not chip_ok:
         return 1
     return 0
 

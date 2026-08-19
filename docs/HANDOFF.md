@@ -362,16 +362,21 @@ independently.
 FATHOM is **not** release-complete, and M1 is **not** signed off. The physical
 M4 measurements and the signing and notarization evidence do not exist.
 
-**One defect found in this session is still open, and it is not external.**
-Body text fails the 4.5:1 contrast rule on **all twenty colour worlds**, from
-2.02:1 (network) to 4.32:1 (memory) — measured by `scripts/check-contrast.py`,
-which reads the tokens and the text alpha from source so it cannot drift. The
-text sits directly on the gradient with no card or material behind it, and a
-`white` 15% radial highlight lightens the upper field further, so those numbers
-are the optimistic case. It is not fixable by opacity alone: at full white, 16
-of 20 still fail. Every remedy changes locked colour tokens, so per `AGENTS.md`
-it needs a prototype change and approval rather than a silent Swift edit. This
-blocks the accessibility gate, not the reference-machine measurements.
+**A contrast defect was found and fixed in this session.** Body text failed the
+4.5:1 rule on **all twenty colour worlds**, from 2.02:1 (network) to 4.32:1
+(memory): it sat directly on the gradient, and the white-tinted cards made it
+worse by lightening the field the text had to contrast against. It is not
+fixable by opacity alone — at full white, 16 of 20 still fail.
+
+Body text now sits on a black scrim at 45%, taking the worst world to 5.06:1
+with the twenty colour worlds untouched. Changed in the prototype first per
+`AGENTS.md`, then in Swift. `scripts/check-contrast.py` reads the worlds, the
+scrim, the text alpha and the menu-bar chip from source and was verified to fail
+on a regression in each one, so this cannot silently come back.
+
+What remains is what a script cannot settle: whether the darker cards read
+correctly on a real display, and whether the scrim is the treatment the design
+owner actually wants. The measurement is closed; the visual judgement is not.
 
 What changed is that the build is now honestly green rather than green by
 assertion: the test suite genuinely passes instead of aborting, CI genuinely
