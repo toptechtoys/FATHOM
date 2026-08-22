@@ -132,6 +132,7 @@ struct FathomRootView: View {
                     )
                     content
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(FathomSurface.contentPlate)
                 }
             }
         }

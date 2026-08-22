@@ -54,13 +54,18 @@ in `project.yml` fails the build. The scripted guards check every PNG in
 
    Contrast is now enforced rather than assumed. Body text — `white` at 82% —
    previously sat straight on the gradient and failed the 4.5:1 rule on **all
-   twenty worlds**, from 2.02:1 (network) to 4.32:1 (memory). It now sits on a
-   black scrim at 45%, which takes the worst world to 5.06:1 with the colour
-   worlds themselves untouched. `scripts/check-contrast.py` proves it from
-   source and runs in CI, so a token change that breaks it fails the build.
+   twenty worlds**, from 2.05:1 (bluetooth) to 4.32:1 (memory). The content
+   column and the rail now sit on a black plate at 40%, and the Instrument
+   Panel's materials layer on top of it — cell 16%, row 7%, hover 13% — with
+   the colour worlds themselves untouched. The tightest surface is body text on
+   the bare plate at 4.56:1. `scripts/check-contrast.py` composites all seven
+   surfaces across all twenty worlds from source and runs in CI, so a token
+   change that breaks any of them fails the build.
    What still needs a human on the reference machine is everything the numbers
-   cannot settle: that the darker cards read correctly on a real display, and
-   that VoiceOver, keyboard focus, Dynamic Type and Reduce Motion behave.
+   cannot settle: that the plate reads correctly on a real display — including
+   whether `.ultraThinMaterial` behind the cards erodes the margin the gate
+   cannot model — and that VoiceOver, keyboard focus, Dynamic Type and Reduce
+   Motion behave.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it. `SystemMonitorModel` reads
    paired devices on its sampling loop, so a missing or rejected

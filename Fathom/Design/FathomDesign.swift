@@ -175,26 +175,61 @@ struct FathomColorWorld: Equatable {
 /// requires on every surface. White-tinted cards made it worse, because they
 /// lighten the field the text is trying to contrast against.
 ///
-/// Every surface carrying body text uses this scrim instead. At 40% the worst
-/// world reaches 4.56:1, still clear of the rule with the white 15% radial
-/// highlight `FathomWorldBackground` paints across the upper field. The colour
-/// worlds themselves are untouched. `scripts/check-contrast.py` reads this
-/// value and the worlds from source and proves the result, so the two cannot
-/// drift.
+/// The fix is one plate, not a plate per element. Everything that carries text
+/// — the whole content column, and the rail beside it — sits on `scrimOpacity`
+/// black. The Instrument Panel's own materials then layer on top of that plate
+/// at exactly the values the design specifies: the readout cell is still 16%,
+/// the data row still 7%, its hover still 13%. Their *relative* flatness, which
+/// is the point of that direction, is preserved; what changed is the ground
+/// underneath them.
 ///
-/// 40% is the Instrument Panel readout-cell value, chosen deliberately over the
-/// 45% that shipped before it: the flatter cell is the point of that direction.
-/// It leaves 0.06 of margin, and break-even is 39.4%, so this is the shallowest
-/// scrim the rule permits at 82% white. A world with a brighter bottom stop than
-/// bluetooth's `#2CBE7C` would fail the gate — check before adding one.
+/// This is why the materials are black rather than the design's white. On a
+/// plate, a white tint lightens back toward the field the plate exists to
+/// escape — the same mistake the white 10.5% cards made, and the reason
+/// FATHOM-DESIGN.md records that hover deepens and never lightens. The design's
+/// magnitudes are kept; only the sign is flipped.
+///
+/// Worst world throughout is bluetooth `#2CBE7C`: plate alone 4.56:1 at 82%
+/// white and 5.91:1 for a display title at full white, cell 5.70:1, row 5.02:1,
+/// row hover 5.46:1. `scripts/check-contrast.py` composites these stacks from
+/// source and fails the build if any drops below 4.5:1, so the model here and
+/// the one the app renders cannot drift.
+///
+/// Text never goes below 82% white on these surfaces. There is no quieter tier:
+/// at 60% the plate would need 58%, and 45% cannot reach 4.5:1 at any depth.
 enum FathomSurface {
-    static let textScrimOpacity: Double = 0.40
+    /// The plate under the content column and the rail.
+    static let scrimOpacity: Double = 0.40
 
-    /// Cards and tiles that carry body text.
-    static var card: Color { .black.opacity(textScrimOpacity) }
+    /// Readout cells, cards and tiles — the design's 16%, over the plate.
+    static let cardOpacity: Double = 0.16
 
-    /// Small badges and pills that carry body text over the same field.
-    static var badge: Color { .black.opacity(textScrimOpacity) }
+    /// Data rows — the design's 7%, over the plate.
+    static let rowOpacity: Double = 0.07
+
+    /// Row hover — the design's 13%, deepening rather than lightening.
+    static let rowHoverOpacity: Double = 0.13
+
+    /// The minimum text alpha any of these surfaces will carry.
+    static let minimumTextOpacity: Double = 0.82
+
+    /// The plate behind the scrolling content column.
+    static var contentPlate: Color { .black.opacity(scrimOpacity) }
+
+    /// The plate behind the navigation rail.
+    static var rail: Color { .black.opacity(scrimOpacity) }
+
+    /// Cards, tiles and readout cells that carry body text.
+    static var card: Color { .black.opacity(cardOpacity) }
+
+    /// Small badges and pills that carry body text.
+    static var badge: Color { .black.opacity(cardOpacity) }
+
+    /// Data rows inside panels.
+    static var row: Color { .black.opacity(rowOpacity) }
+
+    /// Data rows under the pointer.
+    static var rowHover: Color { .black.opacity(rowHoverOpacity) }
 }
 
 extension Animation {

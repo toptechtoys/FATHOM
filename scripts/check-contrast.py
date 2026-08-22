@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Measure body-text contrast against every colour world.
+"""Measure text contrast against every colour world.
 
 AGENTS.md requires contrast >= 4.5:1 on every surface, and FATHOM-DESIGN.md
 names the worst case: "the bottom stop is the worst case, test there."
 
-Body text does not sit on the gradient directly. It sits on FathomSurface's
-scrim, laid over the world's bottom stop, so that is what gets measured. Every
-input -- the colour worlds, the scrim opacity, the text alpha -- is read from
-source rather than restated here, so this cannot drift from what the app
-renders. Exits non-zero if any world fails.
+Text does not sit on the gradient directly. The content column and the rail sit
+on FathomSurface's plate, and the Instrument Panel's own materials -- readout
+cell, data row, row hover -- layer on top of that plate. Each of those stacks is
+composited here and measured separately, because a material that is safe on the
+plate is not safe on the field, and the plate is what makes the design's flat
+16% cell legal.
+
+Every input -- the colour worlds, the plate, each material, the text alpha -- is
+read from source rather than restated here, so this cannot drift from what the
+app renders. Exits non-zero if any surface fails on any world.
 """
 
 import re
@@ -18,6 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DESIGN = ROOT / "Fathom/Design/FathomDesign.swift"
 TEXT_SOURCE = ROOT / "Fathom/Components/MeasurementValueView.swift"
+MENU_BAR = ROOT / "Fathom/Sections/MenuBar/MenuBarSettingsView.swift"
 REQUIRED = 4.5
 
 WORLD = re.compile(
@@ -27,12 +33,45 @@ WORLD = re.compile(
     r"bottom: Color\(hex: 0x([0-9A-Fa-f]{6})\)"
 )
 BODY_TEXT = re.compile(r"\.foregroundStyle\(\.white\.opacity\(([01]?\.\d+)\)\)")
-SCRIM = re.compile(r"static let textScrimOpacity: Double = ([01]?\.\d+)")
 CHIP = re.compile(
     r"\.foregroundStyle\(\.black\.opacity\(([01]?\.\d+)\)\)\s*"
     r"\.background\(\.white\.opacity\(([01]?\.\d+)\)\)"
 )
-MENU_BAR = ROOT / "Fathom/Sections/MenuBar/MenuBarSettingsView.swift"
+
+
+def opacity(source, name):
+    """Read one `static let <name>: Double = <value>` from FathomSurface."""
+    found = re.findall(rf"static let {name}: Double = ([01]?\.\d+)", source)
+    if len(found) != 1:
+        raise LookupError(
+            f"expected one {name} in {DESIGN.name}, found {found or 'none'}"
+        )
+    return float(found[0])
+
+
+def assert_darkens(source, accessors):
+    """Every surface accessor must tint with black, not white.
+
+    The arithmetic below composites black over the world. A material switched to
+    `.white.opacity(...)` would keep the same number and lighten the ground
+    instead -- passing this gate while breaking the rule it exists to enforce.
+    That is not hypothetical: white 10.5% cards are what the plate replaced, and
+    the Instrument Panel design specifies white rows and a lightening hover.
+    """
+    for name in accessors:
+        pattern = rf"static var {name}: Color \{{ \.(\w+)\.opacity"
+        found = re.findall(pattern, source)
+        if len(found) != 1:
+            raise LookupError(
+                f"expected one {name} accessor in {DESIGN.name}, "
+                f"found {found or 'none'}"
+            )
+        if found[0] != "black":
+            raise LookupError(
+                f"{name} tints with .{found[0]}, not .black -- a lightening "
+                f"material cannot be measured by this gate and cannot meet "
+                f"{REQUIRED}:1 over these worlds"
+            )
 
 
 def channel(value):
@@ -54,6 +93,10 @@ def composite(foreground, alpha, background):
     return tuple(alpha * f + (1 - alpha) * b for f, b in zip(foreground, background))
 
 
+def rgb(hexcode):
+    return tuple(int(hexcode[i : i + 2], 16) for i in (0, 2, 4))
+
+
 def main():
     design = DESIGN.read_text()
     worlds = WORLD.findall(design)
@@ -61,15 +104,19 @@ def main():
         print(f"error: no colour worlds parsed from {DESIGN}", file=sys.stderr)
         return 2
 
-    scrims = SCRIM.findall(design)
-    if len(scrims) != 1:
-        print(
-            f"error: expected one textScrimOpacity in {DESIGN.name}, "
-            f"found {scrims or 'none'}",
-            file=sys.stderr,
+    try:
+        plate = opacity(design, "scrimOpacity")
+        card = opacity(design, "cardOpacity")
+        row = opacity(design, "rowOpacity")
+        row_hover = opacity(design, "rowHoverOpacity")
+        floor = opacity(design, "minimumTextOpacity")
+        assert_darkens(
+            design,
+            ["contentPlate", "rail", "card", "badge", "row", "rowHover"],
         )
+    except LookupError as error:
+        print(f"error: {error}", file=sys.stderr)
         return 2
-    scrim = float(scrims[0])
 
     alphas = set(BODY_TEXT.findall(TEXT_SOURCE.read_text()))
     if len(alphas) != 1:
@@ -81,28 +128,60 @@ def main():
         return 2
     alpha = float(alphas.pop())
 
-    print(f"body text: white @ {alpha}")
-    print(f"surface:   black @ {scrim} over each world's bottom stop")
-    print(f"required:  {REQUIRED}:1 (AGENTS.md)\n")
-    print(f"{'world':<14}{'bottom':<10}{'bare':>7}{'on scrim':>10}  verdict")
+    if alpha < floor:
+        print(
+            f"error: body text is white @ {alpha}, below the "
+            f"minimumTextOpacity of {floor} FathomSurface declares",
+            file=sys.stderr,
+        )
+        return 2
+
+    # Each entry is a surface as the app actually stacks it: the plate, then
+    # whatever material sits on top of it, then the text.
+    #
+    # A display title takes full white and is large text, where WCAG would allow
+    # 3:1. It is held to 4.5:1 anyway -- AGENTS.md says every surface, and a
+    # title that only just clears a weaker bar is not worth the exemption.
+    surfaces = [
+        ("content plate, title", [], 1.0),
+        ("content plate, body", [], alpha),
+        ("rail, selected", [], 1.0),
+        ("rail, unselected", [], alpha),
+        ("readout cell", [card], alpha),
+        ("data row", [row], alpha),
+        ("data row, hover", [row_hover], alpha),
+    ]
+
+    print(f"body text: white @ {alpha} (floor {floor})")
+    print(f"plate:     black @ {plate} under the content column and the rail")
+    print(f"materials: cell {card}, row {row}, row hover {row_hover} on the plate")
+    print(f"required:  {REQUIRED}:1 (AGENTS.md), every surface, every world\n")
+    print(f"{'surface':<24}{'worst world':<14}{'bare':>7}{'stacked':>9}  verdict")
 
     failures = []
-    for name, bottom in worlds:
-        world = tuple(int(bottom[i : i + 2], 16) for i in (0, 2, 4))
-        bare = contrast(composite((255, 255, 255), alpha, world), world)
-        panel = composite((0, 0, 0), scrim, world)
-        ratio = contrast(composite((255, 255, 255), alpha, panel), panel)
+    for label, materials, text in surfaces:
+        worst = None
+        for name, bottom in worlds:
+            world = rgb(bottom)
+            ground = composite((0, 0, 0), plate, world)
+            for material in materials:
+                ground = composite((0, 0, 0), material, ground)
+            ratio = contrast(composite((255, 255, 255), text, ground), ground)
+            bare = contrast(composite((255, 255, 255), text, world), world)
+            if worst is None or ratio < worst[0]:
+                worst = (ratio, name, bottom, bare)
+        ratio, name, bottom, bare = worst
         passed = ratio >= REQUIRED
         if not passed:
-            failures.append((name, bottom, ratio))
+            failures.append((label, name, ratio))
         print(
-            f"{name:<14}#{bottom:<9}{bare:>6.2f}{ratio:>10.2f}  "
+            f"{label:<24}{name:<14}{bare:>6.2f}{ratio:>9.2f}  "
             f"{'ok' if passed else 'FAILS'}"
         )
 
     # The MenuBar preview chip inverts the treatment: black text on a light
-    # surface. It is the one text surface that does not take the scrim, so it
-    # is measured separately rather than assumed to be safe.
+    # surface. It is the one text surface that does not take the plate, so it is
+    # measured separately rather than assumed to be safe.
     chip = CHIP.search(MENU_BAR.read_text())
     if not chip:
         print(
@@ -119,17 +198,9 @@ def main():
                     composite(
                         (0, 0, 0),
                         chip_text,
-                        composite(
-                            (255, 255, 255),
-                            chip_surface,
-                            tuple(int(b[i : i + 2], 16) for i in (0, 2, 4)),
-                        ),
+                        composite((255, 255, 255), chip_surface, rgb(b)),
                     ),
-                    composite(
-                        (255, 255, 255),
-                        chip_surface,
-                        tuple(int(b[i : i + 2], 16) for i in (0, 2, 4)),
-                    ),
+                    composite((255, 255, 255), chip_surface, rgb(b)),
                 ),
                 n,
             )
@@ -144,10 +215,13 @@ def main():
         f"{'ok' if chip_ok else 'FAILS'}"
     )
 
-    print(f"\n{len(worlds)} worlds, {len(failures)} failing")
+    print(
+        f"\n{len(surfaces)} surfaces x {len(worlds)} worlds, "
+        f"{len(failures)} failing"
+    )
     if failures:
         worst = min(failures, key=lambda f: f[2])
-        print(f"worst: {worst[0]} #{worst[1]} at {worst[2]:.2f}:1")
+        print(f"worst: {worst[0]} on {worst[1]} at {worst[2]:.2f}:1")
     if failures or not chip_ok:
         return 1
     return 0

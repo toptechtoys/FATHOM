@@ -82,7 +82,7 @@ struct FathomSidebar: View {
         }
         .padding(.horizontal, compact ? 6 : 10)
         .frame(width: compact ? 64 : 244)
-        .background(.black.opacity(0.20))
+        .background(FathomSurface.rail)
         .background(.ultraThinMaterial.opacity(0.18))
         .overlay(alignment: .trailing) {
             Rectangle()
@@ -189,7 +189,7 @@ struct FathomSidebar: View {
             .foregroundStyle(
                 selection == section
                     ? .white
-                    : .white.opacity(0.75)
+                    : .white.opacity(0.82)
             )
             .accessibilityAddTraits(
                 selection == section ? .isSelected : []

@@ -260,55 +260,64 @@ focus ring at 2px white, 60% opacity. VoiceOver labels state value *and*
 provenance: *"Freed if deleted, 0 gigabytes, sparse file."* Dynamic Type to
 Accessibility Large without clipping.
 
-### The text scrim, and why the cards are dark
+### The plate, and why the materials are dark
 
 Body text is white at 82%. Directly on the fields that lands between 2.05:1
 (Bluetooth) and 4.32:1 (Memory) — every one of the twenty short of the rule
 above. The cards used to be white at 10.5%, which made it worse: tinting a card
 white lightens the very field the text is trying to contrast against.
 
-Body text therefore never sits on a field. It sits on a **black scrim at 40%**,
-laid over the field. The twenty colour worlds are unchanged — the scrim is what
-moved. The worst world reaches 4.56:1, still clear of the rule with the white
-15% radial highlight across the upper field.
+The fix is **one plate, not a plate per element**. Everything that carries text
+— the whole content column, and the rail beside it — sits on a **black plate at
+40%**. The Instrument Panel's own materials then layer on top of that plate at
+exactly the values the design specifies: the readout cell is still 16%, the data
+row still 7%, its hover still 13%. Their *relative* flatness, which is the point
+of that direction, is preserved. What changed is the ground underneath them.
 
-| Surface | Value | Worst world |
+The twenty colour worlds are untouched.
+
+| Surface | Stack | Worst world (Bluetooth) |
 |---|---|---|
-| Readout cell, card, tile, row | `rgba(0,0,0,.40)` | 4.56:1 |
-| Hover | `rgba(0,0,0,.50)` | 5.75:1 |
+| Content plate — display title, full white | `.40` | 5.91:1 |
+| Content plate — body text at 82% | `.40` | 4.56:1 |
+| Rail — selected, full white | `.40` | 5.91:1 |
+| Rail — unselected at 82% | `.40` | 4.56:1 |
+| Readout cell, card, tile | `.40` + `.16` | 5.70:1 |
+| Data row | `.40` + `.07` | 5.02:1 |
+| Data row, hover | `.40` + `.13` | 5.46:1 |
 
-**40% is the shallowest scrim the rule permits at 82% white.** Break-even is
-39.4%, so the margin is 0.06. This is deliberate: the Instrument Panel's flatter
-readout cell is the point of that direction, and 40% is how flat it can be while
-staying honest. Two consequences follow. A colour world with a brighter bottom
-stop than Bluetooth's `#2CBE7C` will fail the gate, so check before adding one.
-And text below 82% white does not clear the rule on this scrim at all — 60%
-needs 58%, and 45% cannot reach 4.5:1 at any scrim. Every note and micro-label
-on a carded surface therefore reads at 82%, the same as body text. There is no
-quieter tier of text on this scrim, because there is no room for one.
+**The materials are black where the design draws them white.** This is the one
+place the Instrument Panel direction is not followed literally, and it is
+deliberate. On a plate, a white tint lightens back toward the field the plate
+exists to escape — the design's white 7% row measures 1.96:1 and its lightening
+13% hover 3.60:1, both short of the rule. The magnitudes the design chose are
+kept exactly; only the sign is flipped. Which is the same conclusion the next
+paragraph reached the first time.
 
-**Two known gaps the gate does not cover.**
+**Hover deepens, it never lightens.** On a dark ground a lighter hover walks the
+contrast back toward the field, which is how the first draft of this change
+broke the rule it was written to satisfy.
 
-The **sidebar rail** carries text on `rgba(0,0,0,.20)`, which is too shallow for
-these worlds at any text alpha: 75% white measures 2.73:1, and even the selected
-state at pure white only reaches 3.66:1. Raising the alpha does not fix it — 82%
-lands at 2.97:1 and flattens the selected/unselected affordance on the way. The
-rail needs a deeper scrim (`.45` clears the rule at 75% white) or a blur that
-demonstrably does the work. `check-contrast.py` does not measure the rail, so
-this fails silently today; it is a design decision, deliberately left open.
+**Text never goes below 82% white on these surfaces.** There is no quieter tier:
+at 60% the plate would need 58%, and 45% cannot reach 4.5:1 at any depth. Every
+note and micro-label therefore reads at 82%, the same as body text.
+`FathomSurface.minimumTextOpacity` states this, and the gate fails the build if
+`MeasurementValueView` drops below it.
 
-`HardwareResultCard` layers `.ultraThinMaterial.opacity(0.15)` **behind** the
-scrim, which lightens the composite by an amount the gate does not model. At 45%
-the 0.62 margin absorbed it. At 40% the margin is 0.06, so the rendered result
-may sit slightly below the measured 4.56:1. This wants checking on the reference
-machine before the Instrument Panel readout cell is built on the same recipe.
+**Adding a colour world.** The plate leaves the tightest surface — body text at
+82% — with 0.06 of margin. A world with a brighter bottom stop than Bluetooth's
+`#2CBE7C` will fail the gate. Check before adding one.
 
-**Hover deepens, it never lightens.** On a dark scrim a lighter hover walks the
-contrast back toward the field the scrim exists to escape, which is how the
-first draft of this change broke the rule it was written to satisfy.
+`HardwareResultCard` layers `.ultraThinMaterial.opacity(0.15)` behind its
+material, which lightens the composite by an amount the gate does not model. The
+cell's 1.20 of margin absorbs it, but the rendered result still wants a look on
+the reference machine.
 
-`scripts/check-contrast.py` reads the worlds, the scrim and the text alpha from
-source and fails if any world drops below 4.5:1. It runs in CI.
+`scripts/check-contrast.py` reads the worlds, the plate, every material and the
+text alpha from source, composites each stack above, and fails if any of the
+seven surfaces drops below 4.5:1 on any of the twenty worlds. It also refuses a
+material that tints with white rather than black, because a lightening material
+would keep its number and quietly break the rule. It runs in CI.
 
 ---
 
