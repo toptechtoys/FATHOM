@@ -1,3 +1,4 @@
+import FathomKit
 import SwiftUI
 
 struct AttributionView: View {
@@ -5,44 +6,76 @@ struct AttributionView: View {
     @AppStorage(AttributionAppModel.enabledKey) private var enabled = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            Text("Attribution").font(.fathomDisplay(34))
-            HardwareResultCard(label: "BYTE ATTRIBUTION") {
-                Text("not published")
-                    .font(.fathomData(18, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.82))
-                Text("Two completed scans must bracket a persisted FSEvents causal window. Event paths alone are not process attribution.")
-                    .font(.fathomSystem(12))
-                    .foregroundStyle(.white.opacity(0.82))
-            }
-            Toggle("Collect the causal window", isOn: Binding(
-                get: { enabled },
-                set: {
-                    enabled = $0
-                    model.setEnabled($0)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Attribution",
+                    subtitle: subtitle,
+                    isLive: enabled
+                )
+
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Written today",
+                        measurement: FathomKit.Measurement<String>.notPublished(
+                            reason: "Two completed scans must bracket a persisted FSEvents causal window before bytes can be attributed to a process."
+                        ),
+                        note: "Traced to who wrote it",
+                        format: { $0 }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Collection",
+                        measurement: FathomKit.Measurement<String>.known(
+                            enabled ? "On" : "Off",
+                            source: .fseventsCausalWindow
+                        ),
+                        note: enabled
+                            ? "Curated paths, durable event IDs"
+                            : "No background path history is retained",
+                        format: { $0 }
+                    )
                 }
-            ))
-            .toggleStyle(.switch)
-            status
-            Text("Any remainder will get its own unattributed row. It will never be redistributed to make the percentages total 100%.")
-                .font(.fathomSystem(12.5))
-                .foregroundStyle(.white.opacity(0.82))
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "Causal window") {
+                    VStack(alignment: .leading, spacing: 14) {
+                        FathomPanelUnavailable(reason: statusReason)
+
+                        Toggle("Collect the causal window", isOn: Binding(
+                            get: { enabled },
+                            set: {
+                                enabled = $0
+                                model.setEnabled($0)
+                            }
+                        ))
+                        .toggleStyle(.switch)
+                        .font(.fathomSystem(13))
+                    }
+                }
+
+                FathomNote(
+                    headline: "The unattributed row is the honest one.",
+                    detail: "Whatever we cannot trace to a process gets its own line rather than being distributed across the rows above to make the percentages total 100. Event paths alone are not process attribution, and we will not present them as though they were."
+                )
+            }
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
-        .frame(maxWidth: 720, alignment: .leading)
-        .padding(34)
     }
 
-    @ViewBuilder
-    private var status: some View {
+    private var subtitle: String {
+        enabled ? "Recording · nothing attributed yet" : "Collection is off"
+    }
+
+    private var statusReason: String {
         switch model.state {
         case .disabled:
-            Text("Collection is off. No background path history is retained.")
+            "Collection is off. No background path history is retained."
         case .collecting:
-            Text("Collecting curated-path FSEvents with durable event IDs.")
+            "Collecting curated-path FSEvents with durable event IDs. Attribution needs two completed scans to bracket the window."
         case let .recomputeRequired(reason):
-            Text("Recomputing from a complete scan — \(reason)")
+            "Recomputing from a complete scan — \(reason)"
         case let .failed(reason):
-            Text("not published — \(reason)")
+            reason
         }
     }
 }

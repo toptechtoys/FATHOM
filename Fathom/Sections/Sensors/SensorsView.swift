@@ -22,136 +22,265 @@ struct SensorsView: View {
 
     private func result(_ presentation: SensorPresentation) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Sensors & Power")
-                            .font(.fathomDisplay(34))
-                            .tracking(-1)
-                        Text("One bus per datum. Sampling stops when this screen closes.")
-                            .font(.fathomSystem(13))
-                            .foregroundStyle(.white.opacity(0.82))
-                    }
-                    Spacer()
-                    Text("LIVE")
-                        .font(.fathomSystem(10, weight: .bold))
-                        .tracking(1)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(FathomSurface.badge)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Live sensor sampling")
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Sensors & Power",
+                    subtitle: subtitle(presentation)
+                )
+
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Total system power",
+                        measurement: presentation.smc.totalSystemPowerWatts,
+                        unit: "W",
+                        note: "SMC PSTR, the whole machine",
+                        format: {
+                            $0.formatted(.number.precision(.fractionLength(2)))
+                        }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Hottest",
+                        measurement: hottest(presentation.temperatures),
+                        unit: "°C",
+                        note: hottestNote(presentation.temperatures),
+                        format: {
+                            $0.formatted(.number.precision(.fractionLength(1)))
+                        }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Sensors",
+                        measurement: presentation.temperatures.map { $0.count },
+                        unit: "published",
+                        note: "Every one this Mac exposes over IOHID",
+                        format: { $0.formatted() }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Fans",
+                        measurement: fanCount(presentation.smc),
+                        note: fanNote(presentation.smc),
+                        format: { $0.formatted() }
+                    )
+                }
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "Temperature · IOHID") {
+                    temperatures(presentation.temperatures)
                 }
 
-                section("TOTAL SYSTEM POWER · SMC PSTR") {
-                    HardwareMeasurementView(
-                        measurement: presentation.smc
-                            .totalSystemPowerWatts,
-                        format: {
-                            "\($0.formatted(.number.precision(.fractionLength(2)))) W"
-                        },
-                        prominent: true
+                FathomPanel(label: "Fans · AppleSMC") {
+                    fans(presentation.smc)
+                }
+
+                FathomPanel(label: "Component power · IOReport") {
+                    componentPower(
+                        presentation.componentPower,
+                        channelMap: presentation.channelMap
                     )
                 }
 
-                measurementSection(
-                    title: "FANS · APPLESMC",
-                    emptyReason: fanEmptyReason(presentation.smc),
-                    rows: presentation.smc.fanSpeedsRPM.map {
-                        SensorLine(
-                            name: $0.key,
-                            value: $0.value,
-                            format: {
-                                "\($0.formatted(.number.precision(.fractionLength(0)))) RPM"
-                            }
-                        )
-                    }
+                FathomNote(
+                    headline: "A dash means the sensor does not exist here.",
+                    detail: "Where a Mac has no fan the row reads nothing rather than interpolating a plausible number from its neighbours, and an unknown IOReport channel keeps its raw name rather than being relabelled to something friendlier that might be wrong."
                 )
 
-                temperatureSection(presentation.temperatures)
-                powerSection(
-                    presentation.componentPower,
-                    channelMap: presentation.channelMap
-                )
-
-                Text(
-                    "Unknown channels are not relabelled. Use `fathom dump-channels` to capture the exact runtime inventory for a new SoC map."
-                )
-                .font(.fathomPath(10.5))
-                .foregroundStyle(.white.opacity(0.82))
-                .textSelection(.enabled)
+                Text("Use `fathom dump-channels` to capture the exact runtime inventory for a new SoC map.")
+                    .font(.fathomPath(10.5))
+                    .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
+                    .textSelection(.enabled)
+                    .padding(.top, 18)
             }
-            .padding(34)
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
     }
 
-    private func temperatureSection(
-        _ measurement:
-            FathomKit.Measurement<[TemperatureSensorReading]>
+    @ViewBuilder
+    private func temperatures(
+        _ measurement: FathomKit.Measurement<[TemperatureSensorReading]>
     ) -> some View {
         switch measurement {
         case let .known(readings, _):
-            measurementSection(
-                title: "TEMPERATURES · IOHID",
-                emptyReason: nil,
-                rows: readings.map {
-                    SensorLine(
-                        name: $0.name,
-                        value: $0.celsius,
-                        format: {
-                            "\($0.formatted(.number.precision(.fractionLength(1)))) °C"
+            if readings.isEmpty {
+                FathomPanelUnavailable(
+                    reason: "This Mac publishes no temperature sensors over IOHID."
+                )
+            } else {
+                VStack(spacing: 3) {
+                    ForEach(readings) { reading in
+                        valueRow(reading.name, reading.celsius) {
+                            $0.formatted(.number.precision(.fractionLength(1)))
+                                + " °C"
                         }
-                    )
+                    }
                 }
-            )
+            }
         case let .notPublished(reason):
-            measurementSection(
-                title: "TEMPERATURES · IOHID",
-                emptyReason: reason,
-                rows: []
-            )
+            FathomPanelUnavailable(reason: reason)
         case .notAttributable:
-            measurementSection(
-                title: "TEMPERATURES · IOHID",
-                emptyReason: "Temperature services are not attributable",
-                rows: []
+            FathomPanelUnavailable(
+                reason: "Temperature services are not attributable on this Mac.",
+                isAttributionGap: true
             )
         }
     }
 
-    private func powerSection(
-        _ measurement:
-            FathomKit.Measurement<[IOReportPowerReading]>,
+    @ViewBuilder
+    private func fans(_ smc: SMCSnapshot) -> some View {
+        if smc.fanSpeedsRPM.isEmpty {
+            FathomPanelUnavailable(reason: fanEmptyReason(smc))
+        } else {
+            VStack(spacing: 3) {
+                ForEach(smc.fanSpeedsRPM, id: \.key) { reading in
+                    valueRow(reading.key, reading.value) {
+                        $0.formatted(.number.precision(.fractionLength(0)))
+                            + " RPM"
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func componentPower(
+        _ measurement: FathomKit.Measurement<[IOReportPowerReading]>,
         channelMap: FathomKit.Measurement<IOReportChannelMap>
     ) -> some View {
         switch measurement {
         case let .known(readings, _):
-            measurementSection(
-                title: "COMPONENT POWER · IOREPORT",
-                emptyReason: nil,
-                rows: readings.map {
-                    SensorLine(
-                        name: powerName($0, map: channelMap),
-                        value: $0.watts,
-                        format: {
-                            "\($0.formatted(.number.precision(.fractionLength(3)))) W"
+            if readings.isEmpty {
+                FathomPanelUnavailable(
+                    reason: "IOReport published no power channels on this Mac."
+                )
+            } else {
+                VStack(spacing: 3) {
+                    ForEach(readings) { reading in
+                        valueRow(
+                            powerName(reading, map: channelMap),
+                            reading.watts
+                        ) {
+                            $0.formatted(.number.precision(.fractionLength(3)))
+                                + " W"
                         }
-                    )
+                    }
                 }
-            )
+            }
         case let .notPublished(reason):
-            measurementSection(
-                title: "COMPONENT POWER · IOREPORT",
-                emptyReason: reason,
-                rows: []
-            )
+            FathomPanelUnavailable(reason: reason)
         case .notAttributable:
-            measurementSection(
-                title: "COMPONENT POWER · IOREPORT",
-                emptyReason: "Component power is not attributable",
-                rows: []
+            FathomPanelUnavailable(
+                reason: "IOReport power channels are not attributable.",
+                isAttributionGap: true
             )
         }
+    }
+
+    private func valueRow(
+        _ name: String,
+        _ measurement: FathomKit.Measurement<Double>,
+        format: (Double) -> String
+    ) -> some View {
+        switch measurement {
+        case let .known(value, source):
+            FathomDataRow.simple(
+                name,
+                value: format(value),
+                annotation: source.rawValue
+            )
+        case let .notPublished(reason):
+            FathomDataRow.simple(
+                name,
+                value: "—",
+                valueColor: .white.opacity(FathomSurface.minimumTextOpacity),
+                annotation: reason
+            )
+        case let .notAttributable(measured, _):
+            FathomDataRow.simple(
+                name,
+                value: format(measured),
+                valueColor: FathomSemantic.caution,
+                annotation: "not fully attributable",
+                isEmphasised: true
+            )
+        }
+    }
+
+    /// The hottest published sensor, not an average.
+    ///
+    /// An average across sensors on different parts of the board answers no
+    /// question anyone has; the hottest one is what throttles the machine.
+    private func hottest(
+        _ measurement: FathomKit.Measurement<[TemperatureSensorReading]>
+    ) -> FathomKit.Measurement<Double> {
+        switch measurement {
+        case let .known(readings, source):
+            let values = readings.compactMap { reading -> Double? in
+                guard case let .known(celsius, _) = reading.celsius else {
+                    return nil
+                }
+                return celsius
+            }
+            guard let peak = values.max() else {
+                return .notPublished(
+                    reason: "No temperature sensor published a reading."
+                )
+            }
+            return .known(peak, source: source)
+        case let .notPublished(reason):
+            return .notPublished(reason: reason)
+        case .notAttributable:
+            return .notPublished(
+                reason: "Temperature services are not attributable on this Mac."
+            )
+        }
+    }
+
+    private func hottestNote(
+        _ measurement: FathomKit.Measurement<[TemperatureSensorReading]>
+    ) -> String {
+        guard case let .known(readings, _) = measurement else {
+            return "The peak of every published sensor"
+        }
+        let hottestName = readings
+            .compactMap { reading -> (String, Double)? in
+                guard case let .known(celsius, _) = reading.celsius else {
+                    return nil
+                }
+                return (reading.name, celsius)
+            }
+            .max { $0.1 < $1.1 }?
+            .0
+        return hottestName.map { "\($0), the peak of every sensor" }
+            ?? "The peak of every published sensor"
+    }
+
+    private func fanCount(_ smc: SMCSnapshot) -> FathomKit.Measurement<Int> {
+        guard smc.fanSpeedsRPM.isEmpty else {
+            return .known(smc.fanSpeedsRPM.count, source: .appleSMCReadKey)
+        }
+        return .notPublished(reason: fanEmptyReason(smc))
+    }
+
+    private func fanNote(_ smc: SMCSnapshot) -> String {
+        smc.fanSpeedsRPM.isEmpty
+            ? "This Mac is passively cooled"
+            : "Reported by AppleSMC"
+    }
+
+    private func fanEmptyReason(_ smc: SMCSnapshot) -> String {
+        switch smc.keyInventory {
+        case .known:
+            "AppleSMC published no fan keys. This Mac has no fan."
+        case let .notPublished(reason):
+            reason
+        case .notAttributable:
+            "The AppleSMC key inventory is not attributable."
+        }
+    }
+
+    private func subtitle(_ presentation: SensorPresentation) -> String {
+        guard case let .known(readings, _) = presentation.temperatures else {
+            return "One bus per datum · stops when this screen closes"
+        }
+        return "\(readings.count) sensors · stops when this screen closes"
     }
 
     private func powerName(
@@ -167,81 +296,4 @@ struct SensorsView: View {
             channel: reading.channel
         ) ?? reading.channel
     }
-
-    private func fanEmptyReason(_ snapshot: SMCSnapshot) -> String? {
-        guard snapshot.fanSpeedsRPM.isEmpty else { return nil }
-        switch snapshot.keyInventory {
-        case .known:
-            return "This SMC inventory contains no fan-speed keys."
-        case let .notPublished(reason):
-            return reason
-        case .notAttributable:
-            return "The SMC inventory is not attributable."
-        }
-    }
-
-    private func measurementSection(
-        title: String,
-        emptyReason: String?,
-        rows: [SensorLine]
-    ) -> some View {
-        section(title) {
-            if let emptyReason {
-                Text("not published")
-                    .font(.fathomData(15, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.82))
-                    .help(emptyReason)
-                    .accessibilityLabel("Not published. \(emptyReason)")
-            } else {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.adaptive(minimum: 220), spacing: 10)
-                    ],
-                    spacing: 10
-                ) {
-                    ForEach(rows) { row in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(row.name)
-                                .font(.fathomPath(10))
-                                .foregroundStyle(.white.opacity(0.82))
-                                .lineLimit(1)
-                            HardwareMeasurementView(
-                                measurement: row.value,
-                                format: row.format
-                            )
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(14)
-                        .background(FathomSurface.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-            }
-        }
-    }
-
-    private func section<Content: View>(
-        _ title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.fathomSystem(10.5, weight: .bold))
-                .tracking(1)
-                .foregroundStyle(.white.opacity(0.82))
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(.black.opacity(0.17))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-    }
-}
-
-private struct SensorLine: Identifiable {
-    let name: String
-    let value: FathomKit.Measurement<Double>
-    let format: (Double) -> String
-
-    var id: String { name }
 }

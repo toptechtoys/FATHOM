@@ -9,19 +9,34 @@ struct ApplicationsView: View {
         Group {
             switch storage.state {
             case .idle:
-                FathomPoster(
+                FathomEmptySection(
                     title: "Applications",
-                    message: "What every app occupies, plus exact bundle-ID leftovers—never prefix guesses.",
-                    symbol: "square.grid.2x2",
-                    world: .applications,
-                    shape: AnyShape(RoundedRectangle(cornerRadius: 42)),
-                    isScanning: false,
+                    subtitle: "Nothing counted yet",
+                    headline: "An app is bigger than its bundle.",
+                    detail: "Footprints are computed during the first scan, including what each app left in the six other places macOS lets it write. Leftovers are matched by exact bundle identifier, never by guessing at a name prefix.",
+                    actionTitle: "Run the first Deep Scan",
+                    actionCost: "Reads every volume once. Changes nothing.",
                     action: storage.scanSelectedVolume
                 )
             case .scanning:
-                ProgressView("Accounting for application bundles and leftovers…")
+                FathomEmptySection(
+                    title: "Applications",
+                    subtitle: "Reading",
+                    headline: "Accounting for bundles and leftovers.",
+                    detail: storage.scanProgressMessage,
+                    actionTitle: "Scanning…",
+                    isBusy: true,
+                    action: {}
+                )
             case let .failed(reason):
-                Text("not published — \(reason)")
+                FathomEmptySection(
+                    title: "Applications",
+                    subtitle: "The pass did not complete",
+                    headline: "Nothing here is measured yet.",
+                    detail: reason,
+                    actionTitle: "Try again",
+                    action: storage.reset
+                )
             case let .result(presentation):
                 content(presentation)
             }
@@ -30,68 +45,144 @@ struct ApplicationsView: View {
     }
 
     @ViewBuilder
-    private func content(_ storage: StoragePresentation) -> some View {
+    private func content(_ presentation: StoragePresentation) -> some View {
         switch applications.state {
         case .idle:
-            ProgressView().onAppear { applications.load(from: storage) }
+            ProgressView().onAppear { applications.load(from: presentation) }
         case .loading:
             ProgressView("Reading application metadata…")
         case let .failed(reason):
-            Text(reason).textSelection(.enabled)
+            FathomEmptySection(
+                title: "Applications",
+                subtitle: "Metadata could not be read",
+                headline: "The bundles are there; the accounting is not.",
+                detail: reason
+            )
         case let .result(records):
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    Text("Applications").font(.fathomDisplay(34))
-                    ForEach(records) { app in
-                        appCard(app)
-                    }
-                }
-                .padding(34)
-            }
+            list(records)
         }
     }
 
-    private func appCard(_ app: ApplicationPresentation) -> some View {
-        HardwareResultCard(label: app.record.url.path) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    HardwareMeasurementView(
-                        measurement: app.record.name,
-                        format: { $0 }
+    private func list(_ records: [ApplicationPresentation]) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Applications",
+                    subtitle: "\(records.count) applications",
+                    isLive: false
+                )
+
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Applications",
+                        measurement: FathomKit.Measurement<Int>.known(
+                            records.count,
+                            source: .fts
+                        ),
+                        note: "Bundles found on this volume",
+                        format: { $0.formatted() }
                     )
-                    Spacer()
-                    HardwareMeasurementView(
-                        measurement: app.record.version,
-                        format: { "v\($0)" }
+                    FathomMeasurementReadout(
+                        label: "Footprint",
+                        measurement: total(records) { $0.sizeOnDisk },
+                        note: "The bundles themselves",
+                        format: bytes
+                    )
+                    FathomMeasurementReadout(
+                        label: "Leftovers",
+                        measurement: total(records) { $0.leftoverSizeOnDisk },
+                        note: "Matched by exact bundle identifier",
+                        format: bytes
                     )
                 }
-                HStack(spacing: 28) {
-                    metric("APP ON DISK", app.sizeOnDisk)
-                    metric("APP FREED", app.freedIfDeleted)
-                    metric("LEFTOVERS ON DISK", app.leftoverSizeOnDisk)
-                    metric("LEFTOVERS FREED", app.leftoverFreedIfDeleted)
-                }
-                HStack {
-                    Text("Last accessed")
-                    HardwareMeasurementView(
-                        measurement: app.record.lastAccessed,
-                        format: { $0.formatted(date: .abbreviated, time: .omitted) }
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "Largest, counting all six places") {
+                    FathomTwoNumberTable(
+                        rows: rows(records),
+                        hint: "The second column is what deletion actually returns. An app whose leftovers free nothing says so."
                     )
-                    Text("May be stale on noatime volumes")
-                        .foregroundStyle(.white.opacity(0.82))
                 }
-                .font(.fathomSystem(10.5))
+
+                FathomNote(
+                    headline: "Leftovers are matched, never guessed.",
+                    detail: "A folder is only credited to an app when its bundle identifier matches exactly. Prefix matching would sweep up a second app with a similar name, and the whole point of the second column is that you can act on it."
+                )
             }
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
     }
 
-    private func metric(
-        _ label: String,
-        _ value: FathomKit.Measurement<UInt64>
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label).font(.fathomSystem(9, weight: .bold))
-            HardwareMeasurementView(measurement: value, format: hardwareByteString)
+    /// The twelve largest, by what the bundle and its leftovers occupy.
+    ///
+    /// Capped because a list of every application is not a finding. The note
+    /// says the list is largest-first so nobody reads it as complete.
+    private func rows(
+        _ records: [ApplicationPresentation]
+    ) -> [FathomTwoNumberTable.Row] {
+        records
+            .map { record -> (ApplicationPresentation, UInt64) in
+                (record, known(record.sizeOnDisk) + known(record.leftoverSizeOnDisk))
+            }
+            .sorted { $0.1 > $1.1 }
+            .prefix(12)
+            .map { record, _ in
+                let freed = known(record.freedIfDeleted)
+                    + known(record.leftoverFreedIfDeleted)
+                let onDisk = known(record.sizeOnDisk)
+                    + known(record.leftoverSizeOnDisk)
+                return FathomTwoNumberTable.Row(
+                    name: name(of: record),
+                    onDisk: bytes(onDisk),
+                    freed: freed == 0 ? nil : bytes(freed),
+                    annotation: annotation(for: record),
+                    isPath: false
+                )
+            }
+    }
+
+    private func name(of record: ApplicationPresentation) -> String {
+        if case let .known(name, _) = record.record.name, !name.isEmpty {
+            return name
         }
+        return record.record.url.lastPathComponent
+    }
+
+    /// Names why the two columns differ, when they do.
+    private func annotation(
+        for record: ApplicationPresentation
+    ) -> String? {
+        let leftovers = known(record.leftoverSizeOnDisk)
+        guard leftovers > 0 else { return nil }
+        return "\(bytes(leftovers)) of it is leftovers"
+    }
+
+    private func total(
+        _ records: [ApplicationPresentation],
+        _ value: (ApplicationPresentation) -> FathomKit.Measurement<UInt64>
+    ) -> FathomKit.Measurement<UInt64> {
+        let sum = records.reduce(UInt64(0)) { $0 + known(value($1)) }
+        let missing = records.count { record in
+            if case .known = value(record) { return false }
+            return true
+        }
+        guard missing == 0 else {
+            // A total that quietly omits the rows it could not read is a
+            // smaller number wearing the same label.
+            return .notAttributable(
+                measured: sum,
+                explained: sum
+            )
+        }
+        return .known(sum, source: .fts)
+    }
+
+    private func known(_ measurement: FathomKit.Measurement<UInt64>) -> UInt64 {
+        guard case let .known(value, _) = measurement else { return 0 }
+        return value
+    }
+
+    private func bytes(_ value: UInt64) -> String {
+        value.formatted(.byteCount(style: .file))
     }
 }

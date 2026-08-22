@@ -9,19 +9,34 @@ struct MaintenanceView: View {
         Group {
             switch storage.state {
             case .idle:
-                FathomPoster(
+                FathomEmptySection(
                     title: "Maintenance",
-                    message: "Caches, snapshots and system-managed space. Each action states its cost before it runs.",
-                    symbol: "wrench.and.screwdriver",
-                    world: .maintenance,
-                    shape: AnyShape(RoundedRectangle(cornerRadius: 36)),
-                    isScanning: false,
+                    subtitle: "Nothing evaluated yet",
+                    headline: "Costs first, always.",
+                    detail: "Caches, logs, snapshots and the tasks macOS runs badly. Every task states what it takes from you before it runs, and their savings are measured during the first scan rather than estimated before it.",
+                    actionTitle: "Run the first Deep Scan",
+                    actionCost: "Reads every volume once. Changes nothing.",
                     action: storage.scanSelectedVolume
                 )
             case .scanning:
-                ProgressView("Inspecting maintenance evidence…")
+                FathomEmptySection(
+                    title: "Maintenance",
+                    subtitle: "Reading",
+                    headline: "Inspecting maintenance evidence.",
+                    detail: storage.scanProgressMessage,
+                    actionTitle: "Scanning…",
+                    isBusy: true,
+                    action: {}
+                )
             case let .failed(reason):
-                Text("not published — \(reason)")
+                FathomEmptySection(
+                    title: "Maintenance",
+                    subtitle: "The pass did not complete",
+                    headline: "Nothing here is measured yet.",
+                    detail: reason,
+                    actionTitle: "Try again",
+                    action: storage.reset
+                )
             case let .result(presentation):
                 result(presentation)
             }
@@ -31,54 +46,72 @@ struct MaintenanceView: View {
 
     private func result(_ presentation: StoragePresentation) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Maintenance").font(.fathomDisplay(34))
-                HardwareResultCard(label: "PURGEABLE") {
-                    HardwareMeasurementView(
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Maintenance",
+                    subtitle: "Each task states its cost",
+                    isLive: false
+                )
+
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Purgeable",
                         measurement: presentation.purgeable,
-                        format: hardwareByteString,
-                        prominent: true
+                        note: "Space macOS may reclaim under pressure",
+                        format: bytes
                     )
-                    Text("There is no supported force-purge API. FATHOM does not allocate a pressure file as if it were maintenance.")
-                        .font(.fathomSystem(11.5))
-                        .foregroundStyle(.white.opacity(0.82))
+                    FathomMeasurementReadout(
+                        label: "Local snapshots",
+                        measurement: presentation.snapshotInventory.map { $0.count },
+                        note: "Published by the volume",
+                        format: { $0.formatted() }
+                    )
                 }
-                HardwareResultCard(label: "LOCAL SNAPSHOTS") {
-                    snapshotState(presentation.snapshotInventory)
-                    Text("Snapshot removal is not offered until destination reachability and per-snapshot freeable extents are both published.")
-                        .font(.fathomSystem(11.5))
-                        .foregroundStyle(.white.opacity(0.82))
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "What we will not do") {
+                    VStack(spacing: 3) {
+                        FathomDataRow.simple(
+                            "Force-purge purgeable space",
+                            value: "not offered",
+                            valueColor: .white.opacity(
+                                FathomSurface.minimumTextOpacity
+                            ),
+                            annotation: "There is no supported API. Allocating a pressure file to provoke it is a trick, not maintenance."
+                        )
+                        FathomDataRow.simple(
+                            "Delete local snapshots",
+                            value: "not offered",
+                            valueColor: .white.opacity(
+                                FathomSurface.minimumTextOpacity
+                            ),
+                            annotation: "Not until destination reachability and per-snapshot freeable extents are both published."
+                        )
+                    }
                 }
-                HardwareResultCard(label: "VALIDATED CACHE RECIPES") {
-                    Text("Dry run first · exact paths · regeneration cost · Trash only")
-                        .font(.fathomSystem(13, weight: .semibold))
-                    Button("Open Reclaim", action: openReclaim)
-                        .buttonStyle(.borderedProminent)
+
+                FathomPanel(label: "Validated cache recipes") {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Dry run first · exact paths · regeneration cost stated · Trash only")
+                            .font(.fathomSystem(13, weight: .semibold))
+                        FathomAction(
+                            title: "Open Reclaim",
+                            cost: "Nothing runs until you choose it.",
+                            action: openReclaim
+                        )
+                    }
                 }
+
+                FathomNote(
+                    headline: "Nothing here runs until you have read what it takes.",
+                    detail: "Every task names its cost in the same breath as its saving, and the destination is always the Trash. A task we cannot cost honestly is not offered at all, which is why two of them above say so."
+                )
             }
-            .padding(34)
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
     }
 
-    @ViewBuilder
-    private func snapshotState(
-        _ measurement: FathomKit.Measurement<[LocalSnapshot]>
-    ) -> some View {
-        switch measurement {
-        case let .known(snapshots, source):
-            Text("\(snapshots.count) published")
-                .font(.fathomData(20, weight: .semibold))
-                .help(source.rawValue)
-                .accessibilityLabel(
-                    "\(snapshots.count) snapshots published, source \(source.rawValue)"
-                )
-        case let .notPublished(reason):
-            Text("not published")
-                .foregroundStyle(.white.opacity(0.82))
-                .help(reason)
-                .accessibilityLabel("Not published. \(reason)")
-        case .notAttributable:
-            Text("not attributable")
-        }
+    private func bytes(_ value: UInt64) -> String {
+        value.formatted(.byteCount(style: .file))
     }
 }
