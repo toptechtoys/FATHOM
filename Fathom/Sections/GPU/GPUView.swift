@@ -115,7 +115,7 @@ private struct DisplayRefreshCard: View {
             )
             Text("Compositor callback rate, not app-rendered FPS")
                 .font(.fathomSystem(9.5, weight: .medium))
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(.white.opacity(0.82))
         }
         .task {
             let sampler: DisplayRefreshSampler

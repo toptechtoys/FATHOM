@@ -81,7 +81,7 @@ struct TimelineView: View {
                                     systemImage: "moon.zzz"
                                 )
                                 .font(.fathomSystem(11, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.68))
+                                .foregroundStyle(.white.opacity(0.82))
                                 .accessibilityLabel(
                                     "Sleep gap. No values were interpolated."
                                 )
@@ -159,7 +159,7 @@ struct TimelineView: View {
                 VStack(alignment: .leading, spacing: 7) {
                     Text("TOP-LEVEL CHANGE")
                         .font(.fathomSystem(9, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(.white.opacity(0.82))
                     ForEach(rows) { row in
                         HStack(spacing: 12) {
                             Text(row.name)

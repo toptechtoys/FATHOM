@@ -262,20 +262,46 @@ Accessibility Large without clipping.
 
 ### The text scrim, and why the cards are dark
 
-Body text is white at 82%. Directly on the fields that lands between 2.02:1
-(Network) and 4.32:1 (Memory) — every one of the twenty short of the rule above.
-The cards used to be white at 10.5%, which made it worse: tinting a card white
-lightens the very field the text is trying to contrast against.
+Body text is white at 82%. Directly on the fields that lands between 2.05:1
+(Bluetooth) and 4.32:1 (Memory) — every one of the twenty short of the rule
+above. The cards used to be white at 10.5%, which made it worse: tinting a card
+white lightens the very field the text is trying to contrast against.
 
-Body text therefore never sits on a field. It sits on a **black scrim at 45%**,
+Body text therefore never sits on a field. It sits on a **black scrim at 40%**,
 laid over the field. The twenty colour worlds are unchanged — the scrim is what
-moved. The worst world reaches 5.06:1, leaving margin for the white 15% radial
-highlight across the upper field.
+moved. The worst world reaches 4.56:1, still clear of the rule with the white
+15% radial highlight across the upper field.
 
 | Surface | Value | Worst world |
 |---|---|---|
-| Card, tile, row — `.tile` `.fi` `.row` `.dev` | `rgba(0,0,0,.45)` | 5.06:1 |
-| Hover | `rgba(0,0,0,.55)` | 6.42:1 |
+| Readout cell, card, tile, row | `rgba(0,0,0,.40)` | 4.56:1 |
+| Hover | `rgba(0,0,0,.50)` | 5.75:1 |
+
+**40% is the shallowest scrim the rule permits at 82% white.** Break-even is
+39.4%, so the margin is 0.06. This is deliberate: the Instrument Panel's flatter
+readout cell is the point of that direction, and 40% is how flat it can be while
+staying honest. Two consequences follow. A colour world with a brighter bottom
+stop than Bluetooth's `#2CBE7C` will fail the gate, so check before adding one.
+And text below 82% white does not clear the rule on this scrim at all — 60%
+needs 58%, and 45% cannot reach 4.5:1 at any scrim. Every note and micro-label
+on a carded surface therefore reads at 82%, the same as body text. There is no
+quieter tier of text on this scrim, because there is no room for one.
+
+**Two known gaps the gate does not cover.**
+
+The **sidebar rail** carries text on `rgba(0,0,0,.20)`, which is too shallow for
+these worlds at any text alpha: 75% white measures 2.73:1, and even the selected
+state at pure white only reaches 3.66:1. Raising the alpha does not fix it — 82%
+lands at 2.97:1 and flattens the selected/unselected affordance on the way. The
+rail needs a deeper scrim (`.45` clears the rule at 75% white) or a blur that
+demonstrably does the work. `check-contrast.py` does not measure the rail, so
+this fails silently today; it is a design decision, deliberately left open.
+
+`HardwareResultCard` layers `.ultraThinMaterial.opacity(0.15)` **behind** the
+scrim, which lightens the composite by an amount the gate does not model. At 45%
+the 0.62 margin absorbed it. At 40% the margin is 0.06, so the rendered result
+may sit slightly below the measured 4.56:1. This wants checking on the reference
+machine before the Instrument Panel readout cell is built on the same recipe.
 
 **Hover deepens, it never lightens.** On a dark scrim a lighter hover walks the
 contrast back toward the field the scrim exists to escape, which is how the

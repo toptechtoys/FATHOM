@@ -129,7 +129,7 @@ struct NetworkView: View {
                 }
                 Text("Published by \(source.rawValue)")
                     .font(.fathomPath(9.5))
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(.white.opacity(0.82))
             case let .notPublished(reason):
                 Text("not published")
                     .foregroundStyle(.white.opacity(0.82))

@@ -66,7 +66,7 @@ struct CPUView: View {
                         )
                         Text("1 / 5 / 15 minutes")
                             .font(.fathomSystem(10.5, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.72))
+                            .foregroundStyle(.white.opacity(0.82))
                     }
                     privateMetric(
                         "CLUSTER FREQUENCY",
@@ -111,7 +111,7 @@ struct CPUView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.fathomSystem(9, weight: .bold))
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(.white.opacity(0.82))
             HardwareMeasurementView(
                 measurement: measurement,
                 format: {

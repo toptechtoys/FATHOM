@@ -171,17 +171,24 @@ struct FathomColorWorld: Equatable {
 /// The surface body text sits on.
 ///
 /// Body text is white at 82%. Directly on the colour worlds that lands between
-/// 2.02:1 (network) and 4.32:1 (memory), short of the 4.5:1 `AGENTS.md`
+/// 2.05:1 (bluetooth) and 4.32:1 (memory), short of the 4.5:1 `AGENTS.md`
 /// requires on every surface. White-tinted cards made it worse, because they
 /// lighten the field the text is trying to contrast against.
 ///
-/// Every surface carrying body text uses this scrim instead. At 45% the worst
-/// world reaches 5.06:1, which leaves margin for the white 15% radial highlight
-/// `FathomWorldBackground` paints across the upper field. The colour worlds
-/// themselves are untouched. `scripts/check-contrast.py` reads this value and
-/// the worlds from source and proves the result, so the two cannot drift.
+/// Every surface carrying body text uses this scrim instead. At 40% the worst
+/// world reaches 4.56:1, still clear of the rule with the white 15% radial
+/// highlight `FathomWorldBackground` paints across the upper field. The colour
+/// worlds themselves are untouched. `scripts/check-contrast.py` reads this
+/// value and the worlds from source and proves the result, so the two cannot
+/// drift.
+///
+/// 40% is the Instrument Panel readout-cell value, chosen deliberately over the
+/// 45% that shipped before it: the flatter cell is the point of that direction.
+/// It leaves 0.06 of margin, and break-even is 39.4%, so this is the shallowest
+/// scrim the rule permits at 82% white. A world with a brighter bottom stop than
+/// bluetooth's `#2CBE7C` would fail the gate — check before adding one.
 enum FathomSurface {
-    static let textScrimOpacity: Double = 0.45
+    static let textScrimOpacity: Double = 0.40
 
     /// Cards and tiles that carry body text.
     static var card: Color { .black.opacity(textScrimOpacity) }
