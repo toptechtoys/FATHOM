@@ -24,7 +24,16 @@ ROOT = Path(__file__).resolve().parent.parent
 DESIGN = ROOT / "Fathom/Design/FathomDesign.swift"
 TEXT_SOURCE = ROOT / "Fathom/Components/MeasurementValueView.swift"
 MENU_BAR = ROOT / "Fathom/Sections/MenuBar/MenuBarSettingsView.swift"
+BACKGROUND = ROOT / "Fathom/Design/FathomWorldBackground.swift"
 REQUIRED = 4.5
+
+# FathomWorldBackground paints a white radial highlight across the upper field,
+# and the plate goes on top of it -- so the ground under text is lighter than
+# the world's bottom stop wherever that highlight lands, which is exactly where
+# section headers and the first row of readouts sit. Measuring the bottom stop
+# alone overstates every result: at a 0.40 plate it read 4.56:1 and the real
+# render was 4.18:1. The highlight is read from source and composited first.
+HIGHLIGHT = re.compile(r"colors: \[\.white\.opacity\(([01]?\.\d+)\), \.clear\]")
 
 WORLD = re.compile(
     r"static let (\w+) = FathomColorWorld\(\s*"
@@ -118,6 +127,17 @@ def main():
         print(f"error: {error}", file=sys.stderr)
         return 2
 
+    highlights = HIGHLIGHT.findall(BACKGROUND.read_text())
+    if len(highlights) != 1:
+        print(
+            f"error: expected one white radial highlight in {BACKGROUND.name}, "
+            f"found {highlights or 'none'} -- if the background changed, this "
+            f"gate no longer knows what is under the plate",
+            file=sys.stderr,
+        )
+        return 2
+    highlight = float(highlights[0])
+
     alphas = set(BODY_TEXT.findall(TEXT_SOURCE.read_text()))
     if len(alphas) != 1:
         print(
@@ -153,6 +173,7 @@ def main():
     ]
 
     print(f"body text: white @ {alpha} (floor {floor})")
+    print(f"highlight: white @ {highlight} radial, under the plate")
     print(f"plate:     black @ {plate} under the content column and the rail")
     print(f"materials: cell {card}, row {row}, row hover {row_hover} on the plate")
     print(f"required:  {REQUIRED}:1 (AGENTS.md), every surface, every world\n")
@@ -163,11 +184,14 @@ def main():
         worst = None
         for name, bottom in worlds:
             world = rgb(bottom)
-            ground = composite((0, 0, 0), plate, world)
+            # the highlight lifts the field first, then the plate goes on top
+            ground = composite((255, 255, 255), highlight, world)
+            ground = composite((0, 0, 0), plate, ground)
             for material in materials:
                 ground = composite((0, 0, 0), material, ground)
             ratio = contrast(composite((255, 255, 255), text, ground), ground)
-            bare = contrast(composite((255, 255, 255), text, world), world)
+            lit = composite((255, 255, 255), highlight, world)
+            bare = contrast(composite((255, 255, 255), text, lit), lit)
             if worst is None or ratio < worst[0]:
                 worst = (ratio, name, bottom, bare)
         ratio, name, bottom, bare = worst

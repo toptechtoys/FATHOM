@@ -199,7 +199,7 @@ struct FathomColorWorld: Equatable {
 /// at 60% the plate would need 58%, and 45% cannot reach 4.5:1 at any depth.
 enum FathomSurface {
     /// The plate under the content column and the rail.
-    static let scrimOpacity: Double = 0.40
+    static let scrimOpacity: Double = 0.45
 
     /// Readout cells, cards and tiles — the design's 16%, over the plate.
     static let cardOpacity: Double = 0.16

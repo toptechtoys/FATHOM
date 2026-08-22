@@ -269,22 +269,33 @@ white lightens the very field the text is trying to contrast against.
 
 The fix is **one plate, not a plate per element**. Everything that carries text
 — the whole content column, and the rail beside it — sits on a **black plate at
-40%**. The Instrument Panel's own materials then layer on top of that plate at
+45%**. The Instrument Panel's own materials then layer on top of that plate at
 exactly the values the design specifies: the readout cell is still 16%, the data
 row still 7%, its hover still 13%. Their *relative* flatness, which is the point
 of that direction, is preserved. What changed is the ground underneath them.
 
 The twenty colour worlds are untouched.
 
+Every figure below composites the white 15% radial highlight
+`FathomWorldBackground` paints across the upper field, because the plate sits on
+top of that highlight and the ground under text is lighter than the world's
+bottom stop wherever it lands.
+
 | Surface | Stack | Worst world (Bluetooth) |
 |---|---|---|
-| Content plate — display title, full white | `.40` | 5.91:1 |
-| Content plate — body text at 82% | `.40` | 4.56:1 |
-| Rail — selected, full white | `.40` | 5.91:1 |
-| Rail — unselected at 82% | `.40` | 4.56:1 |
-| Readout cell, card, tile | `.40` + `.16` | 5.70:1 |
-| Data row | `.40` + `.07` | 5.02:1 |
-| Data row, hover | `.40` + `.13` | 5.46:1 |
+| Content plate — display title, full white | `.45` | 6.12:1 |
+| Content plate — body text at 82% | `.45` | 4.72:1 |
+| Rail — selected, full white | `.45` | 6.12:1 |
+| Rail — unselected at 82% | `.45` | 4.72:1 |
+| Readout cell, card, tile | `.45` + `.16` | 5.87:1 |
+| Data row | `.45` + `.07` | 5.19:1 |
+| Data row, hover | `.45` + `.13` | 5.63:1 |
+
+**Why 45% and not 40%.** 40% is what the bottom stop alone appears to allow, and
+it is wrong: under the highlight the same surface renders 4.18:1. The minimum
+that survives the highlight is 44%, and 45% is that with a little room. Measuring
+the gradient without the highlight overstates every result on this screen, which
+is why the gate now reads the highlight from source too.
 
 **The materials are black where the design draws them white.** This is the one
 place the Instrument Panel direction is not followed literally, and it is
@@ -298,14 +309,18 @@ paragraph reached the first time.
 contrast back toward the field, which is how the first draft of this change
 broke the rule it was written to satisfy.
 
-**Text never goes below 82% white on these surfaces.** There is no quieter tier:
-at 60% the plate would need 58%, and 45% cannot reach 4.5:1 at any depth. Every
-note and micro-label therefore reads at 82%, the same as body text.
+**Text never goes below 82% white.** The bare plate is what forces this: 82% is
+its minimum, so any text that might sit directly on the plate has to clear that
+bar. The deeper surfaces would permit a quieter tier — the cell tolerates 69% and
+a row 76% — but a second tier is a rule about *where* a colour may be used, and
+that is not a rule a gate can enforce per element. One tier is enforceable, so
+hierarchy comes from size, weight and tracking instead of opacity. Every note and
+micro-label reads at 82%, the same as body text.
 `FathomSurface.minimumTextOpacity` states this, and the gate fails the build if
 `MeasurementValueView` drops below it.
 
 **Adding a colour world.** The plate leaves the tightest surface — body text at
-82% — with 0.06 of margin. A world with a brighter bottom stop than Bluetooth's
+82% — with 0.22 of margin. A world with a brighter bottom stop than Bluetooth's
 `#2CBE7C` will fail the gate. Check before adding one.
 
 `HardwareResultCard` layers `.ultraThinMaterial.opacity(0.15)` behind its
