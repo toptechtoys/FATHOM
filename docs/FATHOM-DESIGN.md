@@ -1,11 +1,28 @@
 # FATHOM — Design System
 
-**Status: LOCKED, v1.0 · 30 July 2026**
+**Status: IN TRANSITION · 23 August 2026**
 Visual spec: `fathom-app.html`. Open it. It is normative — where this document
 and the prototype disagree, the prototype wins.
 
-Locked means the argument is over. Implement it. Changes go through the
-prototype first, then this document, then Swift. Not the other way round.
+The prototype now carries the **Instrument Panel** direction: one always-on
+window, every section a live panel of readouts behind a 64px icon rail. There is
+no poster, no Scan button and no result state to wait for. It replaced the
+poster direction on 23 August.
+
+**Sections of this document not yet rewritten for it**, and therefore superseded
+by the prototype wherever they disagree: *Three archetypes* (there is one
+archetype now, not three), *The object* (no object is rendered), *The action
+button* (no circular Scan button), the *Materials* table (white tiles and panels
+became one plate with dark materials — see **The plate** below, which is
+current), and *Sidebar* (a 64px icon rail in four groups, not seven named
+groups at up to 244px). Read those sections as history until they are rewritten.
+
+Current and authoritative in this document: **Colour worlds**, **Semantic
+colour**, **The plate**, **Type**, **Responsive**, and **What is deliberately
+absent**.
+
+Changes go through the prototype first, then this document, then Swift. Not the
+other way round.
 
 ---
 
@@ -101,10 +118,22 @@ Used only for meaning, never decoration.
 |---|---|---|
 | Freeable | `#8DF3C4` | This space actually comes back |
 | Caution | `#FCD98A` | Real but conditional — needs care |
-| Blocked | `#FFAFAF` | Frees nothing, or a genuine risk |
-| Informational | `#A9CBFF` | Worth knowing, no action |
+| Blocked | `#FFCACA` | Frees nothing, or a genuine risk |
+| Informational | `#BFD9FF` | Worth knowing, no action |
+| Live | `#5CE6A8` | Sampling right now — dots and switches only |
 
 Red never appears for routine state. A full disk is not an emergency.
+
+Blocked and informational were `#FFAFAF` and `#A9CBFF`. As text on a data row
+they measured 3.88:1 and 4.10:1, so both were lightened until they clear the
+rule with the margin the rest of the system keeps — 4.71:1 and 4.72:1. The hue
+is unchanged; these are the same four meanings, made legible on the surface they
+actually land on.
+
+**Live is not a text colour.** `#5CE6A8` reads 4.32:1 on a row, which is fine
+for the pulsing dot and the switch fill it is used for — non-text graphics need
+3:1 — and not fine for a word. If it ever needs to carry text, it needs
+lightening first.
 
 ---
 
