@@ -1,88 +1,84 @@
 # FATHOM — Design System
 
-**Status: IN TRANSITION · 23 August 2026**
+**Status: LOCKED, v2.0 · 23 August 2026 — Instrument Panel**
 Visual spec: `fathom-app.html`. Open it. It is normative — where this document
 and the prototype disagree, the prototype wins.
 
-The prototype now carries the **Instrument Panel** direction: one always-on
-window, every section a live panel of readouts behind a 64px icon rail. There is
-no poster, no Scan button and no result state to wait for. It replaced the
-poster direction on 23 August.
+v2.0 replaced the poster direction with the Instrument Panel on 23 August: one
+always-on window, every section a set of live readouts behind a 64px icon rail.
+No poster, no Scan button, no result state.
 
-**Sections of this document not yet rewritten for it**, and therefore superseded
-by the prototype wherever they disagree: *Three archetypes* (there is one
-archetype now, not three), *The object* (no object is rendered), *The action
-button* (no circular Scan button), the *Materials* table (white tiles and panels
-became one plate with dark materials — see **The plate** below, which is
-current), and *Sidebar* (a 64px icon rail in four groups, not seven named
-groups at up to 244px). Read those sections as history until they are rewritten.
+Locked means the argument is over. Implement it. Changes go through the
+prototype first, then this document, then Swift. Not the other way round.
 
-Current and authoritative in this document: **Colour worlds**, **Semantic
-colour**, **The plate**, **Type**, **Responsive**, and **What is deliberately
-absent**.
-
-Changes go through the prototype first, then this document, then Swift. Not the
-other way round.
+**Swift has the foundation and none of the vocabulary.** The colour worlds, the
+plate, the materials and the semantic palette are implemented and gated. The
+rail, the readout grid, the thirteen panel types and the sparklines are not.
 
 ---
 
 ## The idea in one line
 
-Every screen is a lit object floating in a saturated colour field, and the app
-tells you where you are before you read a single word.
+The window is an instrument panel. It is always live, every section is a set of
+readouts, and there is nothing to start.
 
-The calibration reference was CleanMyMac. Three things were taken from it and
-one was deliberately rejected.
+The calibration reference was CleanMyMac. Two things were taken from it and one
+was deliberately rejected.
 
-**Taken.** Colour fills the entire window including the sidebar, so the app
-reads as one lit object rather than a chrome frame around a content pane. One
-large rendered object per screen, centred, with enormous space around it. Very
-little text — a title, one sentence, one action.
+**Taken.** Colour fills the entire window, rail included, so the app reads as one
+lit object rather than chrome wrapped around a content pane. And the colour tells
+you where you are before you read a word.
 
 **Rejected.** Its Assistant screen reports "Mac Health: Good", a score with no
 published formula. FATHOM's Home shows the real free number, the four things
 worth looking at, and the sentence *nothing is wrong*. No score, ever.
 
+This replaced an earlier direction in which each screen was a poster — a
+rendered object, a title, one sentence and a Scan button — that filled with data
+only after a pass. The poster was honest but it made the app feel like a tool
+you operate. The panel is a tool you read. Every trace of the poster is gone:
+no object, no Scan button, no empty landing state, no result screen.
+
 ---
 
-## Three archetypes
+## One shell
 
-Getting this wrong is the most expensive mistake available. A Scan button on a
-screen with nothing to scan teaches the user the app does not understand its own
-data. Each of the 20 sections is exactly one of these.
+There are no archetypes any more. Every one of the twenty sections is the same
+shell, and differs only in its readouts.
 
-### Poster → Result
+**The field.** Each section owns a three-stop colour world,
+`linear-gradient(177deg, b1 0%, b2 60%, b3 100%)`, carried by the whole window
+including the rail. Over it: a fractal-noise grain at 30%, `overlay` blend, and
+a white radial highlight across the upper field. The plate goes on top of both.
 
-Landing state is a poster: object, title, one sentence, one glowing circular
-Scan button, nothing else. Press it and the same colour field fills with data.
-The launch state is deliberately empty. Data appears only after the scan.
+**The rail.** 64px, always an icon rail, never labelled. See *The rail*.
 
-Deep Scan, Storage, Timeline, Explore, Reclaim, Endurance, Attribution,
-Applications, Cloud, Maintenance, SSD Health.
+**The status strip.** 32px, `rgba(0,0,0,.25)`, 10px/700/.1em uppercase —
+`INSTRUMENT PANEL` left, `1 HZ · LIVE` right.
 
-### Live monitor
+**The section header.** Baseline-aligned: title, then the machine line
+(*MacBook Air M2 · 16 GB · 142 days recorded*), then a live pill on the right
+carrying a pulsing dot and the section's own subtitle. `.5px` bottom hairline,
+20px below it.
 
-No Scan button. There is nothing to find; these values stream. Header with the
-section name and a pulsing status pill, a row of tiles that reflows, then one
-panel for detail and the honest note. Live the moment you arrive.
+**The readouts.** Three or four cells across the top of every section, in a grid
+of `repeat(auto-fit, minmax(190px, 1fr))`, 1px apart, each drawing its own
+hairline — *the gap is the rule*. No radius, no lift, no shadow. Hover deepens
+the cell.
 
-CPU, GPU, Memory, Sensors & Power, Network, Bluetooth.
+**The panels.** Everything below the readouts. No card, no blur: a `.5px` top
+hairline, a tracked label, and the content.
 
-### Surface
-
-Neither scan nor stream. A configuration or preview screen showing the real
-artefact being configured. Menu Bar renders the actual 22-point widget at true
-size above its toggles. Weekly digest renders a real sample digest.
-
-Menu Bar, Weekly digest.
+A section with nothing to show yet says so in a note and offers the one action
+that would fill it. It does not show a poster and it does not show zeros.
 
 ---
 
 ## Colour worlds
 
-Each section owns a three-stop field. Dark at the top, saturated at the bottom,
-with a radial lift behind the object. The whole window carries it — the sidebar
-is a translucent panel floating *over* the field, never a separate dark slab.
+Each section owns a three-stop field. Dark at the top, saturated at the bottom.
+The whole window carries it, rail included — the rail is a translucent panel
+floating *over* the field, never a separate dark slab.
 
 | Section | Top | Mid | Bottom |
 |---|---|---|---|
@@ -107,8 +103,8 @@ is a translucent panel floating *over* the field, never a separate dark slab.
 | Maintenance | `#331A05` | `#8A4A0B` | `#D08A1D` |
 | SSD Health | `#0A1F2E` | `#1D5570` | `#4A93AE` |
 
-Transition on navigation: 550 ms, `cubic-bezier(.16,1,.3,1)`, background and
-object tint together.
+Transition on navigation: 550 ms, `cubic-bezier(.16,1,.3,1)`. The whole field
+cross-fades at once; nothing else moves with it.
 
 ### Semantic colour
 
@@ -137,27 +133,33 @@ lightening first.
 
 ---
 
-## The object
+## Panels
 
-One per poster screen. Layered CSS in the prototype; a `Canvas` or layered
-`ZStack` in SwiftUI. Nine layers, in order:
+Thirteen panel types carry every section. Each is built once and takes data.
 
-1. Cast shadow — 86% width, 19% height, blur 30, `rgba(0,0,0,.46)`, below
-2. Body — radial highlight at 30%/20% over a 152° linear ramp, light to dark
-3. Depth — radial darkening at 70%/90%
-4. Bounce — blurred white ellipse along the lower edge, the light coming back up
-5. Specular — blurred white ellipse at 12%/7%, rotated −20°
-6. Rim — `inset 0 0 0 1.5px rgba(255,255,255,.3)`
-7. Top edge — `inset 0 1px 0 2px rgba(255,255,255,.48)`
-8. Glyph — white, 42% of the object, drop shadow
-9. Breathe — scale 1 → 1.016, rotate 0.6°, 7.5 s, disabled under Reduce Motion
+| Type | Used by | What it is |
+|---|---|---|
+| Sparkline | CPU, GPU, Memory, Network, Sensors | 60 samples at 1 Hz. `viewBox 0 0 1000 56`, 52px tall, 2.5px stroke, area fill at 13% |
+| Core bars | CPU | Eight vertical bars from a baseline. Performance cores at 92% white, efficiency at 50%. Height animates 600ms |
+| Two-number table | Deep Scan, Explore, SSD Health | Item / on disk / freed if deleted. Zero-recovery rows read `0 GB`; freeable values take the freeable colour |
+| Segment bar | Memory, Cloud | Stacked proportional bar with a legend naming every segment, *unaccounted* included |
+| Treemap | Storage | Area is size on disk. Every rectangle names its own two numbers |
+| Day columns | Timeline | Seven columns, growth up and deletion down from a shared baseline, net under each |
+| Device rows | Bluetooth, Applications, Cloud | Name / meter / value. A device that publishes no battery reads *does not report* |
+| Rule rows | Reclaim | Include or exclude per rule, recomputing selected and after-state live |
+| Feed | Home | Four *worth a look* items: category dot, title, one sentence, one value |
+| Grid | Home | Every section, one number each, each a link to the screen that produced it |
+| Chain | Endurance | The arithmetic, left to right, with the conclusion at the end |
+| Menu-bar preview | Menu Bar | The widget at actual size, 26px tall |
+| Digest card | Weekly digest | A light card on the dark field, closing on *Nothing needs you. This is the whole message.* |
 
-Each section has its own silhouette via `border-radius` so the shape identifies
-the screen before the title is read. Squircle for Deep Scan, wide disc for
-Storage, shield for Endurance, leaf for Attribution, four-lobed blob for
-Reclaim. Exact values in the prototype.
+Every section also ends in a **note**: a 19px display headline and a sentence of
+body capped at 66 characters, saying the thing the numbers cannot.
 
-Size: `clamp(150px, 23vw, 300px)`.
+**Three states in every one of them.** Known, not published, not attributable.
+A panel that cannot render all three is not finished. The prototype's data is
+all known values, so it demonstrates the shape and not the states — the states
+are in `AGENTS.md` and they are the product.
 
 ---
 
@@ -165,75 +167,121 @@ Size: `clamp(150px, 23vw, 300px)`.
 
 | Role | Family | Size | Tracking |
 |---|---|---|---|
-| Screen title | Bricolage Grotesque | `clamp(30px, 4.2vw, 52px)` | −0.037em |
-| Live header | Bricolage Grotesque | `clamp(24px, 3vw, 34px)` | −0.03em |
-| Hero number | Bricolage Grotesque | `clamp(42px, 6.2vw, 74px)` | −0.042em |
-| Section heading | Bricolage Grotesque | `clamp(20px, 2.3vw, 27px)` | −0.028em |
-| Tile / card value | Bricolage Grotesque | `clamp(22px, 2.4vw, 30px)` | −0.032em |
-| Body | system UI | `clamp(13px, 1.15vw, 15.5px)` | −0.004em |
-| Note | system UI | `clamp(12px, 1vw, 13px)` | 0 |
-| Label | system UI 700 | 10.5px, uppercase | 0.1em |
-| Data | Instrument Sans, tabular | contextual | 0 |
-| Path | JetBrains Mono | 12px | 0 |
+| Section title | Bricolage Grotesque 600 | `clamp(28px, 2.8vw, 40px)` | −0.028em |
+| Readout value | Bricolage Grotesque 600 | `clamp(30px, 2.7vw, 38px)` | −0.03em |
+| Readout unit | system UI | 13px | −0.008em |
+| Note headline | Bricolage Grotesque 600 | 19px | −0.022em |
+| Machine line, note body | system UI | 12.5px | −0.008em |
+| Live pill, readout note, hint | system UI | 11.5px | −0.008em |
+| Row | system UI | 13px | −0.008em |
+| Row annotation | system UI | 10.5px | −0.008em |
+| Micro-label | system UI 600 | 9px, uppercase | 0.16em |
+| Status strip | system UI 700 | 10px, uppercase | 0.1em |
+| Path, identifier | JetBrains Mono | 11–12px | 0 |
 
-Body and note copy caps at 66 characters. Titles use `text-wrap: balance`.
+Readout notes cap at 32 characters, body copy at 66. Titles use
+`text-wrap: balance`.
 
-**Every numeral in a column that can be compared is tabular.** Non-negotiable.
+**Every numeral in a column that can be compared is tabular.** Non-negotiable —
+`font-variant-numeric: tabular-nums` is set globally, not per component.
+
+**Bricolage Grotesque is provisional.** The Instrument Panel handoff specifies
+Archivo at `wdth 112` for display and `104` for UI. Archivo is not bundled in
+the repository and Bricolage is, and the handoff ships Bricolage as a wired-up
+alternate, so the prototype uses it. Adopting Archivo means bundling its
+variable woff2 and changing `Font.fathomDisplay`; it is one decision and it
+changes every screen. It has not been made.
 
 ---
 
 ## Materials
 
-| Surface | Fill | Blur | Inner light |
-|---|---|---|---|
-| Sidebar | `rgba(0,0,0,.20)` | 46 + saturate 135% | `.5px rgba(255,255,255,.11)` right border |
-| Tile, card | `rgba(255,255,255,.105)` | 28 | `inset 0 1px 0 rgba(255,255,255,.20)` |
-| Detail panel | `rgba(0,0,0,.21)` | 32 | `inset 0 1px 0 rgba(255,255,255,.14)` |
-| Row | `rgba(255,255,255,.07)` | — | on hover `.13` |
-| Pill | `rgba(255,255,255,.14)` | — | `inset 0 1px 0 rgba(255,255,255,.20)` |
+One plate, and everything else layered on it. The full derivation, the measured
+contrast of every surface and the reason the materials darken rather than
+lighten are in **The plate, and why the materials are dark** below.
 
-Radii: 22px panel, 20px card, 18px tile, 12px row, 15px pill.
+| Surface | Value | Over |
+|---|---|---|
+| Plate — content column and rail | `rgba(0,0,0,.45)` | the field |
+| Readout cell, card, tile | `rgba(0,0,0,.16)` | the plate |
+| Data row | `rgba(0,0,0,.07)` | the plate |
+| Data row, hover | `rgba(0,0,0,.13)` | the plate |
+| Status strip | `rgba(0,0,0,.25)` | the plate |
+| Grid hairline | `.5px rgba(255,255,255,.14)` ring per cell | the cell |
+| Panel divider | `.5px rgba(255,255,255,.16)` | — |
+| Rail edge | `.5px rgba(255,255,255,.09)` | — |
+| Active rail item | `linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.13))` | the rail |
+
+Radii: 15 window · 14 digest card · 12 row · 10 rail item · 8 focus ring ·
+**0 for readout cells and panels**. The square cell is the instrument-panel
+departure from the old card radii, and it is deliberate: a readout is not a card.
+
+**The grid hairline is drawn by the cells, not behind them.** Each readout cell
+carries its own `.5px` ring and the cells sit 1px apart, so two rings meet to
+make the line. The obvious construction — a hairline-coloured container showing
+through the gap — breaks on the last row: when the cell count does not fill the
+row, the leftover track shows as a pale block. Rings leave it as plate.
+
+The rail keeps `backdrop-filter: blur(46px) saturate(135%)`. Nothing else blurs.
+The old white-tinted tiles and the detail panel are gone.
 
 ---
 
-## The action button
+## Actions
 
-Poster screens: a circular Scan button, `clamp(72px, 7.5vw, 94px)`, filled with
-a radial of the section's own two brightest stops and haloed with
-`0 0 50px 12px` of the bottom stop. It glows in the colour of the world it sits
-in.
+A section that can do something ends with one pill: `rgba(255,255,255,.14)`,
+`.5px` white border at 22%, `inset 0 1px 0 rgba(255,255,255,.20)`, 15px radius,
+13px semibold. Hover `scale(1.04)`, press `scale(0.96)`, 160ms.
 
-Result screens: a white pill, `clamp(42px, 4.6vh, 50px)` tall, dark text, white
-halo. It reads as the resolution of the scan.
+One per section, never two. The circular Scan button is gone with the poster —
+there is nothing to start.
 
-Both: hover `scale(1.04)`, active `scale(0.96)`, 160 ms.
+**The label states the outcome and the cost, in that order.** *Move 101.0 GB to
+Trash.* *Reclaim 132.6 GB.* *Evict 61.2 GB.* Never *Continue*, never *Optimise*,
+never a verb with no object.
 
 ---
 
-## Sidebar
+## The rail
 
-Width `clamp(62px, 17vw, 244px)`. Twenty items in seven groups: Surface,
-Overview, System, Storage, Foresight, Manage, Hardware.
+64px, fixed, never expands. Twenty items in four groups, divided by a 22×1px
+hairline rather than a text heading:
 
-Footer carries two rows. **Public IP with country flag** — the flag is a bundled
-SVG selected by country code, never fetched. Below it, the app's own idle cost:
-`0.2% CPU · energy 2.1`. Showing your own cost in your own chrome is a claim
-only an honest utility can make.
+| Group | Sections |
+|---|---|
+| — | Menu Bar, Weekly digest |
+| Overview | Home, Deep Scan |
+| System | CPU, GPU, Memory, Sensors & Power, Network, Bluetooth |
+| Storage | Storage, Timeline, Explore, Reclaim, Endurance, Attribution, Applications, Cloud, Maintenance, SSD Health |
+
+Items are 42×42 at 10px radius, carrying a 19px icon mask so the glyph inherits
+its colour. Twenty custom stroke icons, 20×20 viewBox, 1.65 stroke, round caps
+and joins. Inactive icons take the same 82% white as body text; the active item
+gets the gradient fill and a white icon. Every item carries its section name as
+a tooltip and as its accessible label.
+
+Traffic lights sit above: three 9px circles, 6px apart, 16px of padding below.
+
+The footer is a single 7px `#5CE6A8` dot with a 9px glow, pulsing 2.2s, whose
+tooltip carries the app's own idle cost — `0.2% CPU · energy 2.1`. Showing your
+own cost in your own chrome is a claim only an honest utility can make.
+
+The public IP row moved into the Network section. The rail has no room for it
+and no business holding it.
 
 ---
 
 ## Responsive
 
-Fluid by default. `clamp()` on type, spacing and objects; `auto-fit` /
-`minmax()` on every grid so tiles and cards reflow without breakpoints. Two
-breakpoints handle structure only.
+Fluid by default. `clamp()` on type, `auto-fit` / `minmax()` on every grid so
+readouts and rows reflow without breakpoints.
 
-**≤ 1080px.** Sidebar collapses to a 64px icon rail — labels and group headings
-hide, `title` attributes carry the names. Home stacks the ring above the feed.
+**There is no 1080px breakpoint any more.** The rail is an icon rail at every
+width, so the old sidebar collapse has nothing left to do.
 
-**≤ 760px.** Split heroes stack. Tables drop their annotation column and tighten
-to three columns. Device rows drop the meter and keep name plus value. Core bars
-drop percentage labels. The chain drops its arrows and wraps two-up.
+**≤ 760px.** Content padding tightens to `18px 16px 32px`. Tables and device
+rows drop to two columns, and the row annotation moves inline beside its value
+instead of below it.
 
 Verified with no horizontal overflow at 1520, 1200, 1000, 820 and 720px.
 
@@ -245,15 +293,23 @@ Minimum window: 720 × 560.
 
 | Event | Duration | Curve |
 |---|---|---|
-| Screen enter | 450 ms | `cubic-bezier(.16,1,.3,1)` |
+| Section enter | 450 ms, `translateY(12px)` and fade | `cubic-bezier(.16,1,.3,1)` |
 | Colour world change | 550 ms | same |
-| Object breathe | 7.5 s loop | ease-in-out |
-| Live pill pulse | 2.2 s loop | ease-in-out |
-| Button press | 160 ms | same |
-| Row hover | 160 ms | ease |
+| Core bar height | 600 ms | same |
+| Rail item hover | 220 ms | same |
+| Cell and row hover | 200–250 ms | same |
+| Press feedback | 160–180 ms | same |
+| Live dot pulse | 2.2 s loop | ease-in-out |
 
-Under Reduce Motion: breathe, pulse and screen-enter stop. Colour transition and
-button feedback remain — they carry meaning, not decoration.
+The 7.5s object breathe is gone, along with the object it belonged to.
+
+Under Reduce Motion: the section enter, the live pulse and the colour transition
+all stop. Press and hover feedback remain — they confirm an action, which is
+meaning, not decoration.
+
+**Nothing animates on the 1 Hz tick except the core bars.** Sparklines redraw
+without transition and the readouts simply change. A number that eases into
+place is a number you cannot read.
 
 ---
 
@@ -282,12 +338,32 @@ The five sentences that define the voice, all live in the prototype:
 
 ## Accessibility
 
-Contrast ≥ 4.5:1 for body text on every one of the twenty fields — the bottom
-stop is the worst case, test there. Never colour alone: freeable green always
-carries the word or the number too. Full keyboard navigation with a visible
-focus ring at 2px white, 60% opacity. VoiceOver labels state value *and*
-provenance: *"Freed if deleted, 0 gigabytes, sparse file."* Dynamic Type to
-Accessibility Large without clipping.
+Contrast ≥ 4.5:1 for **every** text surface on **every** one of the twenty
+worlds — not body text on the worst field, which is the narrower claim this
+document used to make and the reason section titles shipped at 2.40:1 unnoticed.
+`scripts/check-contrast.py` composites all seven surfaces and runs in CI. What
+counts as a surface is in *The plate* below.
+
+Never colour alone: freeable green always carries the word or the number too.
+
+Full keyboard navigation. Arrow keys move between sections in all four
+directions, wrapping at both ends and ignoring modified presses, so the rail is
+reachable without the pointer.
+
+**The focus ring is an open divergence.** This document specifies 2px white at
+60%, and the prototype draws it. Swift draws the macOS system ring instead,
+because the system ring honours the user's own accessibility settings —
+increased contrast among them — and overriding it can regress the users the
+requirement exists for. Either implement the custom ring or amend this line to
+adopt the system one. Both are one-line changes and the choice is a design
+owner's, not an engineer's.
+
+VoiceOver labels state value *and* provenance: *"Freed if deleted, 0 gigabytes,
+sparse file."* Sparklines, core bars and segment bars carry meaning no label
+currently states, and each needs one before it ships.
+
+Dynamic Type to Accessibility Large without clipping. The 9px tracked
+micro-labels are the hard case and have not been proven at that size.
 
 ### The plate, and why the materials are dark
 

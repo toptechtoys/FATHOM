@@ -140,8 +140,9 @@ a{color:var(--I);text-decoration:none}a:hover{color:#fff}
 
 /* the gap IS the hairline */
 .rg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
- background:var(--grid);border:.5px solid var(--grid);margin-bottom:4px}
-.rc{background:var(--cell);padding:16px 18px 18px;transition:background .25s var(--ease)}
+ margin-bottom:4px}
+.rc{background:var(--cell);padding:16px 18px 18px;box-shadow:0 0 0 .5px var(--grid);
+ transition:background .25s var(--ease)}
 .rc:hover{background:var(--rowh)}
 .rl{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--tx);
  margin-bottom:12px}
@@ -206,10 +207,10 @@ a{color:var(--I);text-decoration:none}a:hover{color:#fff}
 .fi p{font-size:11.5px;color:var(--tx);margin-top:3px;max-width:66ch}
 .fi .v{text-align:right;font-weight:600;font-family:var(--num)}
 
-.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px;
- background:var(--grid);border:.5px solid var(--grid)}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px}
 .g3 button{background:var(--cell);border:0;padding:13px 15px;text-align:left;cursor:pointer;
- font:inherit;color:inherit;transition:background .2s var(--ease)}
+ font:inherit;color:inherit;box-shadow:0 0 0 .5px var(--grid);
+ transition:background .2s var(--ease)}
 .g3 button:hover{background:var(--rowh)}
 .g3 b{display:block;font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
  color:var(--tx)}
