@@ -9,9 +9,25 @@ struct EnduranceView: View {
         Group {
             switch model.state {
             case .idle:
-                poster(isReading: false)
+                FathomEmptySection(
+                    title: "Endurance",
+                    subtitle: "Read only",
+                    headline: "One reading is not a rate.",
+                    detail: "Endurance is the controller's own lifetime accounting, read from the NVMe SMART log. Nothing here writes to the drive, and nothing here can change it.",
+                    actionTitle: "Read the SMART log",
+                    actionCost: "Read only. The drive is not modified.",
+                    action: model.readSSD
+                )
             case .reading:
-                poster(isReading: true)
+                FathomEmptySection(
+                    title: "Endurance",
+                    subtitle: "Reading",
+                    headline: "Reading the controller's lifetime log.",
+                    detail: "This is the drive's own accounting, not an estimate derived from filesystem activity.",
+                    actionTitle: "Reading…",
+                    isBusy: true,
+                    action: {}
+                )
             case let .result(snapshot):
                 result(snapshot)
             }
@@ -19,157 +35,136 @@ struct EnduranceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func poster(isReading: Bool) -> some View {
-        FathomPoster(
-            title: "Endurance",
-            message: "This SSD is soldered to the logic board. Here is the arithmetic on how long it has.",
-            symbol: "shield.lefthalf.filled",
-            world: .endurance,
-            shape: AnyShape(
-                RoundedRectangle(cornerRadius: 72)
+    private func result(_ snapshot: NVMeSMARTSnapshot) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Endurance",
+                    subtitle: "NVMe SMART · read only",
+                    isLive: false
+                )
+
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Consumed",
+                        measurement: snapshot.percentageUsed,
+                        unit: "%",
+                        note: spareNote(snapshot.availableSparePercent),
+                        format: { $0.formatted() }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Written",
+                        measurement: snapshot.bytesWritten,
+                        note: "Lifetime, as the controller counts it",
+                        format: bytes
+                    )
+                    FathomMeasurementReadout(
+                        label: "Per hour",
+                        measurement: snapshot.lifetimeBytesWrittenPerHour,
+                        note: "Averaged over every power-on hour",
+                        format: { bytes(UInt64(max(0, $0))) }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Projection",
+                        measurement: snapshot.linearPowerOnHoursAtHundredPercent,
+                        unit: "hours",
+                        note: "Straight-line, at the lifetime rate",
+                        format: {
+                            $0.formatted(.number.precision(.fractionLength(0)))
+                        }
+                    )
+                }
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "The arithmetic") {
+                    chain(snapshot)
+                }
+
+                FathomNote(
+                    headline: "We will not print a date.",
+                    detail: "Apple does not publish a terabytes-written rating for these drives, so any specific date would be a guess dressed as a forecast. The projection above is the controller's own rate carried forward in a straight line, and it is labelled in power-on hours because that is what the drive counts. If the rate changes, the weekly digest will say so."
+                )
+                .padding(.bottom, 22)
+
+                FathomAction(
+                    title: "Open SSD Health",
+                    cost: "Every field the controller publishes.",
+                    action: openSSDHealth
+                )
+            }
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
+        }
+    }
+
+    /// The chain only draws where every step is published. A missing link is
+    /// stated rather than skipped over, because the whole point of showing the
+    /// arithmetic is that the reader can follow it.
+    @ViewBuilder
+    private func chain(_ snapshot: NVMeSMARTSnapshot) -> some View {
+        let steps: [FathomChain.Step?] = [
+            step("Written", snapshot.bytesWritten, "lifetime", bytes),
+            step(
+                "Per hour",
+                snapshot.lifetimeBytesWrittenPerHour,
+                "every power-on hour",
+                { bytes(UInt64(max(0, $0))) }
             ),
-            isScanning: isReading,
-            action: model.readSSD
+            step(
+                "Consumed",
+                snapshot.percentageUsed,
+                hoursDetail(snapshot.powerOnHours),
+                { "\($0)%" }
+            ),
+            step(
+                "Projection",
+                snapshot.linearPowerOnHoursAtHundredPercent,
+                "power-on hours to 100%",
+                { $0.formatted(.number.precision(.fractionLength(0))) }
+            ),
+        ]
+        let resolved = steps.compactMap { $0 }
+        if resolved.count == steps.count {
+            FathomChain(steps: resolved)
+        } else {
+            FathomPanelUnavailable(
+                reason: "The controller did not publish every step of this calculation, so the chain is not drawn. The readouts above show what it did publish."
+            )
+        }
+    }
+
+    private func step<Value>(
+        _ label: String,
+        _ measurement: FathomKit.Measurement<Value>,
+        _ detail: String,
+        _ format: (Value) -> String
+    ) -> FathomChain.Step? {
+        guard case let .known(value, _) = measurement else { return nil }
+        return FathomChain.Step(
+            label: label,
+            value: format(value),
+            detail: detail
         )
     }
 
-    private func result(_ snapshot: NVMeSMARTSnapshot) -> some View {
-        ScrollView {
-            VStack(spacing: 25) {
-                Text("Endurance")
-                    .font(.fathomDisplay(38))
-                    .tracking(-1.2)
-
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 280), spacing: 18)],
-                    alignment: .leading,
-                    spacing: 18
-                ) {
-                    HardwareResultCard(label: "ENDURANCE CONSUMED") {
-                        HardwareMeasurementView(
-                            measurement: snapshot.percentageUsed,
-                            format: { "\($0)%" },
-                            prominent: true
-                        )
-                        HardwareMeasurementView(
-                            measurement: snapshot.availableSparePercent,
-                            format: { "\($0)% spare available" }
-                        )
-                    }
-                    HardwareResultCard(label: "LINEAR PROJECTION") {
-                        HardwareMeasurementView(
-                            measurement:
-                                snapshot.linearPowerOnHoursAtHundredPercent,
-                            format: hardwareHoursString,
-                            prominent: true
-                        )
-                        Text("Power-on hours at the controller’s lifetime rate—not a calendar date.")
-                            .font(.fathomSystem(12))
-                            .foregroundStyle(.white.opacity(0.82))
-                    }
-                }
-                .frame(maxWidth: 820)
-
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 190), spacing: 10)],
-                    alignment: .leading,
-                    spacing: 10
-                ) {
-                    chainItem(
-                        "WRITTEN",
-                        snapshot.bytesWritten,
-                        format: hardwareByteString
-                    )
-                    chainItem(
-                        "PER POWER-ON HOUR",
-                        snapshot.lifetimeBytesWrittenPerHour,
-                        format: hardwareByteString
-                    )
-                    chainItem(
-                        "CONSUMED",
-                        snapshot.percentageUsed,
-                        format: { "\($0)%" }
-                    )
-                    chainItem(
-                        "POWER ON",
-                        snapshot.powerOnHours,
-                        format: { "\(hardwareIntegerString($0)) hours" }
-                    )
-                }
-                .frame(maxWidth: 900)
-
-                Text(
-                    "Apple does not publish a TBW rating for this soldered SSD. FATHOM therefore shows the controller’s lifetime counters and straight-line power-on-hour arithmetic, but never turns them into a failure date."
-                )
-                .font(.fathomSystem(13))
-                .foregroundStyle(.white.opacity(0.82))
-                .lineSpacing(3)
-                .frame(maxWidth: 760, alignment: .leading)
-
-                HStack(spacing: 12) {
-                    Button("Read again", action: model.reset)
-                    Button("Open SSD Health", action: openSSDHealth)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.white)
-                        .foregroundStyle(Color(hex: 0x051E2C))
-                }
-                .controlSize(.large)
-            }
-            .padding(38)
+    private func hoursDetail(
+        _ hours: FathomKit.Measurement<UInt64>
+    ) -> String {
+        guard case let .known(value, _) = hours else {
+            return "power-on hours not published"
         }
+        return "in \(value.formatted()) power-on hours"
     }
 
-    private func chainItem<Value: Sendable>(
-        _ label: String,
-        _ measurement: FathomKit.Measurement<Value>,
-        format: @escaping (Value) -> String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(.fathomSystem(9.5, weight: .bold))
-                .tracking(0.8)
-                .foregroundStyle(.white.opacity(0.82))
-            HardwareMeasurementView(
-                measurement: measurement,
-                format: format
-            )
+    private func spareNote(
+        _ spare: FathomKit.Measurement<UInt64>
+    ) -> String {
+        guard case let .known(percent, _) = spare else {
+            return "Available spare not published"
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(17)
-        .background(.black.opacity(0.16))
-        .clipShape(RoundedRectangle(cornerRadius: 15))
+        return "\(percent)% spare still available"
     }
 
-}
-
-struct HardwareResultCard<Content: View>: View {
-    let label: String
-    let content: Content
-
-    init(
-        label: String,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.label = label
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            Text(label)
-                .font(.fathomSystem(10.5, weight: .bold))
-                .tracking(1.05)
-                .foregroundStyle(.white.opacity(0.82))
-            content
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(24)
-        .background(FathomSurface.card)
-        .background(.ultraThinMaterial.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(.white.opacity(0.20), lineWidth: 0.5)
-        }
+    private func bytes(_ value: UInt64) -> String {
+        value.formatted(.byteCount(style: .file))
     }
 }
