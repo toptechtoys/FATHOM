@@ -25,7 +25,6 @@
 		449860DBB863F25DC69FA736 /* FathomRail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F7D35FD0094D7068E99038D /* FathomRail.swift */; };
 		47C3FB2D7C451FF73B190BAE /* SSDHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 561ADBF0D541A8F725DAD8FE /* SSDHealthView.swift */; };
 		56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 545DAABC5837C80A39A8A968 /* FathomRootView.swift */; };
-		5C59C88D92989C4CF244E7A2 /* HardwareResultCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3B0579CD0E032E53C7E995 /* HardwareResultCard.swift */; };
 		5CD71D496F23B9A964B3C344 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F45B1BBF1E502165377975 /* MemoryView.swift */; };
 		5DD2A3A07A8CA8F173C4C97F /* ReclaimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8779E0AEA77AD830E2CCC2E7 /* ReclaimView.swift */; };
 		6046A233B426FEEA0C7B0E6F /* FathomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51D01C951D1F474F76464F2 /* FathomPanel.swift */; };
@@ -63,7 +62,6 @@
 		C35495DA37820DECDB6566FC /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */; };
 		C61771E8EBF6B54B20C3DF38 /* FathomCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C8BD3CEA7ED45EEDB0211B /* FathomCharts.swift */; };
 		CCBD91DF100B410904841964 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */; };
-		CFA9CC050D160625B46590F4 /* FathomPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1808B04B2E72D33D172481FD /* FathomPoster.swift */; };
 		D1E3B8F76C6F117645E1DE04 /* FathomBarSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C5696753C976CE6ED50826 /* FathomBarSampler.swift */; };
 		D29E9019C325B8C87B0887B8 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A927F52F7D48D2D39328DA48 /* AttributionView.swift */; };
 		DD5413373807F480D68DC1DA /* Bricolage-200-800.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = A0CF38A4B87D9BDFFF9157AC /* Bricolage-200-800.woff2 */; };
@@ -95,7 +93,6 @@
 		0AAA420D99CCBAA8D33CD09F /* BluetoothView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothView.swift; sourceTree = "<group>"; };
 		0F7D35FD0094D7068E99038D /* FathomRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomRail.swift; sourceTree = "<group>"; };
 		1378B23D32A8C86763EF9187 /* FathomSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSectionHeader.swift; sourceTree = "<group>"; };
-		1808B04B2E72D33D172481FD /* FathomPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomPoster.swift; sourceTree = "<group>"; };
 		19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryFlagView.swift; sourceTree = "<group>"; };
 		1C24DE280F30F263E1A8C02C /* NetworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkView.swift; sourceTree = "<group>"; };
 		281148293D3C18632623158F /* MeasurementValueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasurementValueView.swift; sourceTree = "<group>"; };
@@ -118,7 +115,6 @@
 		5F92D2353D8A317AE7363F76 /* HistoryAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryAppModel.swift; sourceTree = "<group>"; };
 		625BFF69D5841D411A910A7C /* SystemMonitorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorModel.swift; sourceTree = "<group>"; };
 		67FCBB73760F21E3ACF21283 /* PublicIPAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicIPAppModel.swift; sourceTree = "<group>"; };
-		6C3B0579CD0E032E53C7E995 /* HardwareResultCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareResultCard.swift; sourceTree = "<group>"; };
 		6CCBE92A1918CF2AA176CD2A /* FathomReadout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomReadout.swift; sourceTree = "<group>"; };
 		6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */ = {isa = PBXFileReference; path = "JB-400.woff2"; sourceTree = "<group>"; };
 		7647E769F99C4551F5240FE2 /* ApplicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsView.swift; sourceTree = "<group>"; };
@@ -274,14 +270,12 @@
 				38C8BD3CEA7ED45EEDB0211B /* FathomCharts.swift */,
 				B2768BB1789961620CD28146 /* FathomLists.swift */,
 				E51D01C951D1F474F76464F2 /* FathomPanel.swift */,
-				1808B04B2E72D33D172481FD /* FathomPoster.swift */,
 				0F7D35FD0094D7068E99038D /* FathomRail.swift */,
 				6CCBE92A1918CF2AA176CD2A /* FathomReadout.swift */,
 				1378B23D32A8C86763EF9187 /* FathomSectionHeader.swift */,
 				BAFA57F521CD8D4E02A23EE2 /* FathomSectionIcon.swift */,
 				B953DFFF2F70CD9827A61EC2 /* FathomSurfaces.swift */,
 				CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */,
-				6C3B0579CD0E032E53C7E995 /* HardwareResultCard.swift */,
 				A1462B4CBB0C807581885D9E /* HonestUnavailableView.swift */,
 				281148293D3C18632623158F /* MeasurementValueView.swift */,
 				CA040F5CC8D1BE9075402ED4 /* PublicIPPanel.swift */,
@@ -672,7 +666,6 @@
 				A97004A6606AB562BAB260B5 /* FathomFontRegistrar.swift in Sources */,
 				66625315D49EE6A99BA36D27 /* FathomLists.swift in Sources */,
 				6046A233B426FEEA0C7B0E6F /* FathomPanel.swift in Sources */,
-				CFA9CC050D160625B46590F4 /* FathomPoster.swift in Sources */,
 				449860DBB863F25DC69FA736 /* FathomRail.swift in Sources */,
 				14C12A64A7E406832381B4BD /* FathomReadout.swift in Sources */,
 				56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */,
@@ -683,7 +676,6 @@
 				E27B078D696D1F69D7B39DCB /* GPUView.swift in Sources */,
 				19A14AC1502DF38A8E4ED8A7 /* HardwareAppModel.swift in Sources */,
 				86D66191B509594994E5E926 /* HardwareMeasurementView.swift in Sources */,
-				5C59C88D92989C4CF244E7A2 /* HardwareResultCard.swift in Sources */,
 				19C174555493B4F2811212B8 /* HistoryAppModel.swift in Sources */,
 				8212DC930A138E0FDAB03B2E /* HomeView.swift in Sources */,
 				FEAE9ECA7F01C92ECDE892BB /* HonestUnavailableView.swift in Sources */,

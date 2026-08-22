@@ -25,7 +25,10 @@ struct CPUView: View {
     ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                liveHeader("CPU")
+                FathomSectionHeader(
+                    title: "CPU",
+                    subtitle: subtitle(cpu)
+                )
 
                 // The first section built entirely from the Instrument Panel
                 // vocabulary: readout grid, sparkline, core bars, note.
@@ -116,6 +119,13 @@ struct CPUView: View {
     /// Only the parts macOS actually published are named. A breakdown that
     /// silently drops an unpublished component would read as a complete
     /// account of the total, which it would not be.
+    private func subtitle(_ cpu: CPULoadSnapshot) -> String {
+        guard case let .known(cores, _) = cpu.cores else {
+            return "Sampling 1 Hz while visible"
+        }
+        return "\(cores.count) cores · sampling 1 Hz while visible"
+    }
+
     private func breakdownNote(_ cpu: CPULoadSnapshot) -> String {
         let parts: [(String, FathomKit.Measurement<Double>)] = [
             ("system", cpu.aggregateSystem),
@@ -140,19 +150,4 @@ struct CPUView: View {
 
 
 
-    private func liveHeader(_ title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.fathomDisplay(34))
-                .tracking(-1)
-            Spacer()
-            Text("LIVE")
-                .font(.fathomSystem(10, weight: .bold))
-                .tracking(1)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(FathomSurface.badge)
-                .clipShape(Capsule())
-        }
-    }
 }

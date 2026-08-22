@@ -10,45 +10,72 @@ struct ExploreView: View {
         Group {
             switch model.state {
             case .idle:
-                poster(isScanning: false)
+                FathomEmptySection(
+                    title: "Explore",
+                    subtitle: "Nothing indexed",
+                    headline: "We do not guess at a tree we have not read.",
+                    detail: "Every node carries both numbers, and the second one needs physical extents, clone families and snapshot-held ranges mapped first. Until the scan runs there is nothing here to sort.",
+                    actionTitle: "Run the first Deep Scan",
+                    actionCost: "Reads every volume once. Changes nothing.",
+                    action: model.scanSelectedVolume
+                )
             case .scanning:
-                poster(isScanning: true)
+                FathomEmptySection(
+                    title: "Explore",
+                    subtitle: "Indexing",
+                    headline: "Reading every node once.",
+                    detail: model.scanProgressMessage,
+                    actionTitle: "Scanning…",
+                    isBusy: true,
+                    action: {}
+                )
             case let .result(presentation):
                 result(presentation)
             case let .failed(reason):
-                Text(reason)
-                    .textSelection(.enabled)
+                FathomEmptySection(
+                    title: "Explore",
+                    subtitle: "The scan did not complete",
+                    headline: "There is no tree to explore.",
+                    detail: reason,
+                    actionTitle: "Try again",
+                    action: model.reset
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func poster(isScanning: Bool) -> some View {
-        FathomPoster(
-            title: "Explore",
-            message: "Every node, both numbers, sorted by the one nobody else shows you.",
-            symbol: "square.grid.2x2",
-            world: .explore,
-            shape: AnyShape(
-                RoundedRectangle(cornerRadius: 48)
-            ),
-            isScanning: isScanning,
-            action: model.scanSelectedVolume
-        )
-    }
-
     private func result(
         _ presentation: StoragePresentation
     ) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Explore")
-                    .font(.fathomDisplay(34))
-                    .tracking(-1)
-                Text("Every row keeps on-disk and freeable bytes separate.")
-                    .font(.fathomSystem(13))
-                    .foregroundStyle(.white.opacity(0.82))
+        VStack(alignment: .leading, spacing: 0) {
+            FathomSectionHeader(
+                title: "Explore",
+                subtitle: "\(presentation.rows.count) top-level nodes indexed",
+                isLive: false
+            )
+
+            FathomReadoutGrid {
+                FathomMeasurementReadout(
+                    label: "On disk",
+                    measurement: presentation.sizeOnDisk,
+                    note: "Everything the scan traversed",
+                    format: { $0.formatted(.byteCount(style: .file)) }
+                )
+                FathomMeasurementReadout(
+                    label: "Freed if deleted",
+                    measurement: presentation.freedIfDeleted,
+                    note: "Sorted by this column, not the first",
+                    format: { $0.formatted(.byteCount(style: .file)) }
+                )
             }
+            .padding(.bottom, 22)
+
+            Text("EVERY NODE, BOTH NUMBERS")
+                .font(.fathomSystem(9, weight: .semibold))
+                .tracking(1.44)
+                .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
+                .padding(.bottom, 14)
 
             HStack {
                 Text("NAME")
@@ -66,10 +93,11 @@ struct ExploreView: View {
                 )
                     .frame(width: 180, alignment: .trailing)
             }
-            .font(.fathomSystem(10, weight: .bold))
-            .tracking(0.9)
-            .foregroundStyle(.white.opacity(0.82))
-            .padding(.horizontal, 16)
+            .font(.fathomSystem(9, weight: .semibold))
+            .tracking(1.26)
+            .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
+            .padding(.horizontal, 13)
+            .padding(.bottom, 4)
 
             ScrollView {
                 LazyVStack(spacing: 6) {
@@ -93,13 +121,12 @@ struct ExploreView: View {
                 }
             }
 
-            Text(
-                "Hold ⌥ to swap both number columns. Rows are sorted by freed if deleted."
-            )
-            .font(.fathomSystem(11))
-            .foregroundStyle(.white.opacity(0.82))
+            Text("Hold ⌥ to swap both number columns. Rows are sorted by freed if deleted — the column nobody else shows you.")
+                .font(.fathomSystem(11.5))
+                .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
+                .padding(.top, 12)
         }
-        .padding(34)
+        .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
     }
 
     private func visibleRows(

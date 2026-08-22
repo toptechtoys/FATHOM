@@ -12,20 +12,34 @@ struct ReclaimView: View {
         Group {
             switch storage.state {
             case .idle:
-                FathomPoster(
+                FathomEmptySection(
                     title: "Reclaim",
-                    message: "Nothing is deleted. Everything goes to the Trash, and every rule is one you can read.",
-                    symbol: "trash",
-                    world: .reclaim,
-                    shape: AnyShape(RoundedRectangle(cornerRadius: 48)),
-                    isScanning: false,
+                    subtitle: "No rules evaluated",
+                    headline: "Nothing is deleted.",
+                    detail: "Everything goes to the Trash, and every rule is one you can read. Reclaim never proposes what a scan has not verified, so the rules stay empty until the first pass completes.",
+                    actionTitle: "Run the first Deep Scan",
+                    actionCost: "Reads every volume once. Changes nothing.",
                     action: storage.scanSelectedVolume
                 )
             case .scanning:
-                ProgressView("Building the whole-volume reference map…")
-                    .controlSize(.large)
+                FathomEmptySection(
+                    title: "Reclaim",
+                    subtitle: "Building the reference map",
+                    headline: "Nothing is proposed until the map is complete.",
+                    detail: storage.scanProgressMessage,
+                    actionTitle: "Scanning…",
+                    isBusy: true,
+                    action: {}
+                )
             case let .failed(reason):
-                Text("not published — \(reason)")
+                FathomEmptySection(
+                    title: "Reclaim",
+                    subtitle: "The pass did not complete",
+                    headline: "No rules have been evaluated.",
+                    detail: reason,
+                    actionTitle: "Try again",
+                    action: storage.reset
+                )
             case let .result(presentation):
                 reclaimContent(presentation)
             }
@@ -75,11 +89,14 @@ struct ReclaimView: View {
         case let .report(report):
             executionReport(report)
         case let .failed(reason):
-            VStack(spacing: 14) {
-                Text("not published").font(.fathomData(18))
-                Text(reason).textSelection(.enabled)
-                Button("Reset", action: reclaim.reset)
-            }
+            FathomEmptySection(
+                title: "Reclaim",
+                subtitle: "Recipes could not be matched",
+                headline: "No rules have been evaluated.",
+                detail: reason,
+                actionTitle: "Reset",
+                action: reclaim.reset
+            )
         }
     }
 
@@ -87,37 +104,152 @@ struct ReclaimView: View {
         _ groups: [ReclaimGroupPresentation]
     ) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Reclaim").font(.fathomDisplay(34))
-                ForEach(groups) { group in
-                    HardwareResultCard(label: group.recipe.identifier) {
-                        HStack(spacing: 28) {
-                            labeled("ON DISK", group.sizeOnDisk)
-                            labeled("FREED IF MOVED", group.freedIfDeleted)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("COST").font(.fathomSystem(10, weight: .bold))
-                                Text(group.recipe.regenerationCost)
-                                    .font(.fathomSystem(12))
-                                Text(safetyLabel(group.recipe.safetyClass))
-                                    .font(.fathomSystem(10, weight: .bold))
-                                    .foregroundStyle(.white.opacity(0.82))
-                            }
-                            Spacer()
-                            Button(
-                                group.recipe.safetyClass == .reportOnly
-                                    ? "Review report"
-                                    : "Dry run"
-                            ) {
-                                confirmedRiskyPaths = []
-                                reclaim.prepare(group)
-                            }
-                                .disabled(group.entries.isEmpty)
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Reclaim",
+                    subtitle: "Dry run · nothing moved",
+                    isLive: false
+                )
+
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Available",
+                        measurement: total(groups) { $0.freedIfDeleted },
+                        note: "Across \(groups.count) validated rules",
+                        format: { $0.formatted(.byteCount(style: .file)) }
+                    )
+                    FathomReadout(
+                        label: "Destination",
+                        note: "Nothing is deleted"
+                    ) {
+                        Text("Trash")
+                            .font(.fathomDisplay(34))
+                            .tracking(-1.02)
+                    }
+                    FathomReadout(
+                        label: "Rules",
+                        note: "Every one, in plain text"
+                    ) {
+                        Text("Readable")
+                            .font(.fathomDisplay(34))
+                            .tracking(-1.02)
+                    }
+                }
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "Each rule states its cost before it runs") {
+                    VStack(spacing: 3) {
+                        ForEach(groups) { group in
+                            ruleRow(group)
                         }
                     }
                 }
+
+                FathomNote(
+                    headline: "Nothing is deleted.",
+                    detail: "Everything goes to the Trash, and the space is not reclaimed until you empty it. The cost column is stated before anything runs, not after, and a rule we cannot cost honestly is marked report-only rather than offered."
+                )
             }
-            .padding(34)
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
+    }
+
+    private func ruleRow(_ group: ReclaimGroupPresentation) -> some View {
+        FathomDataRow(
+            leading: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(group.recipe.identifier)
+                        .font(.fathomSystem(13, weight: .semibold))
+                    Text(
+                        group.recipe.regenerationCost + " · "
+                            + safetyLabel(group.recipe.safetyClass).lowercased()
+                    )
+                    .font(.fathomSystem(11.5))
+                    .foregroundStyle(
+                        .white.opacity(FathomSurface.minimumTextOpacity)
+                    )
+                }
+            },
+            trailing: {
+                HStack(spacing: 14) {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(freed(group))
+                            .font(.fathomSystem(13, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(
+                                group.entries.isEmpty
+                                    ? .white.opacity(
+                                        FathomSurface.minimumTextOpacity
+                                    )
+                                    : FathomSemantic.freeable
+                            )
+                        Text(onDisk(group) + " on disk")
+                            .font(.fathomSystem(10.5))
+                            .foregroundStyle(
+                                .white.opacity(
+                                    FathomSurface.minimumTextOpacity
+                                )
+                            )
+                    }
+                    .frame(width: 150, alignment: .trailing)
+
+                    Button(
+                        group.recipe.safetyClass == .reportOnly
+                            ? "Review report"
+                            : "Dry run"
+                    ) {
+                        confirmedRiskyPaths = []
+                        reclaim.prepare(group)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.fathomSystem(12, weight: .semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(.white.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .disabled(group.entries.isEmpty)
+                }
+            }
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            "\(group.recipe.identifier), frees \(freed(group)), costs \(group.recipe.regenerationCost)"
+        )
+    }
+
+    private func freed(_ group: ReclaimGroupPresentation) -> String {
+        guard case let .known(value, _) = group.freedIfDeleted else {
+            return "not published"
+        }
+        return value.formatted(.byteCount(style: .file))
+    }
+
+    private func onDisk(_ group: ReclaimGroupPresentation) -> String {
+        guard case let .known(value, _) = group.sizeOnDisk else {
+            return "not published"
+        }
+        return value.formatted(.byteCount(style: .file))
+    }
+
+    /// Sums only what every rule published. A total that quietly omits the
+    /// rules it could not read is a smaller number wearing the same label.
+    private func total(
+        _ groups: [ReclaimGroupPresentation],
+        _ value: (ReclaimGroupPresentation) -> FathomKit.Measurement<UInt64>
+    ) -> FathomKit.Measurement<UInt64> {
+        var sum: UInt64 = 0
+        var missing = false
+        for group in groups {
+            if case let .known(bytes, _) = value(group) {
+                sum += bytes
+            } else {
+                missing = true
+            }
+        }
+        guard !missing else {
+            return .notAttributable(measured: sum, explained: sum)
+        }
+        return .known(sum, source: .fts)
     }
 
     private func labeled(

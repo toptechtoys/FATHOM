@@ -9,221 +9,312 @@ struct StorageView: View {
         Group {
             switch model.state {
             case .idle:
-                poster(isScanning: false)
+                FathomEmptySection(
+                    title: "Storage",
+                    subtitle: "The tree has not been indexed",
+                    headline: "Finder counts space it may not be able to release.",
+                    detail: "Until the first scan finishes, the only honest numbers are the volume totals. A scan maps physical extents, clone families and snapshot-held ranges, which is what makes the second number possible.",
+                    actionTitle: "Run the first Deep Scan",
+                    actionCost: "Reads every volume once. Changes nothing.",
+                    action: model.scanSelectedVolume
+                )
             case .scanning:
-                poster(isScanning: true)
+                FathomEmptySection(
+                    title: "Storage",
+                    subtitle: "Scanning",
+                    headline: "Mapping what the volume is actually carrying.",
+                    detail: model.scanProgressMessage,
+                    actionTitle: "Scanning…",
+                    isBusy: true,
+                    action: {}
+                )
+            case let .failed(reason):
+                FathomEmptySection(
+                    title: "Storage",
+                    subtitle: "The scan did not complete",
+                    headline: "The scan stopped before it could claim anything.",
+                    detail: reason,
+                    actionTitle: "Try again",
+                    action: model.reset
+                )
             case let .result(presentation):
                 result(presentation)
-            case let .failed(reason):
-                failure(reason)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func poster(isScanning: Bool) -> some View {
-        FathomPoster(
-            title: "Storage",
-            message: isScanning
-                ? model.scanProgressMessage
-                : "The true number, not the one Finder tells you. And what you would actually get back.",
-            symbol: "externaldrive.fill",
-            world: .storage,
-            shape: AnyShape(Ellipse()),
-            isScanning: isScanning,
-            action: model.scanSelectedVolume
-        )
-    }
-
-    private func result(
-        _ presentation: StoragePresentation
-    ) -> some View {
+    private func result(_ presentation: StoragePresentation) -> some View {
         ScrollView {
-            VStack(spacing: 26) {
-                Text("Storage")
-                    .font(.fathomDisplay(38))
-                    .tracking(-1.2)
-
-                Text(presentation.volumePath)
-                    .font(.fathomPath(12))
-                    .foregroundStyle(.white.opacity(0.82))
-
-                HardwareMeasurementView(
-                    measurement: model.changeMonitoring,
-                    format: { $0 }
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Storage",
+                    subtitle: presentation.volumePath,
+                    isLive: false
                 )
-                .font(.fathomSystem(11.5, weight: .medium))
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 280), spacing: 18)],
-                    spacing: 18
-                ) {
-                    SummaryCard(label: "ACTUALLY FREE, RIGHT NOW", measurement: presentation.actuallyFree)
-                    SummaryCard(label: "RECLAIMABLE", measurement: presentation.freedIfDeleted)
-                }
-                .frame(maxWidth: 760)
-
-                DiskThroughputPanel()
-                    .frame(maxWidth: 760)
-
-                capacityNote(presentation)
-                    .frame(maxWidth: 760)
-
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 280), spacing: 18)],
-                    spacing: 18
-                ) {
-                    SummaryCard(
-                        label: "SCANNED ON DISK",
-                        measurement: presentation.sizeOnDisk,
-                        compact: true
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Actually free",
+                        measurement: presentation.actuallyFree,
+                        note: "The true number, right now",
+                        format: bytes
                     )
-                    SummaryCard(
-                        label: "PURGEABLE INCLUDED BY FINDER",
+                    FathomMeasurementReadout(
+                        label: "Finder says",
+                        measurement: presentation.finderAvailable,
+                        note: finderNote(presentation),
+                        format: bytes
+                    )
+                    FathomMeasurementReadout(
+                        label: "Reclaimable",
+                        measurement: presentation.freedIfDeleted,
+                        note: "What deletion would actually return",
+                        format: bytes
+                    )
+                    FathomMeasurementReadout(
+                        label: "Purgeable",
                         measurement: presentation.purgeable,
-                        compact: true
+                        note: "Counted by Finder, not guaranteed to a write",
+                        format: bytes
                     )
                 }
-                .frame(maxWidth: 760)
+                .padding(.bottom, 22)
 
-                snapshotNote(
-                    presentation.snapshotInventory,
-                    coverage: presentation.snapshotCoverage
+                FathomPanel(label: "Where the volume sits — area is size on disk") {
+                    treemap(presentation)
+                }
+
+                FathomPanel(label: "Live disk throughput") {
+                    DiskThroughputPanel()
+                }
+
+                FathomPanel(label: "Snapshots and change monitoring") {
+                    VStack(spacing: 3) {
+                        snapshotRow(
+                            presentation.snapshotInventory,
+                            coverage: presentation.snapshotCoverage
+                        )
+                        stringRow("Change monitoring", model.changeMonitoring)
+                        if presentation.issueCount > 0 {
+                            FathomDataRow.simple(
+                                "Items that could not be inspected",
+                                value: presentation.issueCount.formatted(),
+                                valueColor: FathomSemantic.caution,
+                                annotation: "This result is partial and says so rather than rounding up.",
+                                isEmphasised: true
+                            )
+                        }
+                    }
+                }
+
+                FathomNote(
+                    headline: headline(presentation),
+                    detail: "Finder counts purgeable space it may not be able to release. We show the number a write would actually see, and everything below is reported with both figures."
                 )
-                    .frame(maxWidth: 760)
+                .padding(.bottom, 22)
 
-                if presentation.issueCount > 0 {
-                    Text(
-                        "\(presentation.issueCount) items could not be inspected. This result is partial."
+                HStack(spacing: 14) {
+                    FathomAction(title: "Explore the tree", action: openExplore)
+                    FathomAction(
+                        title: "Scan again",
+                        isProminent: false,
+                        action: model.reset
                     )
-                    .font(.fathomSystem(12))
-                    .foregroundStyle(FathomSemantic.caution)
                 }
-
-                HStack(spacing: 12) {
-                    Button("Scan again", action: model.reset)
-                    Button("Explore the tree", action: openExplore)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.white)
-                        .foregroundStyle(Color(hex: 0x04263A))
-                }
-                .controlSize(.large)
             }
-            .padding(40)
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
     }
 
+    /// The largest top-level regions, by what they occupy.
+    ///
+    /// The remainder is drawn and named rather than being absorbed by the
+    /// largest tiles: area is the whole claim this panel makes.
     @ViewBuilder
-    private func capacityNote(
+    private func treemap(_ presentation: StoragePresentation) -> some View {
+        let regions = regions(presentation)
+        if regions.isEmpty {
+            FathomPanelUnavailable(
+                reason: "No top-level region published a size on disk."
+            )
+        } else {
+            FathomTreemap(regions: regions)
+        }
+    }
+
+    /// The eight largest top-level regions, plus the remainder.
+    ///
+    /// The remainder is drawn and named rather than absorbed by the largest
+    /// tiles: area is the whole claim this panel makes, and a treemap that
+    /// silently drops the tail overstates everything it kept.
+    private func regions(
         _ presentation: StoragePresentation
-    ) -> some View {
-        switch (
-            presentation.actuallyFree,
-            presentation.finderAvailable
-        ) {
-        case let (.known(actual, _), .known(finder, _)):
-            if finder == actual {
-                Text(
-                    "Finder and the important-usage capacity API currently agree."
-                )
-            } else {
-                Text(
-                    "Finder reports \(formattedBytes(finder)); macOS says only \(formattedBytes(actual)) is available for an important write right now."
-                )
-            }
-        case let (.notPublished(reason), _),
-             let (_, .notPublished(reason)):
-            Text("Capacity comparison is not published. \(reason)")
-        case (.notAttributable, _), (_, .notAttributable):
-            Text("Capacity comparison is not attributable.")
+    ) -> [FathomTreemap.Region] {
+        let ranked = presentation.rows
+            .map { row in (row, known(row.sizeOnDisk)) }
+            .sorted { $0.1 > $1.1 }
+        let top = Array(ranked.prefix(8))
+        let shown = top.reduce(UInt64(0)) { $0 + $1.1 }
+        guard shown > 0 else { return [] }
+
+        let total = ranked.reduce(UInt64(0)) { $0 + $1.1 }
+        var result = top.map { row, size in
+            FathomTreemap.Region(
+                name: row.name,
+                detail: bytes(size) + freeableSuffix(row),
+                fraction: Double(size)
+            )
         }
+        if total > shown {
+            result.append(
+                FathomTreemap.Region(
+                    name: "Everything else",
+                    detail: bytes(total - shown),
+                    fraction: Double(total - shown)
+                )
+            )
+        }
+        return result
     }
 
-    @ViewBuilder
-    private func snapshotNote(
+    private func freeableSuffix(_ row: ExplorePresentationRow) -> String {
+        let freed = known(row.freedIfDeleted)
+        return freed == 0 ? " · frees nothing" : " · \(bytes(freed)) frees"
+    }
+
+    private func snapshotRow(
         _ inventory: FathomKit.Measurement<[LocalSnapshot]>,
         coverage: FathomKit.Measurement<[String]>
     ) -> some View {
         switch inventory {
         case let .known(snapshots, _):
             if snapshots.isEmpty {
-                Text("No local snapshots currently hold old extents.")
+                FathomDataRow.simple(
+                    "Local snapshots",
+                    value: "none",
+                    annotation: "No local snapshots currently hold old extents."
+                )
             } else {
-                switch coverage {
-                case .known:
-                    Text(
-                        "\(snapshots.count) local snapshots were mapped. Freeable values exclude every extent they still reference."
-                    )
-                case let .notPublished(reason):
-                    Text(
-                        "\(snapshots.count) local snapshots exist. Their held extents are not published. \(reason)"
-                    )
-                case .notAttributable:
-                    Text(
-                        "\(snapshots.count) local snapshots exist. Their held extents are not attributable."
-                    )
-                }
+                FathomDataRow.simple(
+                    "Local snapshots",
+                    value: snapshots.count.formatted(),
+                    valueColor: FathomSemantic.caution,
+                    annotation: coverageNote(coverage),
+                    isEmphasised: true
+                )
             }
         case let .notPublished(reason):
-            Text("Snapshot inventory is not published. \(reason)")
+            FathomDataRow.simple(
+                "Local snapshots",
+                value: "not published",
+                valueColor: .white.opacity(FathomSurface.minimumTextOpacity),
+                annotation: reason
+            )
         case .notAttributable:
-            Text("Snapshot inventory is not attributable.")
+            FathomDataRow.simple(
+                "Local snapshots",
+                value: "not attributable",
+                valueColor: FathomSemantic.caution,
+                isEmphasised: true
+            )
         }
     }
 
-    private func failure(_ reason: String) -> some View {
-        VStack(spacing: 18) {
-            Text("The scan did not complete")
-                .font(.fathomDisplay(34))
-            Text(reason)
-                .font(.fathomSystem(13))
-                .foregroundStyle(.white.opacity(0.82))
-                .textSelection(.enabled)
-            Button("Try again", action: model.reset)
+    private func coverageNote(
+        _ coverage: FathomKit.Measurement<[String]>
+    ) -> String {
+        switch coverage {
+        case .known:
+            "Mapped. Freeable values exclude every extent they still reference."
+        case let .notPublished(reason):
+            "Their held extents are not published. \(reason)"
+        case .notAttributable:
+            "Their held extents are not attributable."
         }
-        .padding(40)
+    }
+
+    private func stringRow(
+        _ label: String,
+        _ measurement: FathomKit.Measurement<String>
+    ) -> some View {
+        switch measurement {
+        case let .known(value, source):
+            FathomDataRow.simple(label, value: value, annotation: source.rawValue)
+        case let .notPublished(reason):
+            FathomDataRow.simple(
+                label,
+                value: "not published",
+                valueColor: .white.opacity(FathomSurface.minimumTextOpacity),
+                annotation: reason
+            )
+        case .notAttributable:
+            FathomDataRow.simple(
+                label,
+                value: "not attributable",
+                valueColor: FathomSemantic.caution,
+                isEmphasised: true
+            )
+        }
+    }
+
+    private func headline(_ presentation: StoragePresentation) -> String {
+        guard case let .known(actual, _) = presentation.actuallyFree,
+              case let .known(finder, _) = presentation.finderAvailable,
+              finder != actual
+        else {
+            return "Finder and the important-usage capacity API currently agree."
+        }
+        return "Finder says \(bytes(finder)). The honest answer is \(bytes(actual))."
+    }
+
+    private func finderNote(_ presentation: StoragePresentation) -> String {
+        guard case let .known(actual, _) = presentation.actuallyFree,
+              case let .known(finder, _) = presentation.finderAvailable,
+              finder > actual
+        else {
+            return "It counts purgeable space it may not release"
+        }
+        return "\(bytes(finder - actual)) of that is not guaranteed to a write"
+    }
+
+    private func known(_ measurement: FathomKit.Measurement<UInt64>) -> UInt64 {
+        guard case let .known(value, _) = measurement else { return 0 }
+        return value
+    }
+
+    private func bytes(_ value: UInt64) -> String {
+        value.formatted(.byteCount(style: .file))
     }
 }
 
+/// Read and write rates from the IOKit block-storage counters.
 private struct DiskThroughputPanel: View {
     @State private var measurement:
         FathomKit.Measurement<DiskThroughputSnapshot> = .notPublished(
-            reason: "A disk counter sample has not run"
+            reason: "A disk counter sample has not run yet."
         )
 
     var body: some View {
-        HardwareResultCard(label: "LIVE DISK THROUGHPUT") {
+        Group {
             switch measurement {
             case let .known(snapshot, source):
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 180), spacing: 18)],
-                    alignment: .leading,
-                    spacing: 12
-                ) {
-                    rate("READ", snapshot.readBytesPerSecond)
-                    rate("WRITE", snapshot.writtenBytesPerSecond)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("PUBLISHING DRIVERS")
-                            .font(.fathomSystem(10, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.82))
-                        Text(snapshot.driverCount.formatted())
-                            .font(.fathomData(16, weight: .semibold))
-                    }
+                VStack(spacing: 3) {
+                    rateRow("Read", snapshot.readBytesPerSecond, source)
+                    rateRow("Write", snapshot.writtenBytesPerSecond, source)
+                    FathomDataRow.simple(
+                        "Publishing drivers",
+                        value: snapshot.driverCount.formatted(),
+                        annotation: source.rawValue
+                    )
                 }
-                .help(source.rawValue)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(
-                    "\(snapshot.driverCount) publishing drivers, source \(source.rawValue)"
-                )
             case let .notPublished(reason):
-                Text("not published")
-                    .font(.fathomData(16, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.82))
-                    .help(reason)
-                    .accessibilityLabel("Disk throughput not published. \(reason)")
+                FathomPanelUnavailable(reason: reason)
             case let .notAttributable(measured, explained):
-                Text("not attributable")
-                    .help("Measured \(measured.bytesRead) read bytes; explained \(explained.bytesRead)")
+                FathomPanelUnavailable(
+                    reason: "\(measured.bytesRead) read bytes measured, \(explained.bytesRead) explained.",
+                    isAttributionGap: true
+                )
             }
         }
         .task {
@@ -245,57 +336,33 @@ private struct DiskThroughputPanel: View {
         }
     }
 
-    private func rate(
+    private func rateRow(
         _ label: String,
-        _ measurement: FathomKit.Measurement<Double>
+        _ measurement: FathomKit.Measurement<Double>,
+        _ source: DataSource
     ) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(label)
-                .font(.fathomSystem(10, weight: .bold))
-                .foregroundStyle(.white.opacity(0.82))
-            HardwareMeasurementView(
-                measurement: measurement,
-                format: { "\(hardwareByteString($0))/s" }
+        switch measurement {
+        case let .known(value, _):
+            FathomDataRow.simple(
+                label,
+                value: UInt64(max(0, value))
+                    .formatted(.byteCount(style: .file)) + "/s",
+                annotation: source.rawValue
+            )
+        case let .notPublished(reason):
+            FathomDataRow.simple(
+                label,
+                value: "not published",
+                valueColor: .white.opacity(FathomSurface.minimumTextOpacity),
+                annotation: reason
+            )
+        case .notAttributable:
+            FathomDataRow.simple(
+                label,
+                value: "not attributable",
+                valueColor: FathomSemantic.caution,
+                isEmphasised: true
             )
         }
     }
-}
-
-private struct SummaryCard: View {
-    let label: String
-    let measurement: FathomKit.Measurement<UInt64>
-    var compact = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(label)
-                .font(.fathomSystem(10.5, weight: .bold))
-                .tracking(1.05)
-                .foregroundStyle(.white.opacity(0.82))
-            MeasurementValueView(
-                measurement: measurement,
-                prominent: !compact
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(24)
-        .background(FathomSurface.card)
-        .background(.ultraThinMaterial.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(.white.opacity(0.20), lineWidth: 0.5)
-        }
-    }
-}
-
-private func formattedBytes(_ value: UInt64) -> String {
-    value.formatted(
-        .byteCount(
-            style: .file,
-            allowedUnits: [.gb, .mb],
-            spellsOutZero: false,
-            includesActualByteCount: false
-        )
-    )
 }
