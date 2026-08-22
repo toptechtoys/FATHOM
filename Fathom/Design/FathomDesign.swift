@@ -268,6 +268,10 @@ extension Animation {
     /// Press feedback. Confirms an action, so Reduce Motion keeps it.
     static let fathomPress = Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.17)
 
+    /// A core bar changing height on the 1 Hz tick. The only thing that
+    /// animates on a tick — a number that eases into place cannot be read.
+    static let fathomCoreBar = Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.6)
+
     static let fathomWorld = Animation.timingCurve(
         0.16,
         1,

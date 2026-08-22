@@ -26,7 +26,9 @@
 		56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 545DAABC5837C80A39A8A968 /* FathomRootView.swift */; };
 		5CD71D496F23B9A964B3C344 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F45B1BBF1E502165377975 /* MemoryView.swift */; };
 		5DD2A3A07A8CA8F173C4C97F /* ReclaimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8779E0AEA77AD830E2CCC2E7 /* ReclaimView.swift */; };
+		6046A233B426FEEA0C7B0E6F /* FathomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51D01C951D1F474F76464F2 /* FathomPanel.swift */; };
 		628172EE3332DD184B6F7A4F /* FathomWorldBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5A1184E63B9E35E804089D /* FathomWorldBackground.swift */; };
+		66625315D49EE6A99BA36D27 /* FathomLists.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2768BB1789961620CD28146 /* FathomLists.swift */; };
 		6CC701C6C4D89F7AAE2912A8 /* JB-400.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */; };
 		70EF4FB835B04058A9FD97E4 /* FathomApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2C90C6B8600E922850878FE /* FathomApp.swift */; };
 		7346A8557B8ADF960BDCDF77 /* JB-500.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 449451493A035832EBCE933B /* JB-500.woff2 */; };
@@ -51,11 +53,13 @@
 		A97004A6606AB562BAB260B5 /* FathomFontRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53B5538B1862593EC3EDFEC /* FathomFontRegistrar.swift */; };
 		AB1942B7E5580B03317DC486 /* SystemMonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625BFF69D5841D411A910A7C /* SystemMonitorModel.swift */; };
 		AE23B39487BB0C123D10CB6E /* ConsequenceAlertScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EED15A282F01428377BDB5 /* ConsequenceAlertScheduler.swift */; };
+		AEFB57C37D262E8B61963EA1 /* FathomSurfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = B953DFFF2F70CD9827A61EC2 /* FathomSurfaces.swift */; };
 		B07EFBCE3966CE0364961007 /* PublicIPAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FCBB73760F21E3ACF21283 /* PublicIPAppModel.swift */; };
 		B3EAEA6C47065479B65ACE6B /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B53C4851511439539956F03 /* ExploreView.swift */; };
 		BB5B49218EBCCB6395777AA7 /* MenuBarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031FE88C093F3A66F0287C00 /* MenuBarSettingsView.swift */; };
 		BD887A1E1388390E24271165 /* StorageAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777FCF0EA20710D67810D800 /* StorageAppModel.swift */; };
 		C35495DA37820DECDB6566FC /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */; };
+		C61771E8EBF6B54B20C3DF38 /* FathomCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C8BD3CEA7ED45EEDB0211B /* FathomCharts.swift */; };
 		CCBD91DF100B410904841964 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */; };
 		CFA9CC050D160625B46590F4 /* FathomPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1808B04B2E72D33D172481FD /* FathomPoster.swift */; };
 		D1E3B8F76C6F117645E1DE04 /* FathomBarSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C5696753C976CE6ED50826 /* FathomBarSampler.swift */; };
@@ -93,6 +97,7 @@
 		281148293D3C18632623158F /* MeasurementValueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasurementValueView.swift; sourceTree = "<group>"; };
 		2862F6DE16E0C36F54151D94 /* ReclaimAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReclaimAppModel.swift; sourceTree = "<group>"; };
 		2CEE6651EBD25A86CA7B6BE8 /* DeepScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepScanView.swift; sourceTree = "<group>"; };
+		38C8BD3CEA7ED45EEDB0211B /* FathomCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomCharts.swift; sourceTree = "<group>"; };
 		3B0DCC3F5DC17CC8479C114D /* ApplicationsAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsAppModel.swift; sourceTree = "<group>"; };
 		4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		449451493A035832EBCE933B /* JB-500.woff2 */ = {isa = PBXFileReference; path = "JB-500.woff2"; sourceTree = "<group>"; };
@@ -127,7 +132,9 @@
 		AD22D5F5363F8E53F1D5C7CF /* Fathom.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fathom.entitlements; sourceTree = "<group>"; };
 		AF1A329A8585A05C86AED6C1 /* CountryFlags */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CountryFlags; path = Fathom/Resources/CountryFlags; sourceTree = SOURCE_ROOT; };
 		B151F28FCD074A2973C21BDE /* FathomDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomDesign.swift; sourceTree = "<group>"; };
+		B2768BB1789961620CD28146 /* FathomLists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomLists.swift; sourceTree = "<group>"; };
 		B6BFB8BBAA63E7647C56F02D /* AttributionAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionAppModel.swift; sourceTree = "<group>"; };
+		B953DFFF2F70CD9827A61EC2 /* FathomSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSurfaces.swift; sourceTree = "<group>"; };
 		BAFA57F521CD8D4E02A23EE2 /* FathomSectionIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSectionIcon.swift; sourceTree = "<group>"; };
 		BE4A2EE215BDF8ED6EF0EA7A /* HardwareAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareAppModel.swift; sourceTree = "<group>"; };
 		C97FCFDAE0C6C91C52E86ABF /* CommandPaletteModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteModel.swift; sourceTree = "<group>"; };
@@ -137,6 +144,7 @@
 		D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FathomBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5CCB0D1EC7444D9DF70926E /* CloudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudView.swift; sourceTree = "<group>"; };
 		DFBFB98D440B3C4B66B38142 /* MaintenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceView.swift; sourceTree = "<group>"; };
+		E51D01C951D1F474F76464F2 /* FathomPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomPanel.swift; sourceTree = "<group>"; };
 		E53B5538B1862593EC3EDFEC /* FathomFontRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomFontRegistrar.swift; sourceTree = "<group>"; };
 		E71CCD5AC346A305E1CE6936 /* StorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageView.swift; sourceTree = "<group>"; };
 		EC84EF52CDA7D3DCC028872A /* FathomBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomBarApp.swift; sourceTree = "<group>"; };
@@ -256,10 +264,14 @@
 			isa = PBXGroup;
 			children = (
 				19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */,
+				38C8BD3CEA7ED45EEDB0211B /* FathomCharts.swift */,
+				B2768BB1789961620CD28146 /* FathomLists.swift */,
+				E51D01C951D1F474F76464F2 /* FathomPanel.swift */,
 				1808B04B2E72D33D172481FD /* FathomPoster.swift */,
 				0F7D35FD0094D7068E99038D /* FathomRail.swift */,
 				6CCBE92A1918CF2AA176CD2A /* FathomReadout.swift */,
 				BAFA57F521CD8D4E02A23EE2 /* FathomSectionIcon.swift */,
+				B953DFFF2F70CD9827A61EC2 /* FathomSurfaces.swift */,
 				CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */,
 				A1462B4CBB0C807581885D9E /* HonestUnavailableView.swift */,
 				281148293D3C18632623158F /* MeasurementValueView.swift */,
@@ -645,13 +657,17 @@
 				349332E244F94C2FADA5B9DA /* EnduranceView.swift in Sources */,
 				B3EAEA6C47065479B65ACE6B /* ExploreView.swift in Sources */,
 				70EF4FB835B04058A9FD97E4 /* FathomApp.swift in Sources */,
+				C61771E8EBF6B54B20C3DF38 /* FathomCharts.swift in Sources */,
 				2787064A4C984CA855F56D72 /* FathomDesign.swift in Sources */,
 				A97004A6606AB562BAB260B5 /* FathomFontRegistrar.swift in Sources */,
+				66625315D49EE6A99BA36D27 /* FathomLists.swift in Sources */,
+				6046A233B426FEEA0C7B0E6F /* FathomPanel.swift in Sources */,
 				CFA9CC050D160625B46590F4 /* FathomPoster.swift in Sources */,
 				449860DBB863F25DC69FA736 /* FathomRail.swift in Sources */,
 				14C12A64A7E406832381B4BD /* FathomReadout.swift in Sources */,
 				56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */,
 				96CB042AD988988688D65D4C /* FathomSectionIcon.swift in Sources */,
+				AEFB57C37D262E8B61963EA1 /* FathomSurfaces.swift in Sources */,
 				628172EE3332DD184B6F7A4F /* FathomWorldBackground.swift in Sources */,
 				E27B078D696D1F69D7B39DCB /* GPUView.swift in Sources */,
 				19A14AC1502DF38A8E4ED8A7 /* HardwareAppModel.swift in Sources */,

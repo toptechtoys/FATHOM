@@ -17,6 +17,17 @@ final class SystemMonitorModel: ObservableObject {
             reason: "No memory-pressure event has been observed"
         )
 
+    /// Sixty seconds of history per sparkline, recorded on the same tick that
+    /// publishes the snapshot.
+    ///
+    /// A tick where macOS published nothing is recorded as a gap rather than
+    /// skipped, so the chart keeps its time base and draws the hole. See
+    /// `SampleHistory`.
+    @Published private(set) var cpuHistory = SampleHistory<Double>()
+    @Published private(set) var gpuHistory = SampleHistory<Double>()
+    @Published private(set) var memoryHistory = SampleHistory<Double>()
+    @Published private(set) var networkHistory = SampleHistory<Double>()
+
     private var samplingTask: Task<Void, Never>?
     private var pressureSource: DispatchSourceMemoryPressure?
     private var observerCount = 0
@@ -53,17 +64,17 @@ final class SystemMonitorModel: ObservableObject {
                 async let network = networkSampler.sample()
                 let bluetooth = self?.sampleBluetooth()
                     ?? Self.bluetoothNotSampled
-                self?.state = .result(
-                    SystemPresentation(
-                        cpu: await cpu,
-                        memory: await memory,
-                        gpu: await gpu,
-                        network: await network,
-                        bluetooth: bluetooth,
-                        channelMap: channelMap,
-                        sampledAt: Date()
-                    )
+                let presentation = SystemPresentation(
+                    cpu: await cpu,
+                    memory: await memory,
+                    gpu: await gpu,
+                    network: await network,
+                    bluetooth: bluetooth,
+                    channelMap: channelMap,
+                    sampledAt: Date()
                 )
+                self?.record(presentation)
+                self?.state = .result(presentation)
                 do {
                     try await Task.sleep(for: .seconds(1))
                 } catch {
@@ -71,6 +82,15 @@ final class SystemMonitorModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// One tick, one entry in every buffer. Recording only the ticks that
+    /// produced a reading would compress the gaps out of the chart.
+    private func record(_ presentation: SystemPresentation) {
+        cpuHistory.record(presentation.cpu.aggregateBusy.map { $0 * 100 })
+        gpuHistory.record(presentation.gpu.deviceUtilizationPercent)
+        memoryHistory.record(presentation.memory.usedFraction.map { $0 * 100 })
+        networkHistory.record(presentation.network.totalThroughput)
     }
 
     func stop() {

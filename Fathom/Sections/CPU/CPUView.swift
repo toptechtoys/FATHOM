@@ -27,8 +27,8 @@ struct CPUView: View {
             VStack(alignment: .leading, spacing: 22) {
                 liveHeader("CPU")
 
-                // The first section on the readout grid. The rest of CPU is
-                // still on the old cards until the panel types land.
+                // The first section built entirely from the Instrument Panel
+                // vocabulary: readout grid, sparkline, core bars, note.
                 FathomReadoutGrid {
                     FathomMeasurementReadout(
                         label: "Total load",
@@ -65,47 +65,50 @@ struct CPUView: View {
                     )
                 }
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 240), spacing: 18)],
-                    spacing: 18
-                ) {
-                    HardwareResultCard(label: "TOPOLOGY") {
-                        topology(cpu)
-                    }
-                    privateMetric(
-                        "CLUSTER FREQUENCY",
-                        channelMap: channelMap,
-                        knownMapReason: "The signed map does not include verified DVFS frequency tables"
+                FathomPanel(label: "Total load, last 60 seconds") {
+                    FathomSparkline(
+                        history: model.cpuHistory,
+                        maximum: 100,
+                        accessibilityValue: "Total CPU load"
                     )
                 }
 
-                coreGrid(cpu.cores)
+                FathomPanel(label: "Load per core") {
+                    FathomCoreBars(
+                        cores: cpu.cores,
+                        performanceCount: cpu.performanceLogicalCPUCount
+                    )
+                }
+
+                FathomPanel(label: "Cluster frequency") {
+                    clusterFrequency(channelMap)
+                }
+
+                FathomNote(
+                    headline: "The efficiency cores are carrying most of this.",
+                    detail: "That is the scheduler doing its job, not a problem. We show all eight because an average would hide which cluster is actually working."
+                )
             }
             .padding(34)
         }
     }
 
-    private func privateMetric(
-        _ label: String,
-        channelMap: FathomKit.Measurement<IOReportChannelMap>,
-        knownMapReason: String
+    /// Per-cluster DVFS frequency is not something the signed IOReport channel
+    /// map exposes, so the panel says so rather than deriving a plausible
+    /// figure from residencies.
+    private func clusterFrequency(
+        _ channelMap: FathomKit.Measurement<IOReportChannelMap>
     ) -> some View {
         let reason: String
         switch channelMap {
         case .known:
-            reason = knownMapReason
+            reason = "The signed map does not include verified DVFS frequency tables."
         case let .notPublished(value):
             reason = value
         case .notAttributable:
-            reason = "The signed IOReport channel map is not attributable"
+            reason = "The signed IOReport channel map is not attributable."
         }
-        return HardwareResultCard(label: label) {
-            Text("not published")
-                .font(.fathomData(16, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.82))
-                .help(reason)
-                .accessibilityLabel("\(label) not published. \(reason)")
-        }
+        return FathomPanelUnavailable(reason: reason)
     }
 
     /// User / system / idle as one sentence under the total.
@@ -135,69 +138,7 @@ struct CPUView: View {
         return known.joined(separator: " · ")
     }
 
-    private func topology(_ cpu: CPULoadSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HardwareMeasurementView(
-                measurement: cpu.performanceLogicalCPUCount,
-                format: { "\($0) performance" }
-            )
-            HardwareMeasurementView(
-                measurement: cpu.efficiencyLogicalCPUCount,
-                format: { "\($0) efficiency" }
-            )
-            Text("perflevel0 is performance")
-                .font(.fathomSystem(10.5, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.82))
-        }
-    }
 
-    @ViewBuilder
-    private func coreGrid(
-        _ measurement: FathomKit.Measurement<[CPUCoreLoad]>
-    ) -> some View {
-        switch measurement {
-        case let .known(cores, _):
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 180), spacing: 10)],
-                spacing: 10
-            ) {
-                ForEach(cores) { core in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Core \(core.index + 1)")
-                            Spacer()
-                            Text(
-                                "\((core.busy * 100).formatted(.number.precision(.fractionLength(1))))%"
-                            )
-                            .monospacedDigit()
-                        }
-                        .font(.fathomSystem(12, weight: .medium))
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(.white.opacity(0.12))
-                                Capsule().fill(.white.opacity(0.74))
-                                    .frame(
-                                        width: geometry.size.width *
-                                            min(max(core.busy, 0), 1)
-                                    )
-                            }
-                        }
-                        .frame(height: 7)
-                    }
-                    .padding(14)
-                    .background(FathomSurface.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-        case let .notPublished(reason):
-            Text("not published")
-                .foregroundStyle(.white.opacity(0.82))
-                .help(reason)
-                .accessibilityLabel("Per-core load not published. \(reason)")
-        case .notAttributable:
-            Text("not attributable")
-        }
-    }
 
     private func liveHeader(_ title: String) -> some View {
         HStack {
