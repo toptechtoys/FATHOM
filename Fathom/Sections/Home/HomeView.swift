@@ -4,113 +4,168 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var storage: StorageAppModel
     @EnvironmentObject private var hardware: HardwareAppModel
+    @EnvironmentObject private var system: SystemMonitorModel
     let openStorage: () -> Void
     let openSSDHealth: () -> Void
+    var open: (AppSection) -> Void = { _ in }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("FATHOM").font(.fathomDisplay(40))
-                Text("No overall score. Every value keeps its source and state.")
-                    .foregroundStyle(.white.opacity(0.82))
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Home",
+                    subtitle: "All systems sampled",
+                    isLive: false
+                )
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 260), spacing: 16)],
-                    spacing: 16
-                ) {
-                    storageCards
-                    ssdCard
-                    volumeEncryptionCard
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Actually free",
+                        measurement: actuallyFree,
+                        note: "The number a write would really see",
+                        format: bytes
+                    )
+                    FathomMeasurementReadout(
+                        label: "Freed if selected",
+                        measurement: freedIfDeleted,
+                        note: "What deletion would actually return",
+                        format: bytes
+                    )
+                    FathomMeasurementReadout(
+                        label: "Root volume",
+                        measurement: encryption,
+                        note: "Foundation reports encryption, not the named FileVault policy",
+                        format: { $0 }
+                    )
+                    FathomMeasurementReadout(
+                        label: "NVMe warning",
+                        measurement: criticalWarning,
+                        note: "The controller's own flag",
+                        format: { $0 }
+                    )
+                }
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "Every section, one number each") {
+                    FathomSectionGrid(entries: entries, open: open)
                 }
 
-                HardwareResultCard(label: "CURRENT STATEMENT") {
-                    currentStatement
-                }
+                FathomNote(
+                    headline: statementHeadline,
+                    detail: statementDetail
+                )
             }
-            .padding(34)
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
         .onAppear {
             if case .idle = hardware.state { hardware.readSSD() }
         }
     }
 
-    private var volumeEncryptionCard: some View {
-        HardwareResultCard(label: "ROOT VOLUME ENCRYPTION") {
-            HardwareMeasurementView(
-                measurement: VolumeEncryptionReader().read(
-                    volumeURL: URL(fileURLWithPath: "/")
-                ),
-                format: { $0 ? "Encrypted" : "Not encrypted" }
-            )
-            Text("Foundation reports volume encryption, not the named FileVault policy.")
-                .font(.fathomSystem(11))
-                .foregroundStyle(.white.opacity(0.82))
-        }
-    }
-
-    @ViewBuilder
-    private var storageCards: some View {
-        switch storage.state {
-        case let .result(presentation):
-            homeCard("ACTUALLY FREE", presentation.actuallyFree, openStorage)
-            homeCard("FREED IF SELECTED", presentation.freedIfDeleted, openStorage)
-        case .scanning:
-            HardwareResultCard(label: "STORAGE") {
-                ProgressView("Whole-volume scan in progress…")
-            }
-        case .idle, .failed:
-            HardwareResultCard(label: "STORAGE") {
-                Text("not published")
-                    .foregroundStyle(.white.opacity(0.82))
-                Button("Run Deep Scan", action: openStorage)
-            }
-        }
-    }
-
-    private var ssdCard: some View {
-        HardwareResultCard(label: "NVME CRITICAL WARNING") {
-            switch hardware.state {
-            case .idle, .reading:
-                ProgressView("Read-only SMART read…")
-            case let .result(snapshot):
-                HardwareMeasurementView(
-                    measurement: snapshot.criticalWarning,
-                    format: {
-                        $0 == 0
-                            ? "None"
-                            : "Raw bitfield 0x\(String($0, radix: 16))"
-                    }
+    /// One line per section that already has a number worth showing.
+    ///
+    /// A section whose value is not published yet is left out rather than shown
+    /// as a dash: this grid is a set of findings, and a grid of dashes is not
+    /// a summary of anything.
+    private var entries: [FathomSectionGrid.Entry] {
+        var result: [FathomSectionGrid.Entry] = []
+        if case let .known(value, _) = actuallyFree {
+            result.append(
+                .init(
+                    section: .storage,
+                    value: bytes(value),
+                    detail: "actually free"
                 )
-                Button("Evidence", action: openSSDHealth)
-            }
-        }
-    }
-
-    private func homeCard(
-        _ label: String,
-        _ measurement: FathomKit.Measurement<UInt64>,
-        _ action: @escaping () -> Void
-    ) -> some View {
-        HardwareResultCard(label: label) {
-            HardwareMeasurementView(
-                measurement: measurement,
-                format: hardwareByteString,
-                prominent: true
             )
-            Button("Evidence", action: action)
+        }
+        if case let .known(value, _) = freedIfDeleted, value > 0 {
+            result.append(
+                .init(
+                    section: .reclaim,
+                    value: bytes(value),
+                    detail: "freeable, dry run"
+                )
+            )
+        }
+        if case let .result(snapshot) = hardware.state,
+           case let .known(used, _) = snapshot.percentageUsed {
+            result.append(
+                .init(
+                    section: .endurance,
+                    value: "\(used)%",
+                    detail: "endurance consumed"
+                )
+            )
+        }
+        if let cpu = system.cpuHistory.latest {
+            result.append(
+                .init(
+                    section: .cpu,
+                    value: cpu.formatted(.number.precision(.fractionLength(0)))
+                        + "%",
+                    detail: "load across all cores"
+                )
+            )
+        }
+        return result
+    }
+
+    private var actuallyFree: FathomKit.Measurement<UInt64> {
+        guard case let .result(presentation) = storage.state else {
+            return .notPublished(
+                reason: "No completed scan yet. Run a Deep Scan and this becomes the real number."
+            )
+        }
+        return presentation.actuallyFree
+    }
+
+    private var freedIfDeleted: FathomKit.Measurement<UInt64> {
+        guard case let .result(presentation) = storage.state else {
+            return .notPublished(
+                reason: "Nothing has been evaluated. Reclaim never proposes what a scan has not verified."
+            )
+        }
+        return presentation.freedIfDeleted
+    }
+
+    private var encryption: FathomKit.Measurement<String> {
+        VolumeEncryptionReader()
+            .read(volumeURL: URL(fileURLWithPath: "/"))
+            .map { $0 ? "Encrypted" : "Not encrypted" }
+    }
+
+    private var criticalWarning: FathomKit.Measurement<String> {
+        guard case let .result(snapshot) = hardware.state else {
+            return .notPublished(reason: "The SMART log has not been read yet.")
+        }
+        return snapshot.criticalWarning.map {
+            $0 == 0 ? "None" : "0x\(String($0, radix: 16))"
         }
     }
 
-    @ViewBuilder
-    private var currentStatement: some View {
-        if case let .result(snapshot) = hardware.state,
-           case let .known(warning, _) = snapshot.criticalWarning,
-           warning == 0 {
-            Text("The SSD controller currently reports no critical warning. FATHOM makes no broader health claim from that fact.")
-                .font(.fathomSystem(14, weight: .medium))
-        } else {
-            Text("not published — the evidence needed for a current statement is incomplete")
-                .foregroundStyle(.white.opacity(0.82))
+    /// The Home screen is allowed to say nothing is wrong, and is not allowed
+    /// to say anything broader than what it can prove.
+    private var statementHeadline: String {
+        guard case let .result(snapshot) = hardware.state,
+              case let .known(warning, _) = snapshot.criticalWarning,
+              warning == 0
+        else {
+            return "There is no overall score, and there will not be one."
         }
+        return "Nothing is wrong."
+    }
+
+    private var statementDetail: String {
+        guard case let .result(snapshot) = hardware.state,
+              case let .known(warning, _) = snapshot.criticalWarning,
+              warning == 0
+        else {
+            return "Every value keeps its source and its state, and a value macOS does not publish says so rather than being filled in. No number here is combined with another to produce a grade."
+        }
+        return "The SSD controller reports no critical warning, and FATHOM makes no broader health claim from that fact. Every value keeps its source and its state. A full disk is not an emergency."
+    }
+
+    private func bytes(_ value: UInt64) -> String {
+        value.formatted(.byteCount(style: .file))
     }
 }

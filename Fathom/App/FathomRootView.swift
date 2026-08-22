@@ -183,7 +183,8 @@ struct FathomRootView: View {
         case .home:
             HomeView(
                 openStorage: { selection = .storage },
-                openSSDHealth: { selection = .ssdHealth }
+                openSSDHealth: { selection = .ssdHealth },
+                open: { selection = $0 }
             )
         case .deepScan:
             DeepScanView(openExplore: { selection = .explore })
