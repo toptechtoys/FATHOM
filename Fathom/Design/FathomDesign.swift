@@ -11,16 +11,16 @@ struct FathomColorWorld: Equatable {
         top: Color(hex: 0x04263A),
         middle: Color(hex: 0x0C6B90),
         bottom: Color(hex: 0x2BB6D4),
-        objectLight: Color(hex: 0xC4F2FA),
-        objectDark: Color(hex: 0x176980)
+        objectLight: Color(hex: 0xB6EEFA),
+        objectDark: Color(hex: 0x0B6A85)
     )
 
     static let menuBar = FathomColorWorld(
         top: Color(hex: 0x062737),
         middle: Color(hex: 0x0C6076),
         bottom: Color(hex: 0x1FA3B8),
-        objectLight: Color(hex: 0xBCECF2),
-        objectDark: Color(hex: 0x0B6578)
+        objectLight: Color(hex: 0xB9EEF5),
+        objectDark: Color(hex: 0x0B6273)
     )
 
     static let home = FathomColorWorld(
@@ -43,8 +43,8 @@ struct FathomColorWorld: Equatable {
         top: Color(hex: 0x0C1445),
         middle: Color(hex: 0x243397),
         bottom: Color(hex: 0x5566DC),
-        objectLight: Color(hex: 0xD6DBFF),
-        objectDark: Color(hex: 0x3444A8)
+        objectLight: Color(hex: 0xC7D0FF),
+        objectDark: Color(hex: 0x26339B)
     )
 
     static let endurance = FathomColorWorld(
@@ -88,27 +88,27 @@ struct FathomColorWorld: Equatable {
     )
 
     static let gpu = FathomColorWorld(
-        top: Color(hex: 0x270638),
-        middle: Color(hex: 0x75148E),
-        bottom: Color(hex: 0xC148B2),
-        objectLight: Color(hex: 0xF2C7ED),
-        objectDark: Color(hex: 0x74146F)
+        top: Color(hex: 0x2A0838),
+        middle: Color(hex: 0x6D1580),
+        bottom: Color(hex: 0xB040C8),
+        objectLight: Color(hex: 0xF3C8FC),
+        objectDark: Color(hex: 0x6B1A7E)
     )
 
     static let network = FathomColorWorld(
-        top: Color(hex: 0x032B25),
-        middle: Color(hex: 0x087A62),
-        bottom: Color(hex: 0x32BE93),
-        objectLight: Color(hex: 0xB9F2DF),
-        objectDark: Color(hex: 0x08715D)
+        top: Color(hex: 0x03302C),
+        middle: Color(hex: 0x0A7A72),
+        bottom: Color(hex: 0x2CB9AC),
+        objectLight: Color(hex: 0xB3F5EE),
+        objectDark: Color(hex: 0x087269)
     )
 
     static let bluetooth = FathomColorWorld(
-        top: Color(hex: 0x071B3D),
-        middle: Color(hex: 0x164D9C),
-        bottom: Color(hex: 0x3C8BE0),
-        objectLight: Color(hex: 0xC0DCF9),
-        objectDark: Color(hex: 0x174D92)
+        top: Color(hex: 0x062B1E),
+        middle: Color(hex: 0x0D7A4E),
+        bottom: Color(hex: 0x2CBE7C),
+        objectLight: Color(hex: 0xB9F8D8),
+        objectDark: Color(hex: 0x0A7350)
     )
 
     static let reclaim = FathomColorWorld(
