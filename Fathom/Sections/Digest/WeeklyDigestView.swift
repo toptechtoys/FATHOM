@@ -11,19 +11,34 @@ struct WeeklyDigestView: View {
         Group {
             switch storage.state {
             case .idle:
-                FathomPoster(
+                FathomEmptySection(
                     title: "Weekly digest",
-                    message: "One summary a week, and it is allowed to say nothing.",
-                    symbol: "doc.text",
-                    world: .digest,
-                    shape: AnyShape(RoundedRectangle(cornerRadius: 30)),
-                    isScanning: false,
+                    subtitle: "No digest yet",
+                    headline: "One notification a week, and it is allowed to say nothing.",
+                    detail: "The digest is assembled from completed scans, so the first one arrives after the first scan. If the week was quiet it says so in one line and stops. It never invents a finding to justify arriving.",
+                    actionTitle: "Run the first Deep Scan",
+                    actionCost: "Reads every volume once. Changes nothing.",
                     action: storage.scanSelectedVolume
                 )
             case .scanning:
-                ProgressView("Recording evidence for the digest…")
+                FathomEmptySection(
+                    title: "Weekly digest",
+                    subtitle: "Recording",
+                    headline: "Recording the evidence a digest is built from.",
+                    detail: storage.scanProgressMessage,
+                    actionTitle: "Scanning…",
+                    isBusy: true,
+                    action: {}
+                )
             case let .failed(reason):
-                Text("not published — \(reason)")
+                FathomEmptySection(
+                    title: "Weekly digest",
+                    subtitle: "The pass did not complete",
+                    headline: "There is nothing to summarise yet.",
+                    detail: reason,
+                    actionTitle: "Try again",
+                    action: storage.reset
+                )
             case let .result(presentation):
                 digestContent(presentation)
             }
@@ -39,52 +54,103 @@ struct WeeklyDigestView: View {
         case .loading:
             ProgressView("Building the digest from completed scans…")
         case let .failed(reason):
-            Text(reason)
+            FathomEmptySection(
+                title: "Weekly digest",
+                subtitle: "History could not be read",
+                headline: "There is nothing to summarise yet.",
+                detail: reason
+            )
         case let .result(_, digest):
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Weekly digest").font(.fathomDisplay(34))
-                HardwareResultCard(label: "CHANGE IN FREE SPACE") {
-                    digestMeasurement(digest.changeInFreeBytes)
+            content(presentation, digest: digest)
+        }
+    }
+
+    private func content(
+        _ presentation: StoragePresentation,
+        digest: WeeklyDigestPresentation
+    ) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Weekly digest",
+                    subtitle: notifications.isEnabled
+                        ? "Delivery on"
+                        : "Delivery off",
+                    isLive: false
+                )
+
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Change in free space",
+                        measurement: digest.changeInFreeBytes,
+                        note: window(digest),
+                        format: signedBytes
+                    )
                 }
-                Toggle(
-                    "Send one weekly digest",
-                    isOn: Binding(
-                        get: { notifications.isEnabled },
-                        set: { notifications.setEnabled($0, change: digest.changeInFreeBytes) }
-                    )
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "This week's preview") {
+                    card(digest)
+                }
+
+                FathomPanel(label: "Delivery") {
+                    VStack(spacing: 3) {
+                        toggleRow(
+                            "Send one weekly digest",
+                            detail: state(notifications.state),
+                            isOn: Binding(
+                                get: { notifications.isEnabled },
+                                set: {
+                                    notifications.setEnabled(
+                                        $0,
+                                        change: digest.changeInFreeBytes
+                                    )
+                                }
+                            )
+                        )
+                        toggleRow(
+                            "A directory gained over 20 GB in a day",
+                            detail: state(notifications.directoryAlertState),
+                            isOn: Binding(
+                                get: { directoryAlert },
+                                set: { enabled in
+                                    notifications.setDirectoryAlert(
+                                        enabled,
+                                        presentation: presentation
+                                    ) { directoryAlert = $0 }
+                                }
+                            )
+                        )
+                    }
+                }
+
+                FathomPanel(label: "Alerts we cannot offer") {
+                    VStack(spacing: 3) {
+                        FathomDataRow.simple(
+                            "Snapshot share consequence alert",
+                            value: "not offered",
+                            valueColor: .white.opacity(
+                                FathomSurface.minimumTextOpacity
+                            ),
+                            annotation: "Snapshot-attributable bytes are not published on this configuration."
+                        )
+                        FathomDataRow.simple(
+                            "Endurance forecast moved by over a year",
+                            value: "not offered",
+                            valueColor: .white.opacity(
+                                FathomSurface.minimumTextOpacity
+                            ),
+                            annotation: "Apple does not publish a defensible calendar endurance forecast."
+                        )
+                    }
+                }
+
+                FathomNote(
+                    headline: "A quiet week is always silent.",
+                    detail: "Enabling delivery asks macOS for notification permission, and each consequence alert is opted into separately. No finding is invented to justify a notification, and every number in the digest links to the evidence that produced it."
                 )
-                .disabled(notifications.isWorking)
-                notificationState
-                unavailableConsequence(
-                    "Snapshot share consequence alert",
-                    reason: "Snapshot-attributable bytes are not published on this configuration"
-                )
-                unavailableConsequence(
-                    "Endurance forecast moved by over a year",
-                    reason: "Apple does not publish a defensible calendar endurance forecast"
-                )
-                Toggle(
-                    "A directory gained over 20 GB in a day",
-                    isOn: Binding(
-                        get: { directoryAlert },
-                        set: { enabled in
-                            notifications.setDirectoryAlert(
-                                enabled,
-                                presentation: presentation
-                            ) { resolved in
-                                directoryAlert = resolved
-                            }
-                        }
-                    )
-                )
-                .disabled(notifications.isWorking)
-                directoryAlertState
-                Text("Cost before enabling: macOS asks for notification permission. Consequence alerts are individually opt-in. A quiet week is always silent; no finding is invented to justify a notification.")
-                    .font(.fathomSystem(12.5))
-                    .foregroundStyle(.white.opacity(0.82))
             }
-            .frame(maxWidth: 720, alignment: .leading)
-            .padding(34)
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
             .onAppear {
                 notifications.refresh(change: digest.changeInFreeBytes)
                 notifications.refreshDirectoryAlert(presentation: presentation)
@@ -92,69 +158,91 @@ struct WeeklyDigestView: View {
         }
     }
 
+    /// The digest as it will actually arrive.
+    ///
+    /// Where the change is not published the card says so rather than being
+    /// hidden — a preview that only appears when there is news would make the
+    /// silent week look like a bug.
     @ViewBuilder
-    private var notificationState: some View {
-        switch notifications.state {
-        case let .known(value, source):
-            Text(value).font(.fathomSystem(12)).help(source.rawValue)
-                .accessibilityLabel("\(value), source \(source.rawValue)")
+    private func card(_ digest: WeeklyDigestPresentation) -> some View {
+        switch digest.changeInFreeBytes {
+        case let .known(delta, _):
+            FathomDigestCard(
+                headline: headline(delta),
+                dateline: window(digest),
+                lines: [
+                    FathomDigestCard.Line(
+                        name: "Change in free space",
+                        value: signedBytes(delta),
+                        direction: delta < 0 ? .grew : .shrank
+                    ),
+                ],
+                summary: "Every number here links to the screen that produced it. If nothing changed, this is the whole message."
+            )
         case let .notPublished(reason):
-            Text("not published — \(reason)")
-                .font(.fathomSystem(12))
-                .foregroundStyle(.white.opacity(0.82))
-        case .notAttributable:
-            Text("not attributable").font(.fathomSystem(12))
+            FathomPanelUnavailable(reason: reason)
+        case let .notAttributable(measured, explained):
+            FathomPanelUnavailable(
+                reason: "\(signedBytes(measured)) measured, \(signedBytes(explained)) explained. The rest cannot be attributed to anything we watched.",
+                isAttributionGap: true
+            )
         }
     }
 
-    @ViewBuilder
-    private var directoryAlertState: some View {
-        switch notifications.directoryAlertState {
-        case let .known(value, source):
-            Text(value).font(.fathomSystem(12)).help(source.rawValue)
-                .accessibilityLabel("\(value), source \(source.rawValue)")
-        case let .notPublished(reason):
-            Text("not published — \(reason)")
-                .font(.fathomSystem(12))
-                .foregroundStyle(.white.opacity(0.82))
-        case .notAttributable:
-            Text("not attributable").font(.fathomSystem(12))
-        }
-    }
-
-    private func unavailableConsequence(
+    private func toggleRow(
         _ title: String,
-        reason: String
+        detail: String,
+        isOn: Binding<Bool>
     ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Toggle(title, isOn: .constant(false)).disabled(true)
-            Text("not published — \(reason)")
-                .font(.fathomSystem(12))
-                .foregroundStyle(.white.opacity(0.82))
+        FathomDataRow(
+            leading: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.fathomSystem(13, weight: .semibold))
+                    Text(detail)
+                        .font(.fathomSystem(11.5))
+                        .foregroundStyle(
+                            .white.opacity(FathomSurface.minimumTextOpacity)
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            },
+            trailing: {
+                Toggle("", isOn: isOn)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .disabled(notifications.isWorking)
+            }
+        )
+        .accessibilityElement(children: .contain)
+    }
+
+    private func state(
+        _ measurement: FathomKit.Measurement<String>
+    ) -> String {
+        switch measurement {
+        case let .known(value, _): value
+        case let .notPublished(reason): reason
+        case .notAttributable: "Delivery state is not attributable."
         }
     }
 
-    @ViewBuilder
-    private func digestMeasurement(
-        _ measurement: FathomKit.Measurement<Int64>
-    ) -> some View {
-        switch measurement {
-        case let .known(delta, source):
-            let magnitude = UInt64(delta.magnitude)
-            let phrase = delta < 0
-                ? "Disk is \(hardwareByteString(magnitude)) fuller"
-                : "Disk has \(hardwareByteString(magnitude)) more free"
-            Text(phrase)
-                .font(.fathomData(20, weight: .semibold))
-                .help(source.rawValue)
-                .accessibilityLabel("\(phrase), source \(source.rawValue)")
-        case let .notPublished(reason):
-            Text("not published")
-                .foregroundStyle(.white.opacity(0.82))
-                .help(reason)
-                .accessibilityLabel("Not published. \(reason)")
-        case .notAttributable:
-            Text("not attributable")
+    private func headline(_ delta: Int64) -> String {
+        let magnitude = UInt64(delta.magnitude)
+            .formatted(.byteCount(style: .file))
+        return delta < 0 ? "\(magnitude) fuller" : "\(magnitude) more free"
+    }
+
+    private func window(_ digest: WeeklyDigestPresentation) -> String {
+        guard let start = digest.start, let end = digest.end else {
+            return "The window is not published yet"
         }
+        let format = Date.FormatStyle(date: .abbreviated, time: .omitted)
+        return "\(start.formatted(format)) to \(end.formatted(format))"
+    }
+
+    private func signedBytes(_ delta: Int64) -> String {
+        let magnitude = UInt64(delta.magnitude)
+            .formatted(.byteCount(style: .file))
+        return delta < 0 ? "−\(magnitude)" : "+\(magnitude)"
     }
 }
