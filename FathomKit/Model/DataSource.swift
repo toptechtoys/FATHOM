@@ -51,6 +51,7 @@ public enum DataSource: String, Sendable, Equatable, Codable {
         "sysctl hw.perflevel1.logicalcpu"
     case hostVMStatistics64 = "host_statistics64(HOST_VM_INFO64)"
     case sysctlPhysicalMemory = "sysctl hw.memsize"
+    case sysctlMachineModel = "sysctl hw.model"
     case sysctlSwapUsage = "sysctl vm.swapusage"
     case dispatchMemoryPressure =
         "DispatchSource.makeMemoryPressureSource"

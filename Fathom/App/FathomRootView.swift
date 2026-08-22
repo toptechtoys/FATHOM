@@ -129,9 +129,12 @@ struct FathomRootView: View {
                 // The rail is 64pt at every width. There is no expanded state
                 // to collapse into, so the old width breakpoint is gone.
                 FathomRail(selection: $selection)
-                content
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(FathomSurface.contentPlate)
+                VStack(spacing: 0) {
+                    FathomStatusStrip()
+                    content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .background(FathomSurface.contentPlate)
                     // A section arriving rises and fades. Keying the transition
                     // on the selection makes it play on navigation and not on
                     // the 1 Hz tick inside a section.

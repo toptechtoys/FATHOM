@@ -25,87 +25,127 @@ struct BluetoothView: View {
         }
     }
 
-    @ViewBuilder
     private func content(_ snapshot: BluetoothSnapshot) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Bluetooth")
-                    .font(.fathomDisplay(34))
-                switch snapshot.devices {
-                case let .known(devices, source):
-                    if devices.isEmpty {
-                        Text("No paired devices")
-                            .foregroundStyle(.white.opacity(0.82))
-                            .help(source.rawValue)
-                            .accessibilityLabel(
-                                "No paired devices, source \(source.rawValue)"
-                            )
-                    } else {
-                        ForEach(devices) { device in
-                            deviceCard(device)
-                        }
-                    }
-                case let .notPublished(reason):
-                    Text("not published")
-                        .foregroundStyle(.white.opacity(0.82))
-                        .help(reason)
-                        .accessibilityLabel("Not published. \(reason)")
-                case let .notAttributable(measured, explained):
-                    Text("not attributable")
-                        .accessibilityLabel(
-                            "Not attributable. \(measured.count) measured, \(explained.count) explained"
-                        )
-                }
-                Text("Battery is shown only when the device publishes BatteryPercent. No estimate is made from connection time.")
-                    .font(.fathomSystem(12.5))
-                    .foregroundStyle(.white.opacity(0.82))
-            }
-            .padding(34)
-        }
-    }
+            VStack(alignment: .leading, spacing: 0) {
+                FathomSectionHeader(
+                    title: "Bluetooth",
+                    subtitle: subtitle(snapshot.devices)
+                )
 
-    private func deviceCard(
-        _ device: BluetoothDeviceSnapshot
-    ) -> some View {
-        HardwareResultCard(label: device.address) {
-            HStack {
-                HardwareMeasurementView(
-                    measurement: device.name,
-                    format: { $0 }
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Paired",
+                        measurement: snapshot.devices.map { $0.count },
+                        unit: "devices",
+                        note: "Known to this Mac",
+                        format: { $0.formatted() }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Connected",
+                        measurement: connectedCount(snapshot.devices),
+                        note: "Right now",
+                        format: { $0.formatted() }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Will not say",
+                        measurement: silentCount(snapshot.devices),
+                        unit: "devices",
+                        note: "Publish no battery level at all",
+                        format: { $0.formatted() }
+                    )
+                }
+                .padding(.bottom, 22)
+
+                FathomPanel(label: "Devices") {
+                    devices(snapshot.devices)
+                }
+
+                FathomNote(
+                    headline: "A blank battery means the device will not say.",
+                    detail: "Plenty of third-party Bluetooth peripherals never implement the battery service. Showing an estimate there would be a guess wearing a percentage sign, so the row reads does not report and the meter stays empty."
                 )
-                Spacer()
-                HardwareMeasurementView(
-                    measurement: device.connected,
-                    format: { $0 ? "Connected" : "Not connected" }
-                )
-                battery(device.batteryPercent)
             }
+            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
     }
 
     @ViewBuilder
-    private func battery(
-        _ measurement: FathomKit.Measurement<Int>
+    private func devices(
+        _ measurement: FathomKit.Measurement<[BluetoothDeviceSnapshot]>
     ) -> some View {
         switch measurement {
-        case let .known(value, source):
-            Text("\(value)%")
-                .font(.fathomData(19, weight: .semibold))
-                .help(source.rawValue)
-                .accessibilityLabel(
-                    "Battery \(value) percent, source \(source.rawValue)"
+        case let .known(devices, _):
+            if devices.isEmpty {
+                FathomPanelUnavailable(
+                    reason: "No devices are paired with this Mac."
                 )
+            } else {
+                FathomDeviceRows(
+                    devices: devices.map { device in
+                        FathomDeviceRows.Device(
+                            name: name(of: device),
+                            level: level(of: device)
+                        )
+                    }
+                )
+            }
         case let .notPublished(reason):
-            Text(reason.contains("does not report") ? "does not report" : "not published")
-                .font(.fathomData(14, weight: .medium))
-                .foregroundStyle(.white.opacity(0.82))
-                .help(reason)
-                .accessibilityLabel("Battery \(reason)")
+            FathomPanelUnavailable(reason: reason)
         case let .notAttributable(measured, explained):
-            Text("not attributable")
-                .accessibilityLabel(
-                    "Battery not attributable. \(measured) measured, \(explained) explained"
-                )
+            FathomPanelUnavailable(
+                reason: "\(measured.count) devices measured, \(explained.count) explained. The rest cannot be attributed.",
+                isAttributionGap: true
+            )
         }
+    }
+
+    /// A device that publishes no name is still a device. Its address is the
+    /// only honest label available, so it gets that rather than "Unknown".
+    private func name(of device: BluetoothDeviceSnapshot) -> String {
+        guard case let .known(name, _) = device.name, !name.isEmpty else {
+            return device.address
+        }
+        return name
+    }
+
+    private func level(of device: BluetoothDeviceSnapshot) -> Double? {
+        guard case let .known(percent, _) = device.batteryPercent else {
+            return nil
+        }
+        return Double(percent) / 100
+    }
+
+    private func connectedCount(
+        _ measurement: FathomKit.Measurement<[BluetoothDeviceSnapshot]>
+    ) -> FathomKit.Measurement<Int> {
+        measurement.map { devices in
+            devices.count { device in
+                if case let .known(connected, _) = device.connected {
+                    return connected
+                }
+                return false
+            }
+        }
+    }
+
+    private func silentCount(
+        _ measurement: FathomKit.Measurement<[BluetoothDeviceSnapshot]>
+    ) -> FathomKit.Measurement<Int> {
+        measurement.map { devices in
+            devices.count { device in
+                if case .known = device.batteryPercent { return false }
+                return true
+            }
+        }
+    }
+
+    private func subtitle(
+        _ measurement: FathomKit.Measurement<[BluetoothDeviceSnapshot]>
+    ) -> String {
+        guard case let .known(devices, _) = measurement else {
+            return "Paired devices not published"
+        }
+        return "\(devices.count) paired"
     }
 }

@@ -27,6 +27,31 @@ Every figure in the prototype came from this machine, read with Stats
 
 ---
 
+## Machine identity
+
+The section header names the machine the numbers came from, so the reader knows
+what they are looking at without opening another screen.
+
+| Value | API | Reference machine |
+|---|---|---|
+| Model identifier | `sysctlbyname("hw.model")` | `Mac16,11` |
+| Physical memory | `sysctlbyname("hw.memsize")` | 24 GB |
+| Days recorded | Earliest entry in the local history store | 142 |
+
+**We show the model identifier, not the marketing name.** `hw.model` returns
+`Mac16,11`; turning that into "Mac mini (M4 Pro)" needs a lookup table we would
+have to maintain, that goes stale the week Apple ships a machine we have not
+seen, and that is wrong rather than absent when it misses. `system_profiler`
+publishes the marketing name but shelling out is forbidden in the shipping
+build. Where a friendlier name is genuinely wanted, the table has to be added
+here first with a stated update policy.
+
+**Days recorded is a count of what was recorded, not of elapsed time.** A Mac
+that was asleep for a week has fewer days than the calendar suggests, and the
+Timeline draws those absences rather than smoothing them.
+
+---
+
 ## Rule zero
 
 Three states, and the UI must be able to render all three for every value.

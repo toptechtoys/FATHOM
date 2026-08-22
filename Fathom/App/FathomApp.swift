@@ -12,6 +12,7 @@ struct FathomApp: App {
     @StateObject private var attributionModel = AttributionAppModel()
     @StateObject private var publicIPModel = PublicIPAppModel()
     @StateObject private var onboardingModel = OnboardingAppModel()
+    @StateObject private var machineModel = MachineIdentityAppModel()
 
     init() {
         FathomFontRegistrar.registerBundledFonts()
@@ -29,6 +30,7 @@ struct FathomApp: App {
                 .environmentObject(cloudModel)
                 .environmentObject(attributionModel)
                 .environmentObject(publicIPModel)
+                .environmentObject(machineModel)
                 .frame(minWidth: 720, minHeight: 560)
                 .task { attributionModel.restoreIfEnabled() }
                 .task { publicIPModel.refresh() }

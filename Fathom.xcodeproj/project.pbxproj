@@ -69,6 +69,7 @@
 		E27B078D696D1F69D7B39DCB /* GPUView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F927B51C8F9363546595F4 /* GPUView.swift */; };
 		E8BDD357ED9F649EEF505493 /* MaintenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFBFB98D440B3C4B66B38142 /* MaintenanceView.swift */; };
 		E9ADB1FFDF48D30FFC3BBD89 /* FathomBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F516517F811E44D1E159AAE6 /* FathomBarController.swift */; };
+		EF9DBCB9B7E81DDA8357A32F /* FathomSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1378B23D32A8C86763EF9187 /* FathomSectionHeader.swift */; };
 		F93B533607615A17A594B6AA /* CountryFlagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */; };
 		FCBDFEC1CD86E50AFF1C27B5 /* MeasurementValueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281148293D3C18632623158F /* MeasurementValueView.swift */; };
 		FD944092E0514237EEAF5CAF /* ApplicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7647E769F99C4551F5240FE2 /* ApplicationsView.swift */; };
@@ -91,6 +92,7 @@
 		06E4AAE7EA26F36F2113797A /* Instrument-400-700.woff2 */ = {isa = PBXFileReference; path = "Instrument-400-700.woff2"; sourceTree = "<group>"; };
 		0AAA420D99CCBAA8D33CD09F /* BluetoothView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothView.swift; sourceTree = "<group>"; };
 		0F7D35FD0094D7068E99038D /* FathomRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomRail.swift; sourceTree = "<group>"; };
+		1378B23D32A8C86763EF9187 /* FathomSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSectionHeader.swift; sourceTree = "<group>"; };
 		1808B04B2E72D33D172481FD /* FathomPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomPoster.swift; sourceTree = "<group>"; };
 		19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryFlagView.swift; sourceTree = "<group>"; };
 		1C24DE280F30F263E1A8C02C /* NetworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkView.swift; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 				1808B04B2E72D33D172481FD /* FathomPoster.swift */,
 				0F7D35FD0094D7068E99038D /* FathomRail.swift */,
 				6CCBE92A1918CF2AA176CD2A /* FathomReadout.swift */,
+				1378B23D32A8C86763EF9187 /* FathomSectionHeader.swift */,
 				BAFA57F521CD8D4E02A23EE2 /* FathomSectionIcon.swift */,
 				B953DFFF2F70CD9827A61EC2 /* FathomSurfaces.swift */,
 				CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */,
@@ -666,6 +669,7 @@
 				449860DBB863F25DC69FA736 /* FathomRail.swift in Sources */,
 				14C12A64A7E406832381B4BD /* FathomReadout.swift in Sources */,
 				56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */,
+				EF9DBCB9B7E81DDA8357A32F /* FathomSectionHeader.swift in Sources */,
 				96CB042AD988988688D65D4C /* FathomSectionIcon.swift in Sources */,
 				AEFB57C37D262E8B61963EA1 /* FathomSurfaces.swift in Sources */,
 				628172EE3332DD184B6F7A4F /* FathomWorldBackground.swift in Sources */,
