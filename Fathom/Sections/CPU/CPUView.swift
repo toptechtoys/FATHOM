@@ -27,46 +27,50 @@ struct CPUView: View {
             VStack(alignment: .leading, spacing: 22) {
                 liveHeader("CPU")
 
+                // The first section on the readout grid. The rest of CPU is
+                // still on the old cards until the panel types land.
+                FathomReadoutGrid {
+                    FathomMeasurementReadout(
+                        label: "Total load",
+                        measurement: cpu.aggregateBusy,
+                        unit: "%",
+                        note: breakdownNote(cpu),
+                        format: {
+                            ($0 * 100).formatted(.number.precision(.fractionLength(1)))
+                        }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Load average",
+                        measurement: cpu.loadAverages,
+                        note: "1 / 5 / 15 minutes",
+                        format: { values in
+                            values.map {
+                                $0.formatted(.number.precision(.fractionLength(2)))
+                            }.joined(separator: " / ")
+                        }
+                    )
+                    FathomMeasurementReadout(
+                        label: "P-cluster",
+                        measurement: cpu.performanceLogicalCPUCount,
+                        unit: "cores",
+                        note: "perflevel0 is the performance cluster",
+                        format: { $0.formatted() }
+                    )
+                    FathomMeasurementReadout(
+                        label: "E-cluster",
+                        measurement: cpu.efficiencyLogicalCPUCount,
+                        unit: "cores",
+                        note: "Usually carrying most of the load",
+                        format: { $0.formatted() }
+                    )
+                }
+
                 LazyVGrid(
                     columns: [GridItem(.adaptive(minimum: 240), spacing: 18)],
                     spacing: 18
                 ) {
-                    HardwareResultCard(label: "TOTAL LOAD") {
-                        HardwareMeasurementView(
-                            measurement: cpu.aggregateBusy,
-                            format: {
-                                "\(($0 * 100).formatted(.number.precision(.fractionLength(1))))%"
-                            },
-                            prominent: true
-                        )
-                        LazyVGrid(
-                            columns: [GridItem(.adaptive(minimum: 68))],
-                            alignment: .leading,
-                            spacing: 6
-                        ) {
-                            breakdown("USER", cpu.aggregateUser)
-                            breakdown("SYSTEM", cpu.aggregateSystem)
-                            breakdown("IDLE", cpu.aggregateIdle)
-                        }
-                    }
                     HardwareResultCard(label: "TOPOLOGY") {
                         topology(cpu)
-                    }
-                    HardwareResultCard(label: "LOAD AVERAGE") {
-                        HardwareMeasurementView(
-                            measurement: cpu.loadAverages,
-                            format: { values in
-                                values.map {
-                                    $0.formatted(
-                                        .number.precision(.fractionLength(2))
-                                    )
-                                }.joined(separator: "  /  ")
-                            },
-                            prominent: true
-                        )
-                        Text("1 / 5 / 15 minutes")
-                            .font(.fathomSystem(10.5, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.82))
                     }
                     privateMetric(
                         "CLUSTER FREQUENCY",
@@ -104,21 +108,31 @@ struct CPUView: View {
         }
     }
 
-    private func breakdown(
-        _ label: String,
-        _ measurement: FathomKit.Measurement<Double>
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.fathomSystem(9, weight: .bold))
-                .foregroundStyle(.white.opacity(0.82))
-            HardwareMeasurementView(
-                measurement: measurement,
-                format: {
-                    "\(($0 * 100).formatted(.number.precision(.fractionLength(1))))%"
-                }
-            )
+    /// User / system / idle as one sentence under the total.
+    ///
+    /// Only the parts macOS actually published are named. A breakdown that
+    /// silently drops an unpublished component would read as a complete
+    /// account of the total, which it would not be.
+    private func breakdownNote(_ cpu: CPULoadSnapshot) -> String {
+        let parts: [(String, FathomKit.Measurement<Double>)] = [
+            ("system", cpu.aggregateSystem),
+            ("user", cpu.aggregateUser),
+            ("idle", cpu.aggregateIdle),
+        ]
+        let known = parts.compactMap { name, measurement -> String? in
+            guard case let .known(value, _) = measurement else { return nil }
+            let percent = (value * 100)
+                .formatted(.number.precision(.fractionLength(0)))
+            return "\(name) \(percent)%"
         }
+        if known.isEmpty {
+            return "The breakdown is not published on this Mac."
+        }
+        if known.count < parts.count {
+            return known.joined(separator: " · ")
+                + " · the rest is not published"
+        }
+        return known.joined(separator: " · ")
     }
 
     private func topology(_ cpu: CPULoadSnapshot) -> some View {

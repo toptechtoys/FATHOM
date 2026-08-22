@@ -70,7 +70,7 @@ struct CommandPaletteView: View {
                     selection = section
                     dismiss()
                 } label: {
-                    Label(section.rawValue, systemImage: section.symbol)
+                    Label { Text(section.rawValue) } icon: { FathomSectionIcon(section: section, size: 15) }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(9)
                 }

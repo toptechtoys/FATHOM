@@ -1,4 +1,7 @@
 .build/
+# xcodebuild -derivedDataPath, the path CI uses and the one a local build
+# reproducing CI will create.
+build-dd/
 .DS_Store
 DerivedData/
 *.xcuserstate

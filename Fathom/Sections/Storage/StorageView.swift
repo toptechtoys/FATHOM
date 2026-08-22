@@ -97,7 +97,7 @@ struct StorageView: View {
                         "\(presentation.issueCount) items could not be inspected. This result is partial."
                     )
                     .font(.fathomSystem(12))
-                    .foregroundStyle(Color(hex: 0xFCD98A))
+                    .foregroundStyle(FathomSemantic.caution)
                 }
 
                 HStack(spacing: 12) {

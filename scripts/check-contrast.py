@@ -35,6 +35,15 @@ REQUIRED = 4.5
 # render was 4.18:1. The highlight is read from source and composited first.
 HIGHLIGHT = re.compile(r"colors: \[\.white\.opacity\(([01]?\.\d+)\), \.clear\]")
 
+# Semantic colour carries meaning, so it has to be readable wherever it is used
+# as text. The tightest of those surfaces is a data row. `live` is excluded by
+# name: it is a dot and switch fill, never a word, and non-text graphics are
+# held to 3:1 rather than 4.5:1.
+SEMANTIC = re.compile(r"static let (\w+) = Color\(hex: 0x([0-9A-Fa-f]{6})\)")
+SEMANTIC_BLOCK = re.compile(r"enum FathomSemantic \{(.*?)\n\}", re.S)
+GRAPHIC_ONLY = {"live"}
+GRAPHIC_REQUIRED = 3.0
+
 WORLD = re.compile(
     r"static let (\w+) = FathomColorWorld\(\s*"
     r"top: Color\(hex: 0x[0-9A-Fa-f]{6}\),\s*"
@@ -203,6 +212,39 @@ def main():
             f"{'ok' if passed else 'FAILS'}"
         )
 
+    block = SEMANTIC_BLOCK.search(design)
+    if not block:
+        print(
+            f"error: could not find FathomSemantic in {DESIGN.name}",
+            file=sys.stderr,
+        )
+        return 2
+    semantics = SEMANTIC.findall(block.group(1))
+    if not semantics:
+        print(f"error: no semantic colours parsed from {DESIGN.name}", file=sys.stderr)
+        return 2
+
+    print(f"\n{'semantic':<24}{'value':<10}{'on a data row':>14}  verdict")
+    for name, value in semantics:
+        required = GRAPHIC_REQUIRED if name in GRAPHIC_ONLY else REQUIRED
+        worst = None
+        for world_name, bottom in worlds:
+            ground = composite((255, 255, 255), highlight, rgb(bottom))
+            ground = composite((0, 0, 0), plate, ground)
+            ground = composite((0, 0, 0), row, ground)
+            ratio = contrast(rgb(value), ground)
+            if worst is None or ratio < worst[0]:
+                worst = (ratio, world_name)
+        ratio, world_name = worst
+        passed = ratio >= required
+        if not passed:
+            failures.append((f"semantic {name}", world_name, ratio))
+        note = " (graphic, 3:1)" if name in GRAPHIC_ONLY else ""
+        print(
+            f"{name:<24}#{value:<9}{ratio:>13.2f}  "
+            f"{'ok' if passed else 'FAILS'}{note}"
+        )
+
     # The MenuBar preview chip inverts the treatment: black text on a light
     # surface. It is the one text surface that does not take the plate, so it is
     # measured separately rather than assumed to be safe.
@@ -240,8 +282,8 @@ def main():
     )
 
     print(
-        f"\n{len(surfaces)} surfaces x {len(worlds)} worlds, "
-        f"{len(failures)} failing"
+        f"\n{len(surfaces)} surfaces and {len(semantics)} semantic colours "
+        f"x {len(worlds)} worlds, {len(failures)} failing"
     )
     if failures:
         worst = min(failures, key=lambda f: f[2])

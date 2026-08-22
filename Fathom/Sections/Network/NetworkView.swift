@@ -26,6 +26,7 @@ struct NetworkView: View {
                 Text("Network")
                     .font(.fathomDisplay(34))
                 localAddressCard(snapshot.localAddresses)
+                PublicIPPanel()
                 configurationCard(snapshot.configuration)
                 WiFiCard()
                 switch snapshot.interfaces {

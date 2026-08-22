@@ -232,7 +232,42 @@ enum FathomSurface {
     static var rowHover: Color { .black.opacity(rowHoverOpacity) }
 }
 
+/// Colour that carries meaning, never decoration.
+///
+/// Never used alone: a freeable figure is always accompanied by the word or the
+/// number, so the meaning survives for anyone who cannot separate these hues.
+///
+/// `blocked` and `informational` are not the values the Instrument Panel
+/// handoff drew. As text on a data row its `#FFAFAF` measured 3.88:1 and its
+/// `#A9CBFF` 4.10:1, both short of the rule, so each was lightened until it
+/// clears with the margin the rest of the system keeps. The hue is unchanged.
+///
+/// `live` is the exception and is **not a text colour**: 4.32:1 on a row is
+/// fine for the pulsing dot and switch fill it is used for, since non-text
+/// graphics need 3:1, and not fine for a word.
+enum FathomSemantic {
+    /// This space actually comes back.
+    static let freeable = Color(hex: 0x8DF3C4)
+    /// Real but conditional — needs care.
+    static let caution = Color(hex: 0xFCD98A)
+    /// Frees nothing, or a genuine risk.
+    static let blocked = Color(hex: 0xFFCACA)
+    /// Worth knowing, no action.
+    static let informational = Color(hex: 0xBFD9FF)
+    /// Sampling right now. Dots and switches only.
+    static let live = Color(hex: 0x5CE6A8)
+}
+
 extension Animation {
+    /// A section arriving. Paired with a 12pt rise, per FATHOM-DESIGN.md.
+    static let fathomEnter = Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.45)
+
+    /// Hover on a rail item, cell or row.
+    static let fathomHover = Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.22)
+
+    /// Press feedback. Confirms an action, so Reduce Motion keeps it.
+    static let fathomPress = Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.17)
+
     static let fathomWorld = Animation.timingCurve(
         0.16,
         1,

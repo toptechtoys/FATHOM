@@ -30,6 +30,8 @@ targets:
         buildPhase: resources
       - path: Fathom/Resources/CountryFlags
         type: folder
+      - path: Fathom/Resources/NavIcons
+        type: folder
         buildPhase: resources
     dependencies:
       - package: FathomCore
