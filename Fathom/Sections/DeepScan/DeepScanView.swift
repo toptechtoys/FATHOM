@@ -90,6 +90,7 @@ struct DeepScanView: View {
                     )
                     FathomAction(
                         title: "Scan again",
+                        cost: rescanCost(presentation),
                         isProminent: false,
                         action: storage.reset
                     )
@@ -116,4 +117,21 @@ struct DeepScanView: View {
     private func bytes(_ value: UInt64) -> String {
         value.formatted(.byteCount(style: .file))
     }
+    /// What "Scan again" costs, from the last scan rather than an estimate.
+    ///
+    /// It discards a completed result and re-reads every file, and rule 5 says
+    /// an action names its cost before it runs. The duration is the measured
+    /// one; where a scan has not been timed the sentence stops rather than
+    /// inventing a figure.
+    private func rescanCost(_ presentation: StoragePresentation) -> String {
+        let seconds = Double(presentation.scanDuration.components.seconds)
+        guard seconds > 0 else {
+            return "Discards this result and reads every file again."
+        }
+        let measured = seconds < 90
+            ? "\(seconds.formatted(.number.precision(.fractionLength(0)))) seconds"
+            : "\((seconds / 60).formatted(.number.precision(.fractionLength(1)))) minutes"
+        return "Discards this result and reads every file again. Last scan took \(measured)."
+    }
+
 }

@@ -118,6 +118,7 @@ struct StorageView: View {
                     FathomAction(title: "Explore the tree", action: openExplore)
                     FathomAction(
                         title: "Scan again",
+                        cost: rescanCost(presentation),
                         isProminent: false,
                         action: model.reset
                     )
@@ -281,6 +282,23 @@ struct StorageView: View {
     private func known(_ measurement: FathomKit.Measurement<UInt64>) -> UInt64 {
         guard case let .known(value, _) = measurement else { return 0 }
         return value
+    }
+
+    /// What "Scan again" costs, from the last scan rather than an estimate.
+    ///
+    /// It discards a completed result and re-reads every file, and rule 5 says
+    /// an action names its cost before it runs. The duration is the measured
+    /// one; where a scan has not been timed the sentence stops rather than
+    /// inventing a figure.
+    private func rescanCost(_ presentation: StoragePresentation) -> String {
+        let seconds = Double(presentation.scanDuration.components.seconds)
+        guard seconds > 0 else {
+            return "Discards this result and reads every file again."
+        }
+        let measured = seconds < 90
+            ? "\(seconds.formatted(.number.precision(.fractionLength(0)))) seconds"
+            : "\((seconds / 60).formatted(.number.precision(.fractionLength(1)))) minutes"
+        return "Discards this result and reads every file again. Last scan took \(measured)."
     }
 
     private func bytes(_ value: UInt64) -> String {

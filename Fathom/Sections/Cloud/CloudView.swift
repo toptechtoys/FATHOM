@@ -178,6 +178,7 @@ struct CloudView: View {
                     .disabled(plan.knownFreeableBytes == nil || plan.items.isEmpty)
                     FathomAction(
                         title: "Back",
+                        cost: "Discards this dry run. Nothing has been evicted.",
                         isProminent: false,
                         action: model.reset
                     )

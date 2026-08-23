@@ -372,7 +372,8 @@ final class StorageAppModel: ObservableObject {
                     snapshotInventory: snapshotInventory,
                     snapshotCoverage: snapshotCoverage,
                     rows: presentationRows(stagedRows),
-                    issueCount: Int(issueCount)
+                    issueCount: Int(issueCount),
+                    scanDuration: presentation.scanDuration
                 )
                 try await index.recordHistory(
                     StorageHistorySample(
@@ -454,7 +455,8 @@ final class StorageAppModel: ObservableObject {
                     snapshotInventory: snapshotInventory,
                     snapshotCoverage: snapshotCoverage,
                     rows: presentationRows(stagedRows),
-                    issueCount: presentation.issueCount
+                    issueCount: presentation.issueCount,
+                    scanDuration: presentation.scanDuration
                 )
             } catch {
                 await index.close()
@@ -653,7 +655,8 @@ final class StorageAppModel: ObservableObject {
                     snapshotCoverage: snapshotCoverage,
                     rows: rows,
                     issueCount: traversal.issues.count +
-                        Int(extentSummary.failedFileCount)
+                        Int(extentSummary.failedFileCount),
+                    scanDuration: .seconds(seconds)
                 )
             } catch {
                 await index.close()
@@ -699,6 +702,12 @@ struct StoragePresentation: Sendable {
     let snapshotCoverage: FathomKit.Measurement<[String]>
     let rows: [ExplorePresentationRow]
     let issueCount: Int
+    /// How long the scan that produced this actually took.
+    ///
+    /// Rule 5 says an action states its cost before it runs, and "Scan again"
+    /// discards this result to re-read every file. The honest cost is the time
+    /// it took last time, measured — not an estimate, and not silence.
+    let scanDuration: Duration
 
     var historyNodes: [StorageHistoryNode] {
         rows.map {
@@ -726,7 +735,8 @@ struct StoragePresentation: Sendable {
             snapshotInventory: snapshotInventory,
             snapshotCoverage: snapshotCoverage,
             rows: rows,
-            issueCount: issueCount
+            issueCount: issueCount,
+            scanDuration: scanDuration
         )
     }
 
@@ -752,7 +762,8 @@ struct StoragePresentation: Sendable {
                     freedIfDeleted: .notPublished(reason: reason)
                 )
             },
-            issueCount: issueCount
+            issueCount: issueCount,
+            scanDuration: scanDuration
         )
     }
 }
