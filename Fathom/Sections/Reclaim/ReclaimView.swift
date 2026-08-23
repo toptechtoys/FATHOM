@@ -371,9 +371,40 @@ struct ReclaimView: View {
                 .font(.fathomSystem(12))
                 .padding(10)
                 .background(.ultraThinMaterial)
-        default:
+        case .known:
+            // Known and empty: nothing was interrupted, so there is nothing to
+            // say. This is the one state that renders no banner, and it is
+            // spelled out rather than swallowed by a `default:`.
             EmptyView()
+        case let .notAttributable(measured, explained):
+            // The journal held entries we could not all account for. On a
+            // screen about recovering from an interrupted file-moving
+            // operation, that is the most important of the three states and
+            // the one a `default:` used to hide.
+            HStack(spacing: 12) {
+                Image(systemName: "clock.arrow.circlepath")
+                Text(unattributedSentence(measured: measured, explained: explained))
+                    .font(.fathomSystem(12, weight: .semibold))
+                Spacer()
+                Button("Review", action: { showsRecovery = true })
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial)
+            .accessibilityElement(children: .combine)
         }
+    }
+
+    /// Says how much of the journal was accounted for, and does not round the
+    /// remainder away. Rule 2: an unattributed remainder gets its own words.
+    private func unattributedSentence(
+        measured: [InterruptedReclaimIntent],
+        explained: [InterruptedReclaimIntent]
+    ) -> String {
+        let missing = max(0, measured.count - explained.count)
+        return "\(measured.count) journalled reclaim operation\(measured.count == 1 ? "" : "s"), "
+            + "\(explained.count) accounted for. "
+            + "\(missing) cannot be attributed and completion is not assumed."
     }
 
     private var recoverySheet: some View {
