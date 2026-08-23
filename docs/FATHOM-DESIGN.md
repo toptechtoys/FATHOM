@@ -11,9 +11,14 @@ No poster, no Scan button, no result state.
 Locked means the argument is over. Implement it. Changes go through the
 prototype first, then this document, then Swift. Not the other way round.
 
-**Swift has the foundation and none of the vocabulary.** The colour worlds, the
-plate, the materials and the semantic palette are implemented and gated. The
-rail, the readout grid, the thirteen panel types and the sparklines are not.
+**Swift implements all of this.** The colour worlds, plate, grain, materials,
+semantic palette and focus ring are gated by `scripts/check-contrast.py`; the
+rail, readout grid and all thirteen panel types are built, and every one of the
+twenty sections uses them.
+
+Audited value by value against the prototype: spacings, radii, type sizes,
+tracking, motion durations and the focus ring all match. The type scale is the
+one divergence, recorded under *Type*.
 
 ---
 
