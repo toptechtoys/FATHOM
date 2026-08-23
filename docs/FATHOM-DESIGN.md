@@ -151,7 +151,7 @@ lightening first.
 ## Panels
 
 Thirteen panel types carry every section. Each is built once and takes data.
-Twelve are built and in use; the feed is not, and the table says why.
+All thirteen are built and in use.
 
 Two departures from the prototype turned up during implementation and are
 recorded rather than quietly absorbed. **Rule rows** are per-recipe dry runs,
@@ -171,7 +171,7 @@ table cannot.
 | Day columns | Timeline | Seven columns, growth up and deletion down from a shared baseline, net under each |
 | Device rows | Bluetooth, Applications, Cloud | Name / meter / value. A device that publishes no battery reads *does not report* |
 | Rule rows | Reclaim | One row per validated recipe: what it frees, what it costs, and a dry run |
-| Feed | *not built* | Four *worth a look* items. Needs a findings engine that can say why something is worth looking at; until that exists there is nothing honest to put in it |
+| Feed | Home | Four *worth a look* items, from `FindingEngine`. Empty is a valid, expected state |
 | Grid | Home | Every section, one number each, each a link to the screen that produced it |
 | Chain | Endurance | The arithmetic, left to right, with the conclusion at the end |
 | Menu-bar preview | Menu Bar | The widget at actual size, 26px tall |
@@ -179,6 +179,26 @@ table cannot.
 
 Every section also ends in a **note**: a 19px display headline and a sentence of
 body capped at 66 characters, saying the thing the numbers cannot.
+
+### What counts as worth a look
+
+The feed is the one panel that decides what to say rather than being handed it,
+so the deciding lives in `FindingEngine` in FathomKit, with tests.
+
+Every finding traces to a measured value. What the engine adds is a *threshold*,
+which is a judgement about what deserves attention rather than a measurement —
+so the thresholds are named constants with their reasoning attached, not magic
+numbers buried in a condition. A threshold is the one place this product could
+quietly become a nag.
+
+Four rules govern it. **An empty feed is the expected result on a healthy Mac**,
+and renders no panel at all rather than an empty one headed *worth a look* —
+rule 7 forbids manufacturing urgency, and padding the list to look busy is
+exactly that. **A partial scan outranks everything**, because knowing the totals
+are incomplete changes how every other number reads. **Nothing unmeasured
+becomes a finding**: an unpublished value produces silence, never a zero.
+And **a figure that frees nothing is white, not red** — zero is a fact there,
+not a fault.
 
 **Three states in every one of them.** Known, not published, not attributable.
 A panel that cannot render all three is not finished. The prototype's data is

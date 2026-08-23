@@ -183,6 +183,77 @@ struct FathomDeviceRows: View {
     }
 }
 
+/// Things worth a look. Four at most, each one sentence.
+///
+/// The dot never carries the meaning alone: every item states its finding in
+/// words and gives the number beside it. An empty feed is a valid, expected
+/// state — see `FindingEngine`.
+struct FathomFeed: View {
+    let findings: [Finding]
+    let open: (Finding.Subject) -> Void
+
+    var body: some View {
+        VStack(spacing: 3) {
+            ForEach(findings) { finding in
+                FathomDataRow(
+                    leading: {
+                        HStack(alignment: .top, spacing: 12) {
+                            Circle()
+                                .fill(tint(finding.kind))
+                                .frame(width: 8, height: 8)
+                                .padding(.top, 5)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(finding.title)
+                                    .font(.fathomSystem(13.5, weight: .semibold))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Text(finding.detail)
+                                    .font(.fathomSystem(11.5))
+                                    .foregroundStyle(
+                                        .white.opacity(
+                                            FathomSurface.minimumTextOpacity
+                                        )
+                                    )
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    },
+                    trailing: {
+                        Text(finding.value)
+                            .font(.fathomData(15, weight: .semibold))
+                            .foregroundStyle(value(finding.kind))
+                            .frame(width: 110, alignment: .trailing)
+                    },
+                    action: { open(finding.subject) }
+                )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "\(finding.title). \(finding.detail) \(finding.value)"
+                )
+                .accessibilityHint("Opens the evidence")
+            }
+        }
+    }
+
+    private func tint(_ kind: Finding.Kind) -> Color {
+        switch kind {
+        case .freeable: FathomSemantic.freeable
+        case .conditional: FathomSemantic.caution
+        case .freesNothing: FathomSemantic.blocked
+        case .informational: FathomSemantic.informational
+        }
+    }
+
+    /// A figure that frees nothing is white, not red. Zero is a fact here, not
+    /// a fault, and rule 7 forbids dressing routine state as an alarm.
+    private func value(_ kind: Finding.Kind) -> Color {
+        switch kind {
+        case .freeable: FathomSemantic.freeable
+        case .conditional: FathomSemantic.caution
+        case .freesNothing, .informational: .white
+        }
+    }
+}
+
 /// The arithmetic, left to right, ending on the conclusion.
 ///
 /// Used where a number is only trustworthy if you can see how it was reached —

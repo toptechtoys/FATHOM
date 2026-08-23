@@ -50,6 +50,14 @@ struct HomeView: View {
                     FathomSectionGrid(entries: entries, open: open)
                 }
 
+                if !findings.isEmpty {
+                    FathomPanel(label: "Worth a look") {
+                        FathomFeed(findings: findings) { subject in
+                            open(section(for: subject))
+                        }
+                    }
+                }
+
                 FathomNote(
                     headline: statementHeadline,
                     detail: statementDetail
@@ -110,6 +118,40 @@ struct HomeView: View {
         return result
     }
 
+    /// Nothing is wrong is a valid answer, so an empty list renders no panel
+    /// at all rather than an empty one headed "worth a look".
+    private var findings: [Finding] {
+        guard case let .result(presentation) = storage.state else { return [] }
+        return FindingEngine.findings(
+            for: FindingInput(
+                entries: presentation.rows.map {
+                    FindingInput.Entry(
+                        name: $0.name,
+                        path: $0.path,
+                        sizeOnDisk: $0.sizeOnDisk,
+                        freedIfDeleted: $0.freedIfDeleted
+                    )
+                },
+                actuallyFree: presentation.actuallyFree,
+                finderAvailable: presentation.finderAvailable,
+                purgeable: presentation.purgeable,
+                snapshotCount: presentation.snapshotInventory.map { $0.count },
+                uninspectedCount: presentation.issueCount
+            )
+        )
+    }
+
+    private func section(for subject: Finding.Subject) -> AppSection {
+        switch subject {
+        case .storage: .storage
+        case .reclaim: .reclaim
+        case .explore: .explore
+        case .endurance: .endurance
+        case .maintenance: .maintenance
+        case .deepScan: .deepScan
+        }
+    }
+
     private var actuallyFree: FathomKit.Measurement<UInt64> {
         guard case let .result(presentation) = storage.state else {
             return .notPublished(
@@ -152,7 +194,9 @@ struct HomeView: View {
         else {
             return "There is no overall score, and there will not be one."
         }
-        return "Nothing is wrong."
+        return findings.isEmpty
+            ? "Nothing is wrong."
+            : "Nothing is wrong. \(findings.count == 1 ? "One thing is" : "\(findings.count) things are") worth a look."
     }
 
     private var statementDetail: String {
@@ -162,7 +206,11 @@ struct HomeView: View {
         else {
             return "Every value keeps its source and its state, and a value macOS does not publish says so rather than being filled in. No number here is combined with another to produce a grade."
         }
-        return "The SSD controller reports no critical warning, and FATHOM makes no broader health claim from that fact. Every value keeps its source and its state. A full disk is not an emergency."
+        let count = findings.count
+        guard count > 0 else {
+            return "The SSD controller reports no critical warning, and nothing on this volume is worth interrupting you about. FATHOM makes no broader health claim than that. A full disk is not an emergency."
+        }
+        return "The SSD controller reports no critical warning, and FATHOM makes no broader health claim from that fact. \(count == 1 ? "One thing is" : "\(count) things are") worth a look above, and each one links to the screen that produced it. A full disk is not an emergency."
     }
 
     private func bytes(_ value: UInt64) -> String {
