@@ -147,13 +147,25 @@ history, so they can only be honest after the app has been running for days.
 
 Home and Deep Scan assemble from the others and land last, not first.
 
-**Status, 23 August 2026.** M1–M7 are implemented and all twenty sections are on
-the Instrument Panel vocabulary. What is left is not code: the reference-machine
-measurements in `RELEASE-GATES.md`, and the fact that **none of the interface
-has been seen running.** It has been verified by compiler, by the contrast gate
-and by arithmetic, which caught every defect found so far — but no human has
-looked at a screen. Treat that as the project's largest open risk, and do not
-add to the pile without saying so.
+**Status, 24 August 2026.** M1–M7 are implemented and all twenty sections are on
+the Instrument Panel vocabulary. What is left is the reference-machine
+measurements in `RELEASE-GATES.md`.
+
+**The interface has now been seen running, and it is worth knowing exactly how
+much that settles.** `project.yml` pins `ARCHS: arm64`; overriding it builds a
+working x86_64 app, and that ran on an Intel MacBookPro16,1 under macOS 26.
+Every screen was walked. Two defects turned up in the first ten minutes that
+thirty-nine commits of compiler, contrast gate and arithmetic had not: the
+readout row resolved to CSS `auto-fill` and stopped a third of the way across
+every section, and the `Layout` written to fix it trapped on SwiftUI's infinite
+width proposal and killed the app at launch with no crash report.
+
+What that host cannot answer is most of what remains. Every Apple-silicon
+reading renders *not published* on Intel — IOReport, SMC temperature,
+`perflevel1`, the NVMe SMART user client — so gate 2 is untouched, and gate 3's
+idle cost is meaningless anywhere but Apple silicon. **Run it anyway when you
+change a screen.** It is the cheapest check in this repository and it is the
+only one that has ever caught a layout.
 
 ---
 

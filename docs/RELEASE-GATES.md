@@ -131,6 +131,25 @@ record them.
    scale, and the containers that used to clip were fixed. What is unproven is
    whether the enlarged charts read well and whether the 9px tracked
    micro-labels stay legible at Accessibility sizes.
+
+   **Two things a walk of all twenty sections left open, 24 August.** Both were
+   seen on an x86_64 build on an Intel host, so both want confirming here.
+
+   *The section title and the status strip overlap at the launch window size.*
+   The window came up at roughly 748x477 — below the `minWidth: 720,
+   minHeight: 560` the root view declares — and the display title rendered
+   underneath the strip's 25% black rather than below it. At full screen it is
+   correct. Why the window opened under its own stated minimum was not
+   established, so no fix was attempted: reproduce it, and record the size the
+   window actually opens at.
+
+   *Keyboard navigation is still untested.* Arrow keys moved nothing, but
+   neither did the `Command-K` palette shortcut, which goes through the menu
+   bar and does not depend on SwiftUI focus at all. Two failures on two
+   unrelated paths point at the synthetic key events not being delivered rather
+   than at the app. Nothing here is evidence either way. **Press the keys
+   yourself**: arrows through all twenty sections and back, Tab into the rail,
+   Command-K for the palette.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it. `SystemMonitorModel` reads
    paired devices on its sampling loop, so a missing or rejected

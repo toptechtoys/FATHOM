@@ -12,9 +12,11 @@ Quick orientation, in reading order:
 5. `docs/fathom-app.html` — the visual spec, open it in a browser
 6. `docs/RELEASE-GATES.md` — everything still outstanding lives here
 
-The interface is implemented and **has never been seen running**. It was
-verified by compiler, by the contrast gate and by arithmetic. Before adding to
-it, read `AGENTS.md` §Build order on why that matters.
+The interface is implemented and **has now been run and looked at** — as an
+x86_64 build on an Intel Mac, which shows every layout and no Apple-silicon
+reading. It found a defect in the first ten minutes that the compiler, the
+contrast gate and the arithmetic had all passed. Read `AGENTS.md` §Build order
+before adding to it, and run it when you change a screen.
 
 The one rule that overrides everything: **never render a number you cannot trace
 to a row in FATHOM-DATA-SOURCES.md.** If you need a new number, add the row

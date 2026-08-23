@@ -32,10 +32,14 @@ The app is implemented, and CI builds both targets on an arm64 runner with the
 test suite, the privacy checks, the contrast gate and the forbidden-API audit
 all passing.
 
-**The interface has still not been seen running.** Building on the right
-architecture is not the same as looking at it: nothing in CI can say whether a
-sparkline gap reads as a gap or whether a screen is legible. That, the remaining
-reference-machine measurements, and signing and notarization are enumerated in
+**The interface has been seen running, on the wrong architecture.** Overriding
+`ARCHS` builds a working x86_64 app, and walking all twenty sections on an Intel
+Mac found a layout defect the compiler, the contrast gate and the arithmetic had
+all passed. What it cannot show is any Apple-silicon reading: IOReport, SMC
+temperature, `perflevel1` and the NVMe SMART user client all render *not
+published* there, which is the app being honest rather than the app being
+checked. Those, the remaining reference-machine measurements, and signing and
+notarization are enumerated in
 [docs/RELEASE-GATES.md](docs/RELEASE-GATES.md), with a blank record to fill in at
 [docs/REFERENCE-PASS.md](docs/REFERENCE-PASS.md).
 

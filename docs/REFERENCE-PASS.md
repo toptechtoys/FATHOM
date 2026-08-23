@@ -102,10 +102,12 @@ thing.
 
 ## Gate 4 — Accessibility and interface
 
-**This gate carries the project's largest open risk.** The interface has never
-been seen running. It has been verified by compiler, by the contrast gate and by
-arithmetic — which caught every defect found so far, and says nothing about
-whether a screen is legible.
+**This gate still needs a person, but it is no longer unseen.** Every section
+has been walked on an x86_64 build running on an Intel Mac, which settles
+layout and turns up the things arithmetic cannot — the readout row was found
+that way. It settles nothing below: this reference pass is Apple silicon, a
+signed and hardened build, and a real display, and none of those were involved.
+The rows below are still empty and still yours to fill.
 
 Look at CPU, Storage and Bluetooth first: a sparkline with gap handling, a
 treemap whose areas are load-bearing, and a row that reads *does not report*.
