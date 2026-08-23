@@ -17,6 +17,10 @@ of text. Three guards make that failure loud instead: CI checks out with
 in `project.yml` fails the build. The scripted guards check every PNG in
 `AppIcon.appiconset` and name the offending file.
 
+Results go in `REFERENCE-PASS.md`, which is a blank form rather than prose —
+these gates ask for figures to be recorded, and until now there was nowhere to
+record them.
+
 ## Reference Mac mini M4 Pro
 
 1. Build the Release CLI and run
