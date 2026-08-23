@@ -53,9 +53,21 @@ shell, and differs only in its readouts.
 
 **The field.** Each section owns a three-stop colour world,
 `linear-gradient(177deg, b1 0%, b2 60%, b3 100%)`, carried by the whole window
-including the rail. Over it: a four-octave value-noise grain at 30% with
-`overlay` blend, tiled at 180pt, and a white radial highlight across the upper
-field. The plate goes on top of both.
+including the rail. Over it, in this order: a four-octave value-noise grain at
+30% with `overlay` blend, tiled at 180pt, then a white radial highlight across
+the upper field. The plate goes on top of all three.
+
+**The order is part of the specification, not an implementation detail.** The
+grain blends with `overlay`, which does not commute with the highlight's alpha
+compositing — grain-then-highlight and highlight-then-grain produce different
+grounds under the same text. `check-contrast.py` composites the three in the
+order above and refuses to run if `FathomWorldBackground` draws them in any
+other order, or draws a fourth layer it has not been told about.
+
+Two departures from the prototype, both below: the highlight is drawn at half
+strength, and the 3° tilt is not reproduced. SwiftUI's gradient endpoints are
+fractions of the view rather than an angle, so a fixed pair of them holds an
+aspect ratio and the tilt would swing with every window resize.
 
 **The grain's noise is bounded, not just faded.** `overlay` drives a bright
 channel toward white, and the grain sits *under* the plate, so a bright speckle
@@ -508,9 +520,21 @@ that survives the highlight is 44%, and 45% is that with a little room. Measurin
 the gradient without the highlight overstates every result on this screen, which
 is why the gate now reads the highlight from source too.
 
-**The materials are black where the design draws them white.** This is the one
-place the Instrument Panel direction is not followed literally, and it is
-deliberate. On a plate, a white tint lightens back toward the field the plate
+**The highlight is drawn at half the strength the prototype specifies.** The
+prototype's `#halo` peaks at white 30% and falls to 10% at 42% of its radius;
+the app draws 15% and 5%, the same ramp halved. This is the contrast rule
+winning over the visual spec, as `AGENTS.md` requires: at the prototype's 30%,
+body text on the bare plate measures **4.24:1** on Storage and fails outright.
+Deepening the plate instead would work — 48% carries a 30% highlight at 4.58:1
+— but the plate is already the heaviest thing between the reader and the colour,
+and 48% is a darker app for a highlight nobody is reading. Only the strength
+changed. The geometry is the prototype's, transcribed rather than approximated:
+an ellipse centred at `(0.60, 0.29)` of the window with radii
+`(0.416w, 0.510h)`, proportional so it looks the same on a 13-inch display and a
+32-inch one.
+
+**The materials are black where the design draws them white.** The largest of
+the departures on this page, and a deliberate one. On a plate, a white tint lightens back toward the field the plate
 exists to escape — the design's white 7% row measures 1.96:1 and its lightening
 13% hover 3.60:1, both short of the rule. The magnitudes the design chose are
 kept exactly; only the sign is flipped. Which is the same conclusion the next

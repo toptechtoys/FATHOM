@@ -29,13 +29,38 @@ FOCUS = ROOT / "Fathom/Design/FathomFocusRing.swift"
 GRAIN = ROOT / "Fathom/Design/FathomGrain.swift"
 REQUIRED = 4.5
 
-# FathomWorldBackground paints a white radial highlight across the upper field,
-# and the plate goes on top of it -- so the ground under text is lighter than
-# the world's bottom stop wherever that highlight lands, which is exactly where
+# The field under the plate is three layers, and this gate composites exactly
+# those three in exactly this order. AGENTS.md: anything drawn beneath the plate
+# has to be added here. Three separate layers have already cost text contrast
+# without being visible to inspection, so a fourth one fails the build instead
+# of being discovered on a display later.
+#
+# The order is part of it. The grain blends with `overlay`, which does not
+# commute with the highlight's alpha compositing -- grain-then-highlight and
+# highlight-then-grain are different grounds, and only one of them is what
+# FathomWorldBackground draws.
+FIELD_LAYERS = ["LinearGradient", "FathomGrainOverlay", "EllipticalGradient"]
+LAYER = re.compile(
+    r"\b(LinearGradient|RadialGradient|EllipticalGradient|AngularGradient"
+    r"|FathomGrainOverlay|Rectangle|Circle|Image)\s*\("
+)
+# Only what `var body` draws, in the order it draws it. Scanning the whole file
+# would read source order instead, and a layer moved into a `private var` below
+# the body would keep its old position in the list while changing its position
+# on screen. Pulling one out into a helper now shortens the list and fails here,
+# which is the intended answer: this gate cannot follow a layer behind a name.
+BODY = re.compile(r"var body: some View \{(.*?)\n    \}", re.S)
+
+# FathomWorldBackground paints a white highlight across the upper field, and the
+# plate goes on top of it -- so the ground under text is lighter than the
+# world's bottom stop wherever that highlight lands, which is exactly where
 # section headers and the first row of readouts sit. Measuring the bottom stop
 # alone overstates every result: at a 0.40 plate it read 4.56:1 and the real
-# render was 4.18:1. The highlight is read from source and composited first.
-HIGHLIGHT = re.compile(r"colors: \[\.white\.opacity\(([01]?\.\d+)\), \.clear\]")
+# render was 4.18:1. Its peak is its first stop, read from source.
+HIGHLIGHT = re.compile(
+    r"EllipticalGradient\(\s*stops: \[\s*"
+    r"\.init\(color: \.white\.opacity\(([01]?\.\d+)\)"
+)
 
 # Semantic colour carries meaning, so it has to be readable wherever it is used
 # as text. The tightest of those surfaces is a data row. `live` is excluded by
@@ -58,6 +83,11 @@ FOCUS_OPACITY = re.compile(r"static let ringOpacity: Double = ([01]?\.\d+)")
 # 4.15:1. Both the opacity and the ceiling are read from source.
 GRAIN_OPACITY = re.compile(r"static let opacity: Double = ([01]?\.\d+)")
 GRAIN_CEILING = re.compile(r"static let noiseCeiling: Double = ([01]?\.\d+)")
+
+
+def strip_comments(source):
+    """Drop `//` comments, so prose about a layer is not read as one."""
+    return "\n".join(line.split("//")[0] for line in source.splitlines())
 
 
 def overlay(base, blend):
@@ -171,10 +201,31 @@ def main():
     grain = float(grain_opacities[0])
     grain_ceiling = float(grain_ceilings[0])
 
-    highlights = HIGHLIGHT.findall(BACKGROUND.read_text())
+    background = strip_comments(BACKGROUND.read_text())
+    body = BODY.search(background)
+    if not body:
+        print(
+            f"error: no `var body` found in {BACKGROUND.name}; this gate reads "
+            f"the field's draw order from it",
+            file=sys.stderr,
+        )
+        return 2
+    layers = LAYER.findall(body.group(1))
+    if layers != FIELD_LAYERS:
+        print(
+            f"error: {BACKGROUND.name} draws {' then '.join(layers) or 'nothing'} "
+            f"under the plate; this gate composites "
+            f"{' then '.join(FIELD_LAYERS)}. Anything drawn beneath the plate "
+            f"has to be added to this script, and in the order it is drawn -- "
+            f"the grain blends with `overlay`, which does not commute",
+            file=sys.stderr,
+        )
+        return 2
+
+    highlights = HIGHLIGHT.findall(background)
     if len(highlights) != 1:
         print(
-            f"error: expected one white radial highlight in {BACKGROUND.name}, "
+            f"error: expected one white highlight in {BACKGROUND.name}, "
             f"found {highlights or 'none'} -- if the background changed, this "
             f"gate no longer knows what is under the plate",
             file=sys.stderr,
@@ -218,7 +269,8 @@ def main():
 
     print(f"body text: white @ {alpha} (floor {floor})")
     print(f"grain:     {grain} overlay, noise clamped to {grain_ceiling}")
-    print(f"highlight: white @ {highlight} radial, under the plate")
+    print(f"field:     {' then '.join(FIELD_LAYERS)}, under the plate")
+    print(f"highlight: white @ {highlight} at its peak")
     print(f"plate:     black @ {plate} under the content column and the rail")
     print(f"materials: cell {card}, row {row}, row hover {row_hover} on the plate")
     print(f"required:  {REQUIRED}:1 (AGENTS.md), every surface, every world\n")
