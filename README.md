@@ -2,6 +2,12 @@
 
 [![CI](https://github.com/toptechtoys/FATHOM/actions/workflows/ci.yml/badge.svg)](https://github.com/toptechtoys/FATHOM/actions/workflows/ci.yml)
 
+> **The CI badge is red, and not because the code is broken.** No workflow run
+> has been scheduled since 4 August 2026: each one fails in three seconds with
+> no runner assigned and no step executed. Every check the workflow performs
+> passes when run locally. See *Continuous integration* in
+> [docs/RELEASE-GATES.md](docs/RELEASE-GATES.md).
+
 FATHOM is a native macOS utility for Apple silicon that reports storage,
 memory, and SSD endurance without disguising what macOS does not publish.
 Every measured value retains its source and one of three states: known, not

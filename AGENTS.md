@@ -69,7 +69,7 @@ FathomKit/              all measurement, no UI, fully testable
 FathomBar/              menu bar widget target
 FathomKitTests/         fixtures from the reference machine
 scripts/
-  check-contrast.py     the contrast gate; runs in CI
+  check-contrast.py     the contrast gate; wired to CI, see the caveat below
   build-prototype.py    regenerates docs/fathom-app.html
 docs/
   FATHOM-PRD.md
@@ -203,6 +203,14 @@ text contrast, and none was visible to inspection.
 Labels live in the shared components rather than the section views, so a label
 written beside the value it describes cannot drift from it — and a wrong one is
 wrong everywhere at once. No per-view VoiceOver audit has been done.
+
+**CI is wired but not currently running.** No workflow run has been scheduled
+since 4 August 2026 — every one fails in three seconds with no runner assigned,
+which is a scheduling failure rather than a build failure. So the gates that say
+they *fail the build* do not presently fail anything. Run `swift test`,
+`scripts/check-contrast.py`, `bats tests/release.bats` and both Release builds
+by hand before you merge, and do not read the badge as evidence.
+`RELEASE-GATES.md` has the detail.
 
 **Commit messages state the user-visible effect.** "Explore now shows 0 GB
 freeable for Docker's sparse image" beats "fix size calc".

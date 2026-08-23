@@ -4,6 +4,46 @@ The implementation is buildable and testable without release credentials, but
 the following measurements must be made on the reference Apple-silicon Mac
 before a release can be called complete.
 
+## Continuous integration is not currently running
+
+**Last successful run: 4 August 2026, commit `4bc80de`.** Every run since — 31
+of them — has failed, and none of them ran anything.
+
+The evidence, which is worth separating from the diagnosis:
+
+- Each run starts and completes in **three to four seconds**.
+- **No runner is ever assigned**: the job's runner name is empty.
+- **Zero steps are recorded**, so checkout never happened.
+
+That is a scheduling failure, not a build failure. Nothing was compiled and
+nothing was tested, so a red badge on any commit since 4 August says nothing
+about that commit.
+
+**The likely cause is billing, and it is unconfirmed.** This repository is
+private, and macOS runners bill at ten times the standard rate, so an exhausted
+allowance or a spending limit would produce exactly this signature. Confirming
+it needs the billing API, which needs a token scope this checkout does not have:
+
+```sh
+gh auth refresh -h github.com -s user
+gh api users/toptechtoys/settings/billing/actions
+```
+
+**What this means for every "runs in CI" claim in these documents.** They are
+accurate about what the workflow is configured to do and inaccurate about what
+is presently happening. The contrast gate, the forbidden-API audit and the
+privacy-string check are all real and all pass — but they are passing on
+developer machines, not on every push. Until a runner picks the job up again,
+**run them by hand before merging**, and treat the badge as unreliable rather
+than as evidence.
+
+Every step has been run locally against the current `main` and passes,
+including the Release configuration and the `FathomBar` scheme. What local runs
+cannot establish is that it builds on an arm64 runner with the runner's own
+toolchain: this host is Intel and cross-compiles.
+
+---
+
 ## Prerequisite: Git LFS
 
 The app icons and the `docs/` screenshots are Git LFS objects, so **git-lfs is a
