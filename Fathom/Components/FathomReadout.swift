@@ -12,6 +12,13 @@ import SwiftUI
 /// the leftover track shows the background as a pale block beside the final
 /// cell. Rings leave it as plate. This is the same bug, and the same fix, as
 /// the prototype carries.
+///
+/// The 4pt below is the prototype's `margin-bottom`, and it is not decoration.
+/// The first panel opens with its own hairline; without the gap that hairline
+/// lands against the bottom row of cell strokes and the two read as one thick,
+/// slightly uneven line. It belongs to the grid rather than to twenty section
+/// views, for the same reason the labels do — written once beside the thing it
+/// describes, it cannot drift from it.
 struct FathomReadoutGrid<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -22,6 +29,7 @@ struct FathomReadoutGrid<Content: View>: View {
         ) {
             content
         }
+        .padding(.bottom, 4)
     }
 }
 

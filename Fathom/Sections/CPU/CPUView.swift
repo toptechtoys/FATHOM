@@ -24,7 +24,7 @@ struct CPUView: View {
         channelMap: FathomKit.Measurement<IOReportChannelMap>
     ) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 0) {
                 FathomSectionHeader(
                     title: "CPU",
                     subtitle: subtitle(cpu)
