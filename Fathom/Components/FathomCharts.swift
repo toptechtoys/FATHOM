@@ -194,26 +194,26 @@ struct FathomCoreBars: View {
         }
     }
 
-    /// Cores are reported efficiency-first on Apple silicon, so the boundary is
-    /// the efficiency count, not the performance one. Where the split is not
-    /// published every core is labelled by index alone rather than guessed at.
-    private func isPerformance(_ index: Int) -> Bool {
+    /// The cluster split, or `nil` when the two readings do not permit one.
+    ///
+    /// The arithmetic lives in `CoreClusterSplit` in FathomKit, where it is
+    /// tested against the reference machine. Labelling a core with the wrong
+    /// cluster is a claim about the hardware, and this project has already got
+    /// that backwards once.
+    private var split: CoreClusterSplit? {
         guard case let .known(performance, _) = performanceCount,
-              case let .known(loads, _) = cores else { return false }
-        let efficiency = loads.count - Int(performance)
-        return index >= efficiency
+              case let .known(loads, _) = cores else { return nil }
+        return CoreClusterSplit(total: loads.count, performance: Int(performance))
     }
 
+    private func isPerformance(_ index: Int) -> Bool {
+        split?.isPerformance(index: index) ?? false
+    }
+
+    /// Falls back to a bare index rather than a guessed cluster: an unlabelled
+    /// bar is honest, and a mislabelled one is not.
     private func label(for index: Int, isPerformance: Bool) -> String {
-        guard case .known = performanceCount, case let .known(loads, _) = cores
-        else { return "\(index + 1)" }
-        if isPerformance {
-            guard case let .known(performance, _) = performanceCount
-            else { return "\(index + 1)" }
-            let efficiency = loads.count - Int(performance)
-            return "P\(index - efficiency + 1)"
-        }
-        return "E\(index + 1)"
+        split?.label(index: index) ?? "\(index + 1)"
     }
 
     private func summary(_ loads: [CPUCoreLoad], source: DataSource) -> String {

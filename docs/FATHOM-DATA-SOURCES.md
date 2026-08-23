@@ -198,6 +198,18 @@ into our own prototype, which is why this section is written this firmly.
 backwards is the single most common bug in Mac monitors, and the prototype had
 it wrong until the reference machine corrected it.
 
+**Cores arrive efficiency-first, which is a second way to get the same thing
+backwards.** `host_processor_info` returns one entry per logical CPU and says
+nothing about which cluster each belongs to, so the split has to be derived —
+and because efficiency cores come first, the boundary is the *efficiency* count
+rather than the performance one. On this machine that is index 4, not index 8;
+using `perflevel0` directly as the boundary reads `perflevel0` correctly and
+still labels two thirds of the cores wrongly.
+
+`CoreClusterSplit` in FathomKit owns that arithmetic and is tested against the
+row above. Where the two readings disagree it produces no split at all, and the
+chart labels cores by index rather than guessing a cluster.
+
 ---
 
 ## GPU and Neural Engine
