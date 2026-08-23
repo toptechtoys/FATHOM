@@ -359,13 +359,23 @@ Full keyboard navigation. Arrow keys move between sections in all four
 directions, wrapping at both ends and ignoring modified presses, so the rail is
 reachable without the pointer.
 
-**The focus ring is an open divergence.** This document specifies 2px white at
-60%, and the prototype draws it. Swift draws the macOS system ring instead,
-because the system ring honours the user's own accessibility settings —
-increased contrast among them — and overriding it can regress the users the
-requirement exists for. Either implement the custom ring or amend this line to
-adopt the system one. Both are one-line changes and the choice is a design
-owner's, not an engineer's.
+**The focus ring is 2px white at 60%, 3px offset, 8px radius** — drawn, not
+inherited. `FathomFocusRing` applies it to the rail items, action pills,
+actionable rows and the Home grid: everything focusable that sits on a colour
+world. Controls inside a sheet or popover keep the system ring, because those
+are standard macOS chrome and the system ring belongs there.
+
+This was an open divergence, and the objection to closing it was real: the
+system ring honours the user's accessibility settings, and replacing it can
+regress the very users the requirement exists for. That objection is about
+*losing the settings*, not about the ring's appearance, so the ring honours
+them. **Under Increased Contrast it goes to full white at 3px**, which is
+stronger than the system ring it replaces rather than weaker.
+
+60% was checked rather than assumed. A focus ring is a non-text UI component,
+so WCAG 1.4.11 asks 3:1 rather than 4.5:1, and 60% white measures 3.31:1 on the
+worst world's plate — clear, though not by much, which is why the gate reads the
+value from `FathomFocus.ringOpacity` and fails the build if it is weakened.
 
 VoiceOver labels state value *and* provenance: *"Freed if deleted, 0 gigabytes,
 sparse file."* Sparklines, core bars and segment bars carry meaning no label

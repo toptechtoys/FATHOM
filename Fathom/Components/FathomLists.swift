@@ -296,6 +296,7 @@ struct FathomSectionGrid: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .fathomFocusRing(cornerRadius: 0)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(
                     "\(entry.section.rawValue), \(entry.value), \(entry.detail)"

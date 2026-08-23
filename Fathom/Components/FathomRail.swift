@@ -100,6 +100,7 @@ struct FathomRail: View {
                 .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(RailItemButtonStyle())
+        .fathomFocusRing(cornerRadius: 10)
         .help(section.rawValue)
         .accessibilityLabel(section.rawValue)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)

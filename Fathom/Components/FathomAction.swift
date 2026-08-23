@@ -41,6 +41,7 @@ struct FathomAction: View {
                 .contentShape(RoundedRectangle(cornerRadius: 15))
             }
             .buttonStyle(.plain)
+            .fathomFocusRing(cornerRadius: 15)
             .disabled(isBusy)
             .onHover { isHovering = $0 }
 

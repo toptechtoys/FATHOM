@@ -25,6 +25,7 @@ DESIGN = ROOT / "Fathom/Design/FathomDesign.swift"
 TEXT_SOURCE = ROOT / "Fathom/Components/MeasurementValueView.swift"
 MENU_BAR = ROOT / "Fathom/Components/FathomSurfaces.swift"
 BACKGROUND = ROOT / "Fathom/Design/FathomWorldBackground.swift"
+FOCUS = ROOT / "Fathom/Design/FathomFocusRing.swift"
 REQUIRED = 4.5
 
 # FathomWorldBackground paints a white radial highlight across the upper field,
@@ -43,6 +44,11 @@ SEMANTIC = re.compile(r"static let (\w+) = Color\(hex: 0x([0-9A-Fa-f]{6})\)")
 SEMANTIC_BLOCK = re.compile(r"enum FathomSemantic \{(.*?)\n\}", re.S)
 GRAPHIC_ONLY = {"live"}
 GRAPHIC_REQUIRED = 3.0
+
+# The focus ring is a non-text UI component, so WCAG 1.4.11 asks 3:1 rather
+# than 4.5:1. It is measured on the deepest ground it can land on -- the bare
+# plate -- because a ring over a readout cell has more to work with.
+FOCUS_OPACITY = re.compile(r"static let ringOpacity: Double = ([01]?\.\d+)")
 
 WORLD = re.compile(
     r"static let (\w+) = FathomColorWorld\(\s*"
@@ -281,9 +287,35 @@ def main():
         f"{'ok' if chip_ok else 'FAILS'}"
     )
 
+    focus = FOCUS_OPACITY.findall(FOCUS.read_text())
+    if len(focus) != 1:
+        print(
+            f"error: expected one ringOpacity in {FOCUS.name}, "
+            f"found {focus or 'none'}",
+            file=sys.stderr,
+        )
+        return 2
+    ring = float(focus[0])
+    ring_worst = None
+    for world_name, bottom in worlds:
+        ground = composite((255, 255, 255), highlight, rgb(bottom))
+        ground = composite((0, 0, 0), plate, ground)
+        ratio = contrast(composite((255, 255, 255), ring, ground), ground)
+        if ring_worst is None or ratio < ring_worst[0]:
+            ring_worst = (ratio, world_name)
+    ring_ratio, ring_world = ring_worst
+    ring_ok = ring_ratio >= GRAPHIC_REQUIRED
+    if not ring_ok:
+        failures.append(("focus ring", ring_world, ring_ratio))
     print(
-        f"\n{len(surfaces)} surfaces and {len(semantics)} semantic colours "
-        f"x {len(worlds)} worlds, {len(failures)} failing"
+        f"\nfocus ring: white @ {ring} on the bare plate -- worst world "
+        f"{ring_world} at {ring_ratio:.2f}:1  "
+        f"{'ok' if ring_ok else 'FAILS'} (graphic, {GRAPHIC_REQUIRED}:1)"
+    )
+
+    print(
+        f"\n{len(surfaces)} surfaces, {len(semantics)} semantic colours and "
+        f"the focus ring x {len(worlds)} worlds, {len(failures)} failing"
     )
     if failures:
         worst = min(failures, key=lambda f: f[2])

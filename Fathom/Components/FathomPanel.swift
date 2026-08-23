@@ -89,6 +89,7 @@ struct FathomDataRow<Leading: View, Trailing: View>: View {
         if let action {
             Button(action: action) { row }
                 .buttonStyle(.plain)
+                .fathomFocusRing(cornerRadius: 12)
         } else {
             row
         }

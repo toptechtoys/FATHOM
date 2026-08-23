@@ -396,6 +396,11 @@ was fixed once in `BluetoothView` earlier in this session without sweeping the
 class, and was still present across ten files. A sweep for `.help()` without an
 accessible equivalent now reports nothing.
 
+**Closed 23 August: the focus ring.** Resolved by drawing the specified ring
+*and* honouring Increased Contrast, which addresses the objection below rather
+than choosing a side. See *Accessibility* in `FATHOM-DESIGN.md`. The original
+note follows.
+
 **Open divergence: the focus ring.** `FATHOM-DESIGN.md` specifies "a visible
 focus ring at 2px white, 60% opacity". Navigation is built from `Button`s, so
 it is fully keyboard-navigable, but it draws the macOS system ring rather than
