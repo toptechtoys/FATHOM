@@ -27,6 +27,12 @@ struct FathomWorldBackground: View {
                 startRadius: 0,
                 endRadius: 500
             )
+
+            // Over the field and under the plate, as the prototype has it.
+            // Its noise is bounded rather than merely faded, because
+            // `overlay` drives bright channels toward white and this sits
+            // beneath text. See FathomGrain.
+            FathomGrainOverlay()
         }
         .ignoresSafeArea()
     }

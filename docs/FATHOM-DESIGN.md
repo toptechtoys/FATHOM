@@ -48,8 +48,23 @@ shell, and differs only in its readouts.
 
 **The field.** Each section owns a three-stop colour world,
 `linear-gradient(177deg, b1 0%, b2 60%, b3 100%)`, carried by the whole window
-including the rail. Over it: a fractal-noise grain at 30%, `overlay` blend, and
-a white radial highlight across the upper field. The plate goes on top of both.
+including the rail. Over it: a four-octave value-noise grain at 30% with
+`overlay` blend, tiled at 180pt, and a white radial highlight across the upper
+field. The plate goes on top of both.
+
+**The grain's noise is bounded, not just faded.** `overlay` drives a bright
+channel toward white, and the grain sits *under* the plate, so a bright speckle
+lightens the ground beneath text exactly as the highlight does. Unbounded noise
+at 30% takes the worst world to 4.15:1 and fails the rule outright. Clamping the
+noise to 0.40–0.60 around mid-grey keeps the designed opacity and blend and
+makes the worst speckle 4.60:1. That is narrower than raw `feTurbulence`, but
+only at the tails — four-octave fractal noise already spends most of its time
+near the middle, and what the clamp removes is the rare speckle nobody wanted.
+
+The texture is generated from a fixed seed and tiles seamlessly, so two
+screenshots of the same screen are identical. Both its opacity and its ceiling
+are read from source by `check-contrast.py`, which composites the brightest
+speckle the band permits.
 
 **The rail.** 64px, always an icon rail, never labelled. See *The rail*.
 
@@ -472,9 +487,10 @@ material, which lightens the composite by an amount the gate does not model. The
 cell's 1.20 of margin absorbs it, but the rendered result still wants a look on
 the reference machine.
 
-`scripts/check-contrast.py` reads the worlds, the plate, every material and the
-text alpha from source, composites each stack above, and fails if any of the
-seven surfaces drops below 4.5:1 on any of the twenty worlds. It also refuses a
+`scripts/check-contrast.py` reads the worlds, the grain, the highlight, the
+plate, every material, the semantic palette, the focus ring and the text alpha
+from source, composites each stack above, and fails if any of the seven
+surfaces drops below 4.5:1 on any of the twenty worlds. It also refuses a
 material that tints with white rather than black, because a lightening material
 would keep its number and quietly break the rule. It runs in CI.
 

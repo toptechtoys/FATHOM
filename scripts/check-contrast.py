@@ -26,6 +26,7 @@ TEXT_SOURCE = ROOT / "Fathom/Components/MeasurementValueView.swift"
 MENU_BAR = ROOT / "Fathom/Components/FathomSurfaces.swift"
 BACKGROUND = ROOT / "Fathom/Design/FathomWorldBackground.swift"
 FOCUS = ROOT / "Fathom/Design/FathomFocusRing.swift"
+GRAIN = ROOT / "Fathom/Design/FathomGrain.swift"
 REQUIRED = 4.5
 
 # FathomWorldBackground paints a white radial highlight across the upper field,
@@ -49,6 +50,21 @@ GRAPHIC_REQUIRED = 3.0
 # than 4.5:1. It is measured on the deepest ground it can land on -- the bare
 # plate -- because a ring over a readout cell has more to work with.
 FOCUS_OPACITY = re.compile(r"static let ringOpacity: Double = ([01]?\.\d+)")
+
+# The grain sits over the field and under the plate, so a bright speckle
+# lightens the ground beneath text the same way the highlight does. `overlay`
+# drives a bright channel toward white, which is why the noise is clamped
+# rather than only faded: at full range and 30% opacity the worst world reads
+# 4.15:1. Both the opacity and the ceiling are read from source.
+GRAIN_OPACITY = re.compile(r"static let opacity: Double = ([01]?\.\d+)")
+GRAIN_CEILING = re.compile(r"static let noiseCeiling: Double = ([01]?\.\d+)")
+
+
+def overlay(base, blend):
+    """CSS `overlay`, per channel, on 0-255 input."""
+    unit = base / 255
+    result = 2 * unit * blend if unit < 0.5 else 1 - 2 * (1 - unit) * (1 - blend)
+    return result * 255
 
 WORLD = re.compile(
     r"static let (\w+) = FathomColorWorld\(\s*"
@@ -142,6 +158,19 @@ def main():
         print(f"error: {error}", file=sys.stderr)
         return 2
 
+    grain_source = GRAIN.read_text()
+    grain_opacities = GRAIN_OPACITY.findall(grain_source)
+    grain_ceilings = GRAIN_CEILING.findall(grain_source)
+    if len(grain_opacities) != 1 or len(grain_ceilings) != 1:
+        print(
+            f"error: expected one opacity and one noiseCeiling in "
+            f"{GRAIN.name}, found {grain_opacities} and {grain_ceilings}",
+            file=sys.stderr,
+        )
+        return 2
+    grain = float(grain_opacities[0])
+    grain_ceiling = float(grain_ceilings[0])
+
     highlights = HIGHLIGHT.findall(BACKGROUND.read_text())
     if len(highlights) != 1:
         print(
@@ -188,6 +217,7 @@ def main():
     ]
 
     print(f"body text: white @ {alpha} (floor {floor})")
+    print(f"grain:     {grain} overlay, noise clamped to {grain_ceiling}")
     print(f"highlight: white @ {highlight} radial, under the plate")
     print(f"plate:     black @ {plate} under the content column and the rail")
     print(f"materials: cell {card}, row {row}, row hover {row_hover} on the plate")
@@ -199,7 +229,12 @@ def main():
         worst = None
         for name, bottom in worlds:
             world = rgb(bottom)
-            # the highlight lifts the field first, then the plate goes on top
+            # brightest speckle the grain can produce, then the highlight, then
+            # the plate -- the order the app actually draws them in
+            lit_grain = tuple(overlay(c, grain_ceiling) for c in world)
+            world = tuple(
+                c * (1 - grain) + g * grain for c, g in zip(world, lit_grain)
+            )
             ground = composite((255, 255, 255), highlight, world)
             ground = composite((0, 0, 0), plate, ground)
             for material in materials:
