@@ -4,10 +4,10 @@
 
 | | |
 |---|---|
-| **Version** | 3.0 — design locked, reference hardware verified |
-| **Date** | 30 July 2026 (v1.0: 28 July 2026) |
+| **Version** | 4.0 — Instrument Panel implemented; reference measurements outstanding |
+| **Date** | 23 August 2026 (v3.0: 30 July 2026; v1.0: 28 July 2026) |
 | **Owner** | EXHIBINAUT |
-| **Status** | Pre-development. Requires seven technical spikes before build (§16). |
+| **Status** | Implemented against the Instrument Panel design. Six release gates need the reference machine (§23, `RELEASE-GATES.md`). |
 | **Review** | `/plan-ceo-review`, SCOPE EXPANSION mode. Six expansions accepted, four critical safety gaps found, one architecture layer added. See §19-§21. |
 | **Licence** | MIT |
 | **Platform** | macOS 14 (Sonoma) – macOS 26 (Tahoe), Apple Silicon only |
@@ -397,9 +397,11 @@ The mechanisms that make this achievable:
 
 **Battery awareness.** All intervals halve on battery, and further under Low Power Mode.
 
-**Decoration is a budget line, not a free gift.** The design system runs film grain, two drifting caustic pools and a per-object breathing loop. A full-window overlay-blended layer plus animating gradients means the window never becomes static, so the compositor never idles. The app publishes its own CPU cost in the sidebar footer as a competitive claim, which makes uncounted decoration a claim the product inflates itself.
+**Decoration is a budget line, not a free gift.** The app publishes its own CPU cost in its own chrome as a competitive claim, which makes uncounted decoration a claim the product inflates about itself.
 
-Grain ships as a static tiled texture. Caustics and the breathing loop run **only** when the window is key, the machine is on mains power, and the pointer has moved in the last 10 seconds. Frame-callback count per minute joins the CI gates in §17.1.
+The Instrument Panel settled this by having almost no decoration to budget for. The caustic pools and the per-object breathing loop went with the poster direction; what remains is a static tiled grain texture, generated once from a fixed seed, and a 2.2 s pulse on a 7pt dot. Nothing animates on the 1 Hz tick except the core bars, and the section-enter transition is 450 ms and then over. The window is static whenever the user is not navigating, so the compositor idles.
+
+The cost claim is now measured rather than asserted: `FathomBar` reads `proc_pid_rusage` on the loop that costs it and publishes the figure with its item count, and the app displays that rather than the 0.2% budget. See §23.4.
 
 An XPC helper is explicitly *not* the answer here. Moving cost to another process relocates it in Activity Monitor without reducing it, which is cosmetic at best and arguably dishonest. The wins are sampling strategy, IOReport instead of SMC, and visibility gating.
 
@@ -775,7 +777,7 @@ The real risk on a project this size is not that the code is wrong. It is that i
 
 ### 21.7 Two naming corrections
 
-**Deep Scan, Storage Overview and Explore are three sidebar entries for one job.** Collapse to two: **Scan** is the verb you run, **Storage** is the noun where the result lives, with the overview and the explorable tree as two views of one screen.
+**Deep Scan, Storage Overview and Explore are three rail entries for one job.** Collapse to two: **Scan** is the verb you run, **Storage** is the noun where the result lives, with the overview and the explorable tree as two views of one screen.
 
 **`Reading<T>` replaces `Optional<T>`** for every sampled value, carrying `.value(T)` or `.unavailable(Reason)`, so the interface can say *why* it is showing a dash. Honest numbers applies to failures as well as to values.
 
@@ -885,3 +887,115 @@ Fluid via `clamp()` and `auto-fit`/`minmax()`. Structural breakpoints at 1080px
 (sidebar collapses to a 64px icon rail) and 760px (heroes stack, tables tighten).
 Verified no horizontal overflow at 1520, 1200, 1000, 820, 720. Minimum window
 720 × 560.
+
+---
+
+# 23. Amendment v4.0 — the Instrument Panel, implemented
+
+*23 August 2026. §22 recorded the poster direction so nobody would re-litigate
+it mid-sprint. This records what replaced it, for the same reason.*
+
+## 23.1 The direction changed, and the prototype moved first
+
+`docs/fathom-app.html` is now the **Instrument Panel**: one always-on window,
+every section a set of live readouts behind a 64px icon rail. No poster, no
+Scan button, no result state to wait for. `FATHOM-DESIGN.md` is v2.0 and
+documents it.
+
+The order in `AGENTS.md` held — prototype, then the design document, then Swift.
+That order is the reason this amendment can be short: nothing was implemented
+against a drawing that had not been ratified first.
+
+## 23.2 §22.4 is withdrawn: there are no archetypes
+
+Twenty sections remain, but the three-archetype split is gone. Every section is
+the same shell and differs only in its readouts. The reasoning in §22.4 still
+holds — a Scan button on a screen with nothing to scan is a lie about the data —
+but the Instrument Panel resolves it differently: no screen has a Scan button,
+and a section with nothing measured yet says so in a sentence and offers the one
+action that would fill it.
+
+Thirteen panel types carry every section, all in use. Two of them departed from
+the handoff during implementation and are recorded in `FATHOM-DESIGN.md` rather
+than absorbed silently: **rule rows** are per-recipe dry runs rather than a
+multi-select list, because that is the granularity at which a cost can be stated
+honestly; and **Explore keeps a tree** rather than a flat two-number table.
+
+## 23.3 §22.5 amended: the public IP moved to Network
+
+It was in the sidebar, alongside the app's own cost. The rail is icon-only at
+every width, so the row moved to the Network section — where the address it
+reports belongs, and where the privacy control now sits beside the value it
+governs rather than in a footer. Everything else in §22.5 stands: one outbound
+request, cached, disableable, no identifier, flags bundled.
+
+## 23.4 Idle cost is measured, and Energy Impact is not ours to take
+
+§17.1 already established that Energy Impact cannot be a CI gate. This goes
+further: **FATHOM does not display Energy Impact at all.** Activity Monitor's
+composite comes from `powermetrics`, which requires root, and the app does not
+take root to report on itself. It stays a manual release-gate reading.
+
+CPU is measured. The widget reads `proc_pid_rusage` on the same loop that costs
+it, so the figure covers the sample, the update and the sleep, and publishes it
+with the item count it was taken with — the 0.2% target is stated for four
+items, and a cost measured with one is a real measurement of a different thing.
+A figure older than sixty seconds reads as stale rather than current.
+
+This closes a gap the product had been carrying: the prototype drew
+`0.2% CPU · energy 2.1` as though it were an observation, and the app printed
+the same budget. Rule 8 says idle cost is a shipped number. It is one now.
+
+## 23.5 Typography: Archivo
+
+One family for display, UI and numerals, with JetBrains Mono for paths.
+Bricolage Grotesque and Instrument Sans belonged to the poster direction and are
+out of the bundle. SIL Open Font License; attribution in
+`THIRD_PARTY_NOTICES.md`.
+
+One gap is recorded rather than papered over. The handoff specifies `wdth 112`
+for display and `104` for UI — variable-font axis values. Archivo ships static
+instances at width classes 62, 75, 87.5, 100, 112.5 and 125. Display matches at
+112.5 against 112; **nothing sits at 104**, so the UI takes 100. Closing the
+four-unit gap needs the variable font, which is a separate decision.
+
+## 23.6 §22.6 amended: the 1080px breakpoint is gone
+
+The rail is 64px at every width, so there is no expanded sidebar left to
+collapse. One structural breakpoint remains, at 760px. Verified across all
+twenty sections at 1520, 1200, 1000, 820 and 720px with no horizontal overflow.
+Minimum window unchanged at 720 × 560.
+
+## 23.7 Contrast became a gate rather than a claim
+
+Three separate layers beneath the plate each turned out to cost text contrast:
+the white radial highlight, the design's white materials, and the grain's
+`overlay` blend. None was visible to inspection; each was found by arithmetic.
+
+`scripts/check-contrast.py` now composites the whole stack from source — worlds,
+grain, highlight, plate, materials, semantic palette, focus ring and text alpha
+— and fails the build if any of seven surfaces drops below 4.5:1 on any of
+twenty worlds, or if a material is switched from black to white.
+
+Two design values did not survive it and were changed with the reasoning
+recorded: **blocked** and **informational** were lightened to `#FFCACA` and
+`#BFD9FF`, because at `#FFAFAF` and `#A9CBFF` they measured 3.88:1 and 4.10:1 as
+text on a data row.
+
+## 23.8 What is still outstanding
+
+Every buildable item is built and every design decision is closed. What remains
+needs the reference machine, and is enumerated in `RELEASE-GATES.md`: the
+benchmark with its disk-headroom figure, the hardware fixture comparison, the
+idle-cost reading, Bluetooth against a signed build, the navigation lifecycle,
+and the accessibility pass — including a per-view VoiceOver audit that has never
+been done.
+
+Signing and notarization remain untested end to end. There is no Developer ID
+certificate on the development host and no `notarytool` profile, so
+`scripts/release.sh` has never run against real credentials.
+
+**And nothing has been seen.** The implementation was verified by compiler, by
+gate and by arithmetic, which caught every defect named above. None of that says
+whether twenty screens are legible. That is the largest open risk in the project
+and it is one afternoon of work to close.
