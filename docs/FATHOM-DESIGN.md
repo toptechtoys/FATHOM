@@ -226,6 +226,23 @@ are in `AGENTS.md` and they are the product.
 Readout notes cap at 32 characters, body copy at 66. Titles use
 `text-wrap: balance`.
 
+**The prototype sizes display type fluidly and Swift does not.** The prototype
+draws section titles at `clamp(28px, 2.8vw, 40px)` and readout values at
+`clamp(30px, 2.7vw, 38px)`; Swift uses fixed 34pt and 34pt, which is what those
+clamps resolve to at roughly 1200pt of window width.
+
+This is a deliberate divergence, recorded rather than left to be discovered.
+Viewport-driven type is a web idiom. On macOS the platform convention is Dynamic
+Type, which Swift honours through `relativeTo:` — and the two fight each other:
+a reader at Accessibility Large in a narrow window would have their type scaled
+down by the viewport and up by their own setting, ending somewhere neither asked
+for. Type here answers to the user's text size, not to how wide they dragged the
+window.
+
+Everything else in this table matches the prototype exactly, and so do the
+spacings, radii, materials and motion durations. The type scale is the only
+place the two differ.
+
 **Every numeral in a column that can be compared is tabular.** Non-negotiable —
 `font-variant-numeric: tabular-nums` is set globally, not per component.
 
