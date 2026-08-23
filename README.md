@@ -12,6 +12,28 @@ its allocated size on disk and the bytes actually freed if it moves to Trash.
 APFS clones, sparse extents, snapshots, hard links, and open file descriptors
 are part of that calculation.
 
+## The interface
+
+One always-on window: twenty sections behind a 64-point icon rail, each a set of
+live readouts sampled at 1 Hz while visible. There is nothing to start and no
+result screen to wait for. A section with nothing measured yet says so in a
+sentence and offers the one action that would fill it, rather than showing zeros.
+
+Home is allowed to say nothing is wrong, and does when there is nothing to
+report. A chart draws a second nobody measured as a gap rather than
+interpolating across it. A file that frees nothing shows the zero and says why.
+
+The menu bar widget measures its own CPU cost and publishes that figure, so the
+idle-cost claim in the app's own chrome is a reading rather than a target.
+
+## Status
+
+The app is implemented and the test suite, the build and the contrast gate all
+pass. **The interface has not yet been seen running on Apple silicon** — it has
+been verified by compiler, by gate and by arithmetic, which is not the same
+thing. Remaining reference-machine measurements, signing and notarization are
+enumerated in [docs/RELEASE-GATES.md](docs/RELEASE-GATES.md).
+
 ## Build
 
 Requirements: macOS 14 or later, Apple silicon for the shipping app, Xcode 26,
@@ -51,9 +73,15 @@ when no exact runtime key exists, overall health scores, predicted SSD failure
 dates, fan control, scheduled deletion, or an application uninstaller. Intel
 Macs are outside the shipping target.
 
+It also does not display Energy Impact. Activity Monitor's composite comes from
+`powermetrics`, which requires root, and FATHOM does not take root to report on
+itself.
+
 The product contract is [AGENTS.md](AGENTS.md). Measurement provenance lives in
-[docs/FATHOM-DATA-SOURCES.md](docs/FATHOM-DATA-SOURCES.md), and operational
-recovery procedures live in [docs/runbooks](docs/runbooks).
+[docs/FATHOM-DATA-SOURCES.md](docs/FATHOM-DATA-SOURCES.md), the design system in
+[docs/FATHOM-DESIGN.md](docs/FATHOM-DESIGN.md) with `docs/fathom-app.html` as its
+normative prototype, and operational recovery procedures in
+[docs/runbooks](docs/runbooks).
 
 ## License
 
