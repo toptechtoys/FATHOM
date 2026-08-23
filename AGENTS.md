@@ -38,8 +38,13 @@ matter how good the code is.
    green tick. The Home screen is allowed to say *nothing is wrong*.
 7. **No manufactured urgency.** No red badges for routine state, no countdown, no
    "your Mac is at risk". The weekly digest is allowed to say nothing.
-8. **Idle cost is a shipped number.** Menu bar widget: ≤ 0.2% CPU, energy impact
-   ≤ 2.1 with four items. Regression past 0.5% / 4.0 blocks the release.
+8. **Idle cost is a shipped number, and the widget measures it.** Menu bar
+   widget: ≤ 0.2% CPU with four items, and 0.5% blocks the release. `FathomBar`
+   reads `proc_pid_rusage` on the loop that costs it and publishes the figure
+   with the item count it was taken with; the app displays that, never the
+   budget. Energy impact ≤ 2.1, and 4.0 blocks — but **the app does not display
+   it**: the composite needs root, and FATHOM does not take root to report on
+   itself. It stays a manual Activity Monitor reading in `RELEASE-GATES.md`.
 9. **One outbound request, ever.** Public IP lookup, cached ≥ 15 minutes,
    disableable, no identifier. Nothing else leaves the machine. No analytics, no
    crash telemetry without explicit opt-in.
@@ -53,9 +58,9 @@ matter how good the code is.
 Fathom.xcodeproj
 Fathom/                 SwiftUI app
   App/                  entry point, window, navigation
-  Design/               tokens, materials, the object renderer
+  Design/               tokens, worlds, plate, grain, focus ring, fonts
   Sections/             one folder per section, 20 total
-  Components/           Tile, Card, Row, Panel, Toggle, Chain, Ring
+  Components/           rail, readout grid, panel, and the 13 panel types
 FathomKit/              all measurement, no UI, fully testable
   Storage/              FTS walk, two-number engine, clone + sparse detection
   Hardware/             SMART, SMC, IOReport, IOKit
@@ -63,12 +68,23 @@ FathomKit/              all measurement, no UI, fully testable
   Model/                Measurement<T> and the three-state type
 FathomBar/              menu bar widget target
 FathomKitTests/         fixtures from the reference machine
+scripts/
+  check-contrast.py     the contrast gate; runs in CI
+  build-prototype.py    regenerates docs/fathom-app.html
 docs/
   FATHOM-PRD.md
   FATHOM-DESIGN.md
   FATHOM-DATA-SOURCES.md
+  RELEASE-GATES.md      what the reference machine must still prove
   fathom-app.html       the locked visual reference
 ```
+
+**Presentation logic that makes a claim belongs in FathomKit, not beside the
+view.** A treemap whose areas are wrong misrepresents a volume as confidently as
+a wrong number does, so `TreemapLayout` is tested. So are `SampleHistory`, which
+decides how a chart draws a second nobody measured, and `FindingEngine`, which
+decides what is worth saying at all. The rule of thumb: if getting it wrong
+would make the product lie, it is measurement, whatever it looks like.
 
 ---
 
@@ -91,6 +107,13 @@ demand, and every screenshot in a bug report can be traced to an API.
 Do not add a `.unknown` case. Do not add optional-returning convenience
 accessors that collapse the three states into one. That collapse is exactly how
 honest tools become dishonest.
+
+Transforms that *preserve* all three are fine and exist: `map` carries a
+not-published reason through a unit conversion and transforms both halves of an
+unattributed reading, and `combined` keeps the weakest state of a pair, so a
+ratio with an unpublished denominator comes back unpublished rather than
+dividing by an invented number. The test is whether the gap can survive the
+call. If it cannot, do not write it.
 
 ---
 
@@ -124,6 +147,14 @@ history, so they can only be honest after the app has been running for days.
 
 Home and Deep Scan assemble from the others and land last, not first.
 
+**Status, 23 August 2026.** M1–M7 are implemented and all twenty sections are on
+the Instrument Panel vocabulary. What is left is not code: the reference-machine
+measurements in `RELEASE-GATES.md`, and the fact that **none of the interface
+has been seen running.** It has been verified by compiler, by the contrast gate
+and by arithmetic, which caught every defect found so far — but no human has
+looked at a screen. Treat that as the project's largest open risk, and do not
+add to the pile without saying so.
+
 ---
 
 ## Working agreements
@@ -132,10 +163,21 @@ Home and Deep Scan assemble from the others and land last, not first.
 beats one that shows twelve it cannot. When you cannot get a number honestly,
 render the not-published state and open an issue. Do not approximate.
 
-**The prototype is the visual spec.** `docs/fathom-app.html` is locked. Match
-its spacing, type scale, colour worlds and object geometry. If you believe a
-screen needs to change, change the prototype first and get it approved, then
-implement. Do not diverge silently in Swift.
+**The prototype is the visual spec.** `docs/fathom-app.html` is locked, and it
+is the Instrument Panel — one always-on window, every section a set of readouts
+behind a 64px rail. Match its spacing, type scale, colour worlds and materials.
+If you believe a screen needs to change, change the prototype first and get it
+approved, then implement. Do not diverge silently in Swift.
+
+It is generated by `scripts/build-prototype.py`, so edit that and re-run it
+rather than hand-editing 700 KB of embedded fonts.
+
+**Where the prototype and the contrast rule disagree, the rule wins — and you
+record it.** This has happened four times: the design's white materials, two
+semantic colours, the grain's blend, and the readout cell's depth. Each is
+documented in `FATHOM-DESIGN.md` with the measurement that forced it. Never
+silently soften a design value; state what it measured and what you changed it
+to.
 
 **Test against the reference machine.** `FathomKitTests` fixtures come from a
 Mac mini M4 Pro, macOS Tahoe 26.5.2, listed in `FATHOM-DATA-SOURCES.md`. Every
@@ -150,6 +192,17 @@ prototyping. Production reads the API.
 **Accessibility is not a phase.** Full VoiceOver labels, Dynamic Type, Reduce
 Motion honoured, contrast ≥ 4.5:1 on every surface, complete keyboard
 navigation. Build it in, do not retrofit.
+
+Contrast is gated rather than reviewed. `scripts/check-contrast.py` composites
+the whole stack from source — worlds, grain, highlight, plate, materials,
+semantic palette, focus ring, text alpha — and fails the build if any surface
+drops below the rule on any of the twenty worlds. **Anything you draw beneath
+the plate must be added to it.** Three separate layers have now quietly cost
+text contrast, and none was visible to inspection.
+
+Labels live in the shared components rather than the section views, so a label
+written beside the value it describes cannot drift from it — and a wrong one is
+wrong everywhere at once. No per-view VoiceOver audit has been done.
 
 **Commit messages state the user-visible effect.** "Explore now shows 0 GB
 freeable for Docker's sparse image" beats "fix size calc".
