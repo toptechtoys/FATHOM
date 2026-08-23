@@ -2,12 +2,6 @@
 
 [![CI](https://github.com/toptechtoys/FATHOM/actions/workflows/ci.yml/badge.svg)](https://github.com/toptechtoys/FATHOM/actions/workflows/ci.yml)
 
-> **The CI badge is red, and not because the code is broken.** No workflow run
-> has been scheduled since 4 August 2026: each one fails in three seconds with
-> no runner assigned and no step executed. Every check the workflow performs
-> passes when run locally. See *Continuous integration* in
-> [docs/RELEASE-GATES.md](docs/RELEASE-GATES.md).
-
 FATHOM is a native macOS utility for Apple silicon that reports storage,
 memory, and SSD endurance without disguising what macOS does not publish.
 Every measured value retains its source and one of three states: known, not
@@ -34,11 +28,16 @@ idle-cost claim in the app's own chrome is a reading rather than a target.
 
 ## Status
 
-The app is implemented and the test suite, the build and the contrast gate all
-pass. **The interface has not yet been seen running on Apple silicon** — it has
-been verified by compiler, by gate and by arithmetic, which is not the same
-thing. Remaining reference-machine measurements, signing and notarization are
-enumerated in [docs/RELEASE-GATES.md](docs/RELEASE-GATES.md).
+The app is implemented, and CI builds both targets on an arm64 runner with the
+test suite, the privacy checks, the contrast gate and the forbidden-API audit
+all passing.
+
+**The interface has still not been seen running.** Building on the right
+architecture is not the same as looking at it: nothing in CI can say whether a
+sparkline gap reads as a gap or whether a screen is legible. That, the remaining
+reference-machine measurements, and signing and notarization are enumerated in
+[docs/RELEASE-GATES.md](docs/RELEASE-GATES.md), with a blank record to fill in at
+[docs/REFERENCE-PASS.md](docs/REFERENCE-PASS.md).
 
 ## Build
 
