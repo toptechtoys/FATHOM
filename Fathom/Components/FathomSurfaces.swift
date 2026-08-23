@@ -30,7 +30,10 @@ struct FathomMenuBarPreview: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 26)
-        .background(.black.opacity(0.42))
+        // Black on light, the one inverted text surface in the app. The
+        // contrast gate reads this pairing from here.
+        .foregroundStyle(.black.opacity(0.82))
+        .background(.white.opacity(0.88))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(

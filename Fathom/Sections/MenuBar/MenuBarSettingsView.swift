@@ -121,41 +121,21 @@ struct MenuBarSettingsView: View {
         [freeSpace, hottestSensor, networkThroughput, cpuLoad].count { $0 }
     }
 
-    /// The widget at the height macOS grants it, 22pt, with dashes where the
-    /// values would be. Drawing plausible numbers in a preview would make the
-    /// one screen about the widget's honesty the one screen that invents.
+    /// The widget at the size macOS grants it, with dashes where the values
+    /// would be. Drawing plausible numbers in the one screen about the
+    /// widget's honesty would be a poor place to start inventing.
     private var preview: some View {
-        HStack(spacing: 14) {
-            if freeSpace { previewItem("—", unit: "GB") }
-            if hottestSensor { previewItem("—°") }
-            if networkThroughput { previewItem("—", unit: "KB/s") }
-            if cpuLoad { previewItem("—", unit: "%") }
-            Spacer()
-            Text("FATHOM")
-                .font(.fathomSystem(12, weight: .medium, design: .monospaced))
-        }
-        .padding(.horizontal, 12)
-        .frame(width: 320, height: 22)
-        .foregroundStyle(.black.opacity(0.82))
-        .background(.white.opacity(0.88))
-        .clipShape(RoundedRectangle(cornerRadius: 5))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "Menu bar layout preview, actual size. Values are not published while this screen is open."
-        )
+        FathomMenuBarPreview(items: previewItems)
     }
 
-    private func previewItem(
-        _ value: String,
-        unit: String? = nil
-    ) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text(value).fontWeight(.semibold)
-            if let unit {
-                Text(unit).font(.fathomSystem(8, weight: .medium))
-            }
-        }
-        .font(.fathomSystem(11, design: .monospaced))
+    private var previewItems: [FathomMenuBarPreview.Item] {
+        var items: [FathomMenuBarPreview.Item] = []
+        if freeSpace { items.append(.init(text: "— GB", isEmphasised: true)) }
+        if hottestSensor { items.append(.init(text: "—°")) }
+        if networkThroughput { items.append(.init(text: "↓ —")) }
+        if cpuLoad { items.append(.init(text: "— %")) }
+        items.append(.init(text: "FATHOM"))
+        return items
     }
 
     private func setting(

@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DESIGN = ROOT / "Fathom/Design/FathomDesign.swift"
 TEXT_SOURCE = ROOT / "Fathom/Components/MeasurementValueView.swift"
-MENU_BAR = ROOT / "Fathom/Sections/MenuBar/MenuBarSettingsView.swift"
+MENU_BAR = ROOT / "Fathom/Components/FathomSurfaces.swift"
 BACKGROUND = ROOT / "Fathom/Design/FathomWorldBackground.swift"
 REQUIRED = 4.5
 

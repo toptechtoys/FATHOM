@@ -136,6 +136,15 @@ lightening first.
 ## Panels
 
 Thirteen panel types carry every section. Each is built once and takes data.
+Twelve are built and in use; the feed is not, and the table says why.
+
+Two departures from the prototype turned up during implementation and are
+recorded rather than quietly absorbed. **Rule rows** are per-recipe dry runs,
+not a multi-select list that recomputes a running total — Reclaim prepares and
+reviews one recipe at a time, because that is the granularity at which a cost
+can be stated honestly. And **Explore keeps a tree** rather than a flat
+two-number table: its expand-and-collapse hierarchy carries information the
+table cannot.
 
 | Type | Used by | What it is |
 |---|---|---|
@@ -146,8 +155,8 @@ Thirteen panel types carry every section. Each is built once and takes data.
 | Treemap | Storage | Area is size on disk. Every rectangle names its own two numbers |
 | Day columns | Timeline | Seven columns, growth up and deletion down from a shared baseline, net under each |
 | Device rows | Bluetooth, Applications, Cloud | Name / meter / value. A device that publishes no battery reads *does not report* |
-| Rule rows | Reclaim | Include or exclude per rule, recomputing selected and after-state live |
-| Feed | Home | Four *worth a look* items: category dot, title, one sentence, one value |
+| Rule rows | Reclaim | One row per validated recipe: what it frees, what it costs, and a dry run |
+| Feed | *not built* | Four *worth a look* items. Needs a findings engine that can say why something is worth looking at; until that exists there is nothing honest to put in it |
 | Grid | Home | Every section, one number each, each a link to the screen that produced it |
 | Chain | Endurance | The arithmetic, left to right, with the conclusion at the end |
 | Menu-bar preview | Menu Bar | The widget at actual size, 26px tall |
