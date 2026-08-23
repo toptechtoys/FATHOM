@@ -52,6 +52,24 @@ dominated by whatever the process did at startup.
 
 ---
 
+## The menu bar widget's own geometry
+
+| Value | API | Reference machine |
+|---|---|---|
+| Status-item height | `NSStatusBar.system.thickness` | 22.0 pt |
+
+**This row exists because the number was asserted before it was measured.** The
+prototype drew `22 pt` and the Swift copy repeated it, and it happened to be
+right — `NSStatusBar.system.thickness` returns exactly 22.0 on the development
+host. Being right is not the same as being traceable: the value differs on
+machines with a notch and Apple is free to change it, and a claim nobody reads
+from the system is a claim that goes stale silently.
+
+`NSStatusBar` is AppKit, and FathomKit is deliberately AppKit-free, so this one
+is read in the app layer rather than the measurement layer.
+
+---
+
 ## Machine identity
 
 The section header names the machine the numbers came from, so the reader knows

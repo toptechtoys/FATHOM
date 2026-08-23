@@ -1,3 +1,4 @@
+import AppKit
 import FathomKit
 import SwiftUI
 
@@ -59,13 +60,22 @@ struct MenuBarSettingsView: View {
                     ) {
                         readoutValue(enabledCount.formatted(), unit: "of 4")
                     }
+                    FathomMeasurementReadout(
+                        label: "Height",
+                        measurement: statusBarThickness,
+                        unit: "pt",
+                        note: "The height macOS gives the widget, whatever your text size",
+                        format: {
+                            $0.formatted(.number.precision(.fractionLength(0)))
+                        }
+                    )
                 }
                 .padding(.bottom, 22)
 
                 FathomPanel(label: "Live preview — actual size") {
                     VStack(alignment: .leading, spacing: 10) {
                         preview
-                        Text("Values read as dashes because the widget is not sampling while this screen is open. The layout is the real one, and it does not grow with your text size — macOS gives the widget 22 points whatever that size is.")
+                        Text(previewNote)
                             .font(.fathomSystem(11.5))
                             .foregroundStyle(
                                 .white.opacity(FathomSurface.minimumTextOpacity)
@@ -123,6 +133,33 @@ struct MenuBarSettingsView: View {
         return cost.itemCount == 4
             ? "Measured with four items · \(verdict)"
             : "Measured with \(cost.itemCount) item\(cost.itemCount == 1 ? "" : "s") · the target is stated for four"
+    }
+
+    /// What macOS actually gives the status item.
+    ///
+    /// Read rather than stated. The prototype drew 22 pt and the copy here
+    /// repeated it; the figure was correct on this hardware and still had no
+    /// source, which is the shape of the endurance-date mistake recorded in the
+    /// PRD. `NSStatusBar` is AppKit, so this lives here rather than in
+    /// FathomKit, which is deliberately AppKit-free.
+    private var statusBarThickness: FathomKit.Measurement<Double> {
+        let thickness = NSStatusBar.system.thickness
+        guard thickness > 0 else {
+            return .notPublished(
+                reason: "NSStatusBar published no thickness for the status item."
+            )
+        }
+        return .known(thickness, source: .statusBarThickness)
+    }
+
+    /// The preview caption, which names the height rather than asserting it.
+    private var previewNote: String {
+        let base = "Values read as dashes because the widget is not sampling while this screen is open. The layout is the real one, and it does not grow with your text size"
+        guard case let .known(thickness, _) = statusBarThickness else {
+            return base + "."
+        }
+        let points = thickness.formatted(.number.precision(.fractionLength(0)))
+        return base + " — macOS gives the widget \(points) points whatever that size is."
     }
 
     private func readoutValue(_ text: String, unit: String) -> some View {

@@ -52,6 +52,7 @@ public enum DataSource: String, Sendable, Equatable, Codable {
     case hostVMStatistics64 = "host_statistics64(HOST_VM_INFO64)"
     case sysctlPhysicalMemory = "sysctl hw.memsize"
     case sysctlMachineModel = "sysctl hw.model"
+    case statusBarThickness = "NSStatusBar.system.thickness"
     case procPidRusage =
         "proc_pid_rusage(RUSAGE_INFO_CURRENT) user + system time"
     case sysctlSwapUsage = "sysctl vm.swapusage"
