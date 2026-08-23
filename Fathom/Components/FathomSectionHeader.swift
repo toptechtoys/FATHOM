@@ -77,7 +77,10 @@ struct FathomStatusStrip: View {
         .tracking(1)
         .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
         .padding(.horizontal, 16)
-        .frame(height: 32)
+        // Minimum, not fixed: 32pt is the design height, and text that grows
+        // under Dynamic Type has to take the room it needs rather than being
+        // cut off by the chrome that announces the app is live.
+        .frame(minHeight: 32)
         .background(.black.opacity(0.25))
         .overlay(alignment: .bottom) {
             Rectangle()

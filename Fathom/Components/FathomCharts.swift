@@ -11,6 +11,9 @@ import SwiftUI
 /// The area fill is drawn per run for the same reason, so nothing is shaded
 /// under a second the app never measured.
 struct FathomSparkline: View {
+    /// Grows with the text size. A reader who enlarged the type wants the
+    /// chart bigger too, not a bigger caption over the same 52pt of line.
+    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 52
     let history: SampleHistory<Double>
     /// The ceiling. `nil` scales to the window's own peak, for values like
     /// throughput that have no fixed maximum.
@@ -27,7 +30,7 @@ struct FathomSparkline: View {
                 chart
             }
         }
-        .frame(height: 52)
+        .frame(height: height)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
     }
@@ -137,6 +140,7 @@ struct FathomSparkline: View {
 /// backwards as the most common bug in Mac monitoring code, and it was in the
 /// prototype once.
 struct FathomCoreBars: View {
+    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 110
     let cores: FathomKit.Measurement<[CPUCoreLoad]>
     let performanceCount: FathomKit.Measurement<UInt64>
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -149,7 +153,6 @@ struct FathomCoreBars: View {
                     bar(core, isPerformance: isPerformance(core.index))
                 }
             }
-            .frame(height: 110)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(summary(loads, source: source))
         case let .notPublished(reason):
@@ -178,6 +181,10 @@ struct FathomCoreBars: View {
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
             }
+            // The height belongs to the chart, not to the chart plus its
+            // label. Wrapping both meant a label growing under Dynamic Type
+            // ate the bar it was labelling.
+            .frame(height: height)
             .animation(reduceMotion ? nil : .fathomCoreBar, value: core.busy)
 
             Text(label(for: core.index, isPerformance: isPerformance))
@@ -233,6 +240,7 @@ struct FathomSegmentBar: View {
         let color: Color
     }
 
+    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 34
     let segments: [Segment]
     /// The whole the segments are parts of. When the parts fall short, the
     /// difference is drawn and named rather than absorbed.
@@ -254,7 +262,7 @@ struct FathomSegmentBar: View {
                     }
                 }
             }
-            .frame(height: 34)
+            .frame(height: height)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             FlowLegend(items: resolved, format: format)
@@ -325,6 +333,7 @@ struct FathomDayColumns: View {
         }
     }
 
+    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 140
     let days: [Day]
     let format: (Double) -> String
 
@@ -334,7 +343,6 @@ struct FathomDayColumns: View {
                 column(day)
             }
         }
-        .frame(height: 170)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(summary)
     }
@@ -346,6 +354,8 @@ struct FathomDayColumns: View {
 
     private func column(_ day: Day) -> some View {
         VStack(spacing: 4) {
+            // Fixed for the bars only; the two label rows below grow with the
+            // text size rather than squeezing the chart.
             GeometryReader { geometry in
                 let half = geometry.size.height / 2
                 VStack(spacing: 0) {
@@ -374,6 +384,8 @@ struct FathomDayColumns: View {
                     .frame(height: half)
                 }
             }
+
+            .frame(height: height)
 
             Text(day.net.map { format($0) } ?? "—")
                 .font(.fathomSystem(10.5))

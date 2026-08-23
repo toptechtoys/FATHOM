@@ -65,7 +65,7 @@ struct MenuBarSettingsView: View {
                 FathomPanel(label: "Live preview — actual size") {
                     VStack(alignment: .leading, spacing: 10) {
                         preview
-                        Text("Values read as dashes because the widget is not sampling while this screen is open. The layout is the real one.")
+                        Text("Values read as dashes because the widget is not sampling while this screen is open. The layout is the real one, and it does not grow with your text size — macOS gives the widget 22 points whatever that size is.")
                             .font(.fathomSystem(11.5))
                             .foregroundStyle(
                                 .white.opacity(FathomSurface.minimumTextOpacity)

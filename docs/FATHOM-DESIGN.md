@@ -381,8 +381,28 @@ VoiceOver labels state value *and* provenance: *"Freed if deleted, 0 gigabytes,
 sparse file."* Sparklines, core bars and segment bars carry meaning no label
 currently states, and each needs one before it ships.
 
-Dynamic Type to Accessibility Large without clipping. The 9px tracked
-micro-labels are the hard case and have not been proven at that size.
+**Dynamic Type.** Every font helper passes `relativeTo:`, so the whole scale
+grows — including the 9px tracked micro-labels, which are the case that worried
+us. The risk was never the type, it was the containers: a fixed height around
+text clips it, and a fixed height around a chart *and* its label lets the label
+eat the chart.
+
+Chart dimensions are therefore `@ScaledMetric`, not constants. A reader who
+enlarged the text wants a bigger chart, not a bigger caption over the same 52pt
+of line. The sparkline, core bars, segment bar, day columns and treemap all
+grow with the text size.
+
+The treemap grows as a whole rather than per tile. Tile areas are proportional
+to bytes, so a label growing its own tile would make the picture lie.
+
+**The menu-bar preview is capped, on purpose.** macOS gives the widget 22 points
+whatever the user's text size, so a preview that grew would misrepresent the one
+thing that panel exists to show. It holds at Large and the caption beside it
+says why.
+
+What is still unproven is how it looks: whether the enlarged charts read well
+and whether the tracked micro-labels stay legible at Accessibility sizes. That
+needs the app on a real display.
 
 ### The plate, and why the materials are dark
 

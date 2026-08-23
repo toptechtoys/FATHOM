@@ -29,6 +29,11 @@ struct FathomMenuBarPreview: View {
             }
         }
         .padding(.horizontal, 12)
+        // Deliberately not scaled, and deliberately capped. macOS gives the
+        // widget 22pt whatever the user's text size, so a preview that grew
+        // would misrepresent the one thing this panel exists to show. The cap
+        // keeps it truthful; the caption beside it says so.
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .frame(height: 26)
         // Black on light, the one inverted text surface in the app. The
         // contrast gate reads this pairing from here.
@@ -139,6 +144,11 @@ struct FathomDigestCard: View {
 /// omitted to make the picture tidy, so the caller passes a remainder segment
 /// where one exists rather than letting the largest tiles absorb it.
 struct FathomTreemap: View {
+    /// The map grows with the text. Tile areas are proportional to data, so a
+    /// label cannot be allowed to grow its own tile — that would make the
+    /// picture lie. Growing the whole map keeps every proportion intact.
+    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 230
+
     struct Region: Identifiable {
         let id = UUID()
         let name: String
@@ -184,7 +194,7 @@ struct FathomTreemap: View {
                 }
             }
         }
-        .frame(height: 230)
+        .frame(height: height)
         .accessibilityElement(children: .contain)
     }
 }
