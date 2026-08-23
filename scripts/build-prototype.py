@@ -6,16 +6,56 @@ Design-Component runtime for plain DOM rendering, inlines the fonts and icons so
 the file stays self-contained the way the locked prototype was, and applies the
 contrast decisions that are already shipped in Swift.
 """
+import base64
 import json
 import re
+import urllib.parse
 from pathlib import Path
 
-SP = Path(__file__).resolve().parent
-REPO = Path("/Users/rgbcmykdesign/Documents/PARALLELS/FATHOM")
+SCRIPTS = Path(__file__).resolve().parent
+REPO = SCRIPTS.parent
 
-fonts = (SP / "fonts.css").read_text().strip()
-icons = json.loads((SP / "icons.json").read_text())
-dc = (SP / "dc-script.js").read_text()
+# Everything this needs is in the repository. Fonts and icons are derived from
+# the same files the app bundles, so the prototype and the app cannot drift
+# apart, and the content model is committed beside this script rather than
+# living in someone's working directory.
+FONTS = REPO / "Fathom/Resources/Fonts"
+ICONS = REPO / "Fathom/Resources/NavIcons"
+
+# family, css weight, filename, css format
+FACES = [
+    ("Archivo", 400, "Archivo-Regular.ttf", "ttf", "truetype"),
+    ("Archivo", 500, "Archivo-Medium.ttf", "ttf", "truetype"),
+    ("Archivo", 600, "Archivo-SemiBold.ttf", "ttf", "truetype"),
+    ("ArchivoSX", 600, "Archivo_SemiExpanded-SemiBold.ttf", "ttf", "truetype"),
+    ("JB", 400, "JB-400.woff2", "woff2", "woff2"),
+    ("JB", 500, "JB-500.woff2", "woff2", "woff2"),
+]
+
+
+def embedded_faces() -> str:
+    blocks = []
+    for family, weight, filename, mime, fmt in FACES:
+        data = base64.b64encode((FONTS / filename).read_bytes()).decode()
+        blocks.append(
+            f"@font-face{{font-family:'{family}';font-style:normal;"
+            f"font-display:block;font-weight:{weight};"
+            f"src:url(data:font/{mime};base64,{data}) format('{fmt}')}}"
+        )
+    return "\n".join(blocks)
+
+
+def embedded_icons() -> dict[str, str]:
+    out = {}
+    for path in sorted(ICONS.glob("*.svg")):
+        svg = re.sub(r"\s+", " ", path.read_text().strip())
+        out[path.stem] = "data:image/svg+xml," + urllib.parse.quote(svg, safe="")
+    return out
+
+
+fonts = embedded_faces()
+icons = embedded_icons()
+dc = (SCRIPTS / "prototype-content.js").read_text()
 
 # ---------------------------------------------------------------- content model
 # Lift sec() out of the design file and rewrite the Design-Component idioms as
