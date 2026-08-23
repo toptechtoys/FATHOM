@@ -35,10 +35,12 @@ struct MenuBarSettingsView: View {
                 FathomReadoutGrid {
                     FathomMeasurementReadout(
                         label: "Cost",
-                        measurement: FathomKit.Measurement<String>.notPublished(
-                            reason: "Idle cost is a shipped number and needs the Apple-silicon release measurement. The 0.2% CPU and 2.1 energy budget is a target, and printing a target as an observation is exactly the thing this app exists not to do."
-                        ),
-                        note: "Measured, not budgeted",
+                        measurement: MeasuredIdleCost.load().map {
+                            $0.cpuPercent
+                                .formatted(.number.precision(.fractionLength(2)))
+                        },
+                        unit: "% CPU",
+                        note: costNote,
                         format: { $0 }
                     )
                     // Not measurements: these are facts about FATHOM's own
@@ -103,6 +105,24 @@ struct MenuBarSettingsView: View {
             }
             .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
+    }
+
+    /// What the figure means, including whether it is comparable to the budget.
+    ///
+    /// The 0.2% target is stated for four items. A cost measured with one item
+    /// is a real measurement of a different thing, so the note says which.
+    private var costNote: String {
+        guard case let .known(cost, _) = MeasuredIdleCost.load() else {
+            return "The widget measures itself; the budget is not printed as an observation"
+        }
+        let verdict = switch IdleCostBudget.verdict(forCPUPercent: cost.cpuPercent) {
+        case .withinTarget: "within the 0.2% target"
+        case .overTargetWithinBlocking: "over the 0.2% target, under the 0.5% limit"
+        case .blocking: "over the 0.5% limit that blocks a release"
+        }
+        return cost.itemCount == 4
+            ? "Measured with four items · \(verdict)"
+            : "Measured with \(cost.itemCount) item\(cost.itemCount == 1 ? "" : "s") · the target is stated for four"
     }
 
     private func readoutValue(_ text: String, unit: String) -> some View {

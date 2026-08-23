@@ -42,12 +42,24 @@ in `project.yml` fails the build. The scripted guards check every PNG in
 2. Compare the exact SMART, SMC and IOReport readings with the fixtures in
    `FATHOM-DATA-SOURCES.md`. A denied entitlement or absent channel remains
    *not published*; it is not a reason to substitute another value.
-3. Run FATHOM Bar with its four default items. Record idle CPU and Energy Impact.
-   The shipped targets are at most 0.2% CPU and 2.1 Energy Impact; 0.5% or 4.0
-   blocks release. The automated sampling-plan test additionally caps the
-   default steady-state plan at 34 high-level reads per minute (12 CPU, 12
-   network, 6 capacity and 4 temperature inventories). That deterministic cap
-   catches polling regressions, but does not replace the physical measurement.
+3. Run FATHOM Bar with its four default items and read the idle cost off the
+   Menu Bar section. **The widget now measures its own CPU** through
+   `proc_pid_rusage` and publishes it; the app displays that figure and says
+   which item count it was taken with, so this step is a reading rather than a
+   stopwatch exercise. At most 0.2% CPU; 0.5% blocks release.
+
+   **Energy Impact is still a manual reading.** Activity Monitor's composite
+   comes from `powermetrics`, which requires root, so FATHOM does not take it.
+   Read it from Activity Monitor: at most 2.1, and 4.0 blocks release.
+
+   The automated sampling-plan test additionally caps the default steady-state
+   plan at 34 high-level reads per minute (12 CPU, 12 network, 6 capacity and 4
+   temperature inventories). That deterministic cap catches polling
+   regressions, but does not replace the physical measurement.
+
+   **The measurement must be taken on Apple silicon.** The targets are
+   Apple-silicon figures, and a number taken on an Intel Mac is a measurement
+   of something else.
 4. Exercise onboarding, menu-bar visibility guidance, sleep/wake suspension,
    memory-pressure second-row rendering, VoiceOver, keyboard navigation,
    Dynamic Type and Reduce Motion.
@@ -55,12 +67,13 @@ in `project.yml` fails the build. The scripted guards check every PNG in
    Contrast is now enforced rather than assumed. Body text — `white` at 82% —
    previously sat straight on the gradient and failed the 4.5:1 rule on **all
    twenty worlds**, from 2.05:1 (bluetooth) to 4.32:1 (memory). The content
-   column and the rail now sit on a black plate at 40%, and the Instrument
+   column and the rail now sit on a black plate at 45%, and the Instrument
    Panel's materials layer on top of it — cell 16%, row 7%, hover 13% — with
    the colour worlds themselves untouched. The tightest surface is body text on
-   the bare plate at 4.56:1. `scripts/check-contrast.py` composites all seven
-   surfaces across all twenty worlds from source and runs in CI, so a token
-   change that breaks any of them fails the build.
+   the bare plate at 4.72:1. `scripts/check-contrast.py` composites seven
+   surfaces and five semantic colours across all twenty worlds from source,
+   including the white radial highlight the plate sits on, and runs in CI, so a
+   token change that breaks any of them fails the build.
    What still needs a human on the reference machine is everything the numbers
    cannot settle: that the plate reads correctly on a real display — including
    whether `.ultraThinMaterial` behind the cards erodes the margin the gate

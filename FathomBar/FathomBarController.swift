@@ -8,6 +8,8 @@ final class FathomBarController: NSObject {
         withLength: NSStatusItem.variableLength
     )
     private let sampler = FathomBarSampler()
+    /// Measures what this process costs, on the loop that costs it.
+    private let idleSampler = ProcessCPUSampler()
     private var samplingTask: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
     private var sleeping = false
@@ -108,6 +110,7 @@ final class FathomBarController: NSObject {
                 let presentation = await sampler.sample()
                 latestPresentation = presentation
                 updateButton()
+                await publishOwnCost()
                 do {
                     try await Task.sleep(
                         for: .seconds(5),
@@ -118,6 +121,29 @@ final class FathomBarController: NSObject {
                 }
             }
         }
+    }
+
+    /// Publishes what this widget costs, measured on the loop that costs it.
+    ///
+    /// The measurement is taken across the same interval the widget actually
+    /// runs on, so it includes the sample, the button update and the sleep —
+    /// which is the figure a user cares about, not the cost of the read alone.
+    private func publishOwnCost() async {
+        guard case let .known(percent, _) = await idleSampler.sample() else {
+            return
+        }
+        let defaults = UserDefaults(
+            suiteName: FathomBarConfiguration.suiteName
+        ) ?? .standard
+        defaults.set(percent, forKey: FathomBarConfiguration.measuredIdleCPUKey)
+        defaults.set(
+            Date().timeIntervalSinceReferenceDate,
+            forKey: FathomBarConfiguration.measuredIdleAtKey
+        )
+        defaults.set(
+            FathomBarConfiguration.load().enabledItemCount,
+            forKey: FathomBarConfiguration.measuredIdleItemCountKey
+        )
     }
 
     private func observeMemoryPressure() {

@@ -1,3 +1,4 @@
+import FathomKit
 import SwiftUI
 
 /// The 64pt navigation rail.
@@ -106,10 +107,9 @@ struct FathomRail: View {
 
     /// The app's own idle cost, in the app's own chrome.
     ///
-    /// The number is not published yet — `FathomBar` has to measure itself
-    /// first, and rule 8 makes that a shipped figure rather than an estimate.
-    /// Until it does, the dot says the sampler is running and the tooltip says
-    /// what is missing, which is the honest version of the prototype's
+    /// The figure comes from `FathomBar` measuring itself, not from the budget.
+    /// Until the widget has run long enough to have two samples the tooltip
+    /// says so, which is the honest version of the prototype's hardcoded
     /// `0.2% CPU · energy 2.1`.
     private var footer: some View {
         VStack(spacing: 0) {
@@ -120,9 +120,21 @@ struct FathomRail: View {
                 .padding(.top, 12)
                 .padding(.bottom, 14)
         }
-        .help("Sampling at 1 Hz. Idle cost not published.")
+        .help(costDescription)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Sampling at 1 hertz. Idle cost not published.")
+        .accessibilityLabel(costDescription)
+    }
+
+    /// Showing your own cost in your own chrome is a claim only an honest
+    /// utility can make — which is why it has to be the measured figure and
+    /// not the budget.
+    private var costDescription: String {
+        guard case let .known(cost, _) = MeasuredIdleCost.load() else {
+            return "Sampling at 1 Hz. The menu bar widget has not measured its own cost yet."
+        }
+        let percent = cost.cpuPercent
+            .formatted(.number.precision(.fractionLength(2)))
+        return "Sampling at 1 Hz. Menu bar widget measured at \(percent)% CPU with \(cost.itemCount) items."
     }
 }
 

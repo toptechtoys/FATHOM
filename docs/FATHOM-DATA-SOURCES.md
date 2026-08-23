@@ -27,6 +27,31 @@ Every figure in the prototype came from this machine, read with Stats
 
 ---
 
+## The app's own cost
+
+Rule 8 makes idle cost a shipped number. FATHOM measures it rather than
+printing the budget, because a figure the app asserts about itself and never
+checks is the kind of claim this document exists to prevent.
+
+| Value | API | Notes |
+|---|---|---|
+| Widget CPU | `proc_pid_rusage(RUSAGE_INFO_CURRENT)` user + system time | Delta over the widget's own 5 s loop, as a percentage of one core |
+| Items measured with | `FathomBarConfiguration.enabledItemCount` | The 0.2% target is stated for four; a measurement carries the count it was taken with |
+| Measured at | Wall clock at the sample | Older than 60 s reads as stale, not as current |
+
+**Energy Impact is not published to us.** Activity Monitor's composite comes
+from `powermetrics`, which requires root, and FATHOM does not ask for root to
+report on itself. The 2.1 figure in `AGENTS.md` therefore stays a manual
+release-gate reading taken from Activity Monitor on the reference machine, and
+the app does not display it at all rather than displaying a number it cannot
+take.
+
+**A first sample is not a rate.** The widget publishes nothing until it has two
+samples, because one reading is a lifetime total and the lifetime average is
+dominated by whatever the process did at startup.
+
+---
+
 ## Machine identity
 
 The section header names the machine the numbers came from, so the reader knows
