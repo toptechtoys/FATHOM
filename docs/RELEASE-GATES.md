@@ -69,7 +69,16 @@ record them.
    completion, so 10 GB is a lower bound for that volume and says nothing
    quantitative about the M4 reference volume. Measure it; do not scale it.
 2. Compare the exact SMART, SMC and IOReport readings with the fixtures in
-   `FATHOM-DATA-SOURCES.md`. A denied entitlement or absent channel remains
+   `FATHOM-DATA-SOURCES.md`.
+
+   **Capture the raw payloads while you are there.** No test currently replays
+   real hardware bytes — `FathomKitTests` holds no recorded data, so every
+   hardware test asserts behaviour rather than parsing. Dump the raw NVMe SMART
+   log page, the SMC key inventory and values, and the IOReport channel
+   subscription to files, commit them as test resources, and add tests that
+   replay them. This is the only moment anyone can take those recordings, and
+   without them a parser that misreads a real log has nothing standing in its
+   way. A denied entitlement or absent channel remains
    *not published*; it is not a reason to substitute another value.
 3. Run FATHOM Bar with its four default items and read the idle cost off the
    Menu Bar section. **The widget now measures its own CPU** through

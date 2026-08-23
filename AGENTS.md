@@ -179,9 +179,27 @@ documented in `FATHOM-DESIGN.md` with the measurement that forced it. Never
 silently soften a design value; state what it measured and what you changed it
 to.
 
-**Test against the reference machine.** `FathomKitTests` fixtures come from a
-Mac mini M4 Pro, macOS Tahoe 26.5.2, listed in `FATHOM-DATA-SOURCES.md`. Every
-hardware reader gets a test that asserts the exact reference value.
+**Test against the reference machine — not yet true, and worth knowing why.**
+The reference readings are recorded in `FATHOM-DATA-SOURCES.md`, but no test
+replays them: `FathomKitTests` declares no resources and holds no captured data.
+Every hardware test asserts *behaviour* instead — that a tampered channel map
+fails its signature, that energy units convert only when named, that an absent
+channel reports the gap rather than a zero.
+
+Those are good tests and they are not the same thing. Behaviour tests prove the
+reader handles what it is given; a fixture proves it reads real bytes correctly.
+Nothing currently catches a parser that misreads an actual SMART log.
+
+The gap exists because asserting live reference values needs the reference
+machine, and CI does not run on one. The fix is recorded bytes rather than
+weaker assertions: capture the raw SMART, SMC and IOReport payloads during the
+reference pass, commit them as test resources, and replay them anywhere. That
+is now a step in `RELEASE-GATES.md` gate 2, because the only moment anyone can
+capture them is while sitting at that machine.
+
+Until then, do not write a test that asserts a reference figure from memory.
+An invented fixture is worse than no fixture: it passes, and it certifies
+nothing.
 
 **`perflevel0` is the performance cluster.** Not efficiency. This is the most
 common bug in Mac monitoring code and it was in our own prototype.

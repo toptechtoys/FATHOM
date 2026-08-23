@@ -65,6 +65,19 @@ channel stays *not published*; it is never replaced with another value.
 Any row that does not match is a finding, not a rounding error. Record what was
 observed and open an issue before changing a fixture.
 
+**Raw payload capture** — the recordings that let these be tested anywhere.
+
+| Payload | Captured | Committed as |
+|---|---|---|
+| NVMe SMART log page, raw bytes | | |
+| SMC key inventory | | |
+| SMC key values read | | |
+| IOReport channel subscription | | |
+
+No test replays real hardware bytes today. These recordings are the only way to
+prove a parser reads an actual log correctly, and this is the only moment they
+can be taken.
+
 ---
 
 ## Gate 3 — Idle cost
