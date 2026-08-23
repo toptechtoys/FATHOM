@@ -108,15 +108,16 @@ record them.
    column and the rail now sit on a black plate at 45%, and the Instrument
    Panel's materials layer on top of it — cell 16%, row 7%, hover 13% — with
    the colour worlds themselves untouched. The tightest surface is body text on
-   the bare plate at 4.72:1. `scripts/check-contrast.py` composites seven
+   the bare plate at 4.60:1. `scripts/check-contrast.py` composites seven
    surfaces and five semantic colours across all twenty worlds from source,
    including the white radial highlight the plate sits on, and runs in CI, so a
    token change that breaks any of them fails the build.
    What still needs a human on the reference machine is everything the numbers
    cannot settle: that the plate reads correctly on a real display — including
-   whether `.ultraThinMaterial` behind the cards erodes the margin the gate
-   cannot model — and that VoiceOver, keyboard focus, Dynamic Type and Reduce
-   Motion behave.
+   whether the rail's `.ultraThinMaterial` erodes the 0.10 of margin its
+   unselected icons have, which the gate cannot model because a material's
+   composite depends on the wallpaper behind the window — and that VoiceOver,
+   keyboard focus, Dynamic Type and Reduce Motion behave.
 
    **Accessibility labels live in the shared components, not the sections.**
    Eleven components carry `accessibilityLabel`; the section views carry almost

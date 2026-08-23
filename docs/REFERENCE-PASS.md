@@ -121,13 +121,15 @@ treemap whose areas are load-bearing, and a row that reads *does not report*.
 | Dynamic Type to Accessibility Large | |
 | Reduce Motion | |
 | The plate reads correctly on a real display | |
-| `.ultraThinMaterial` behind cards — does it erode the margin? | |
+| `.ultraThinMaterial` behind the rail — does it erode the margin? | |
 
 Two things the contrast gate cannot model and a person must judge:
 
-- Whether `.ultraThinMaterial` behind `HardwareResultCard` lightens the
-  composite enough to matter. The cell keeps 1.20 of margin, which should
-  absorb it.
+- Whether the `.ultraThinMaterial.opacity(0.18)` beneath `FathomRail`'s plate
+  lightens the composite enough to matter. This is the tightest place it could
+  have landed: the rail's unselected icons at 82% white keep 0.10 of margin over
+  the 4.5:1 rule, and a material cannot be composited from source because its
+  result depends on the wallpaper behind the window.
 - Whether the enlarged charts read well at Accessibility sizes, and whether the
   9px tracked micro-labels stay legible.
 

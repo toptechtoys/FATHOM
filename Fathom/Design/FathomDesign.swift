@@ -189,11 +189,14 @@ struct FathomColorWorld: Equatable {
 /// FATHOM-DESIGN.md records that hover deepens and never lightens. The design's
 /// magnitudes are kept; only the sign is flipped.
 ///
-/// Worst world throughout is bluetooth `#2CBE7C`: plate alone 4.56:1 at 82%
-/// white and 5.91:1 for a display title at full white, cell 5.70:1, row 5.02:1,
-/// row hover 5.46:1. `scripts/check-contrast.py` composites these stacks from
-/// source and fails the build if any drops below 4.5:1, so the model here and
-/// the one the app renders cannot drift.
+/// The worst worlds are bluetooth `#2CBE7C` and storage `#2BB6D4`, within 0.002
+/// of each other on every surface. On either: plate alone 4.60:1 at 82% white
+/// and 5.95:1 for a display title at full white, cell 5.75:1, row 5.07:1, row
+/// hover 5.51:1 — each composited with the brightest speckle the grain's band
+/// permits, which is what separates these figures from the pre-grain ones they
+/// replace. `scripts/check-contrast.py` composites these stacks from source and
+/// fails the build if any drops below 4.5:1, so the model here and the one the
+/// app renders cannot drift.
 ///
 /// Text never goes below 82% white on these surfaces. There is no quieter tier:
 /// at 60% the plate would need 58%, and 45% cannot reach 4.5:1 at any depth.

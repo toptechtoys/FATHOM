@@ -499,20 +499,27 @@ of that direction, is preserved. What changed is the ground underneath them.
 
 The twenty colour worlds are untouched.
 
-Every figure below composites the white 15% radial highlight
-`FathomWorldBackground` paints across the upper field, because the plate sits on
-top of that highlight and the ground under text is lighter than the world's
-bottom stop wherever it lands.
+Every figure below composites the whole field under the plate — the world's
+bottom stop, the brightest speckle the grain's band permits, and the white 15%
+highlight — because the plate sits on top of all of it and the ground under text
+is lighter than the bottom stop wherever they land.
 
-| Surface | Stack | Worst world (Bluetooth) |
+Bluetooth `#2CBE7C` and Storage `#2BB6D4` are the two worst worlds and sit
+within 0.002 of each other on every surface, so which of them the gate names as
+worst varies by surface and means nothing. These are the figures it prints:
+
+| Surface | Stack | Worst world |
 |---|---|---|
-| Content plate — display title, full white | `.45` | 6.12:1 |
-| Content plate — body text at 82% | `.45` | 4.72:1 |
-| Rail — selected, full white | `.45` | 6.12:1 |
-| Rail — unselected at 82% | `.45` | 4.72:1 |
-| Readout cell, card, tile | `.45` + `.16` | 5.87:1 |
-| Data row | `.45` + `.07` | 5.19:1 |
-| Data row, hover | `.45` + `.13` | 5.63:1 |
+| Content plate — display title, full white | `.45` | 5.95:1 |
+| Content plate — body text at 82% | `.45` | 4.60:1 |
+| Rail — selected, full white | `.45` | 5.95:1 |
+| Rail — unselected at 82% | `.45` | 4.60:1 |
+| Readout cell, card, tile | `.45` + `.16` | 5.75:1 |
+| Data row | `.45` + `.07` | 5.07:1 |
+| Data row, hover | `.45` + `.13` | 5.51:1 |
+
+Run `scripts/check-contrast.py` rather than trusting this table. It prints all
+of it, and it is what CI enforces.
 
 **Why 45% and not 40%.** 40% is what the bottom stop alone appears to allow, and
 it is wrong: under the highlight the same surface renders 4.18:1. The minimum
@@ -555,13 +562,18 @@ micro-label reads at 82%, the same as body text.
 `MeasurementValueView` drops below it.
 
 **Adding a colour world.** The plate leaves the tightest surface — body text at
-82% — with 0.22 of margin. A world with a brighter bottom stop than Bluetooth's
-`#2CBE7C` will fail the gate. Check before adding one.
+82% — with **0.10** of margin. A world with a brighter bottom stop than
+Bluetooth's `#2CBE7C` or Storage's `#2BB6D4` will fail the gate. Check before
+adding one.
 
-`HardwareResultCard` layers `.ultraThinMaterial.opacity(0.15)` behind its
-material, which lightens the composite by an amount the gate does not model. The
-cell's 1.20 of margin absorbs it, but the rendered result still wants a look on
-the reference machine.
+**One layer under the plate is still unmodelled, and it is under the tightest
+surface.** `FathomRail` puts `.ultraThinMaterial.opacity(0.18)` beneath its
+plate, standing in for the prototype's `backdrop-filter: blur(46px)
+saturate(135%)`. A material's composite depends on the wallpaper and the display
+and cannot be computed from source, so the gate cannot model it — and the rail's
+unselected icons at 82% are the joint-tightest surface in the app, with 0.10 to
+give. If anything erodes on a real display it will be there first. That is a
+reading for the reference machine, and the only one the gate cannot take.
 
 `scripts/check-contrast.py` reads the worlds, the grain, the highlight, the
 plate, every material, the semantic palette, the focus ring and the text alpha
