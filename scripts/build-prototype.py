@@ -67,9 +67,12 @@ NAV = ("[['', ['menubar', 'digest']], ['OVERVIEW', ['home', 'scan']], "
 CSS = """
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
- --disp:'Bricolage',-apple-system,sans-serif;
- --ui:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
- --num:'Instrument',-apple-system,sans-serif;--mono:'JB',ui-monospace,monospace;
+ /* Archivo, per the handoff. SemiExpanded is width class 6 -- 112.5% of
+    normal -- against the specified wdth 112. The UI face is normal width:
+    wdth 104 needs the variable font, which Archivo does not ship here. */
+ --disp:'ArchivoSX','Archivo',-apple-system,sans-serif;
+ --ui:'Archivo',-apple-system,BlinkMacSystemFont,sans-serif;
+ --num:'Archivo',-apple-system,sans-serif;--mono:'JB',ui-monospace,monospace;
  --b1:#04203A;--b2:#0B5296;--b3:#2E8BE0;
  --plate:rgba(0,0,0,.45);--cell:rgba(0,0,0,.16);
  --row:rgba(0,0,0,.07);--rowh:rgba(0,0,0,.13);

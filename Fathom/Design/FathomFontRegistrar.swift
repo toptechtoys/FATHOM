@@ -16,7 +16,12 @@ enum FathomFontRegistrar {
             return
         }
 
-        for case let url as URL in enumerator where url.pathExtension == "woff2" {
+        // Archivo ships as static TTF instances; the design-system faces are
+        // woff2. Registering only one extension is how a bundled font
+        // silently falls back to a system face at runtime.
+        let fontExtensions: Set<String> = ["woff2", "ttf", "otf"]
+        for case let url as URL in enumerator
+        where fontExtensions.contains(url.pathExtension.lowercased()) {
             CTFontManagerRegisterFontsForURL(
                 url as CFURL,
                 .process,

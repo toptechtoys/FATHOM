@@ -211,16 +211,16 @@ are in `AGENTS.md` and they are the product.
 
 | Role | Family | Size | Tracking |
 |---|---|---|---|
-| Section title | Bricolage Grotesque 600 | `clamp(28px, 2.8vw, 40px)` | −0.028em |
-| Readout value | Bricolage Grotesque 600 | `clamp(30px, 2.7vw, 38px)` | −0.03em |
-| Readout unit | system UI | 13px | −0.008em |
-| Note headline | Bricolage Grotesque 600 | 19px | −0.022em |
-| Machine line, note body | system UI | 12.5px | −0.008em |
-| Live pill, readout note, hint | system UI | 11.5px | −0.008em |
-| Row | system UI | 13px | −0.008em |
-| Row annotation | system UI | 10.5px | −0.008em |
-| Micro-label | system UI 600 | 9px, uppercase | 0.16em |
-| Status strip | system UI 700 | 10px, uppercase | 0.1em |
+| Section title | Archivo SemiExpanded 600 | `clamp(28px, 2.8vw, 40px)` | −0.028em |
+| Readout value | Archivo SemiExpanded 600 | `clamp(30px, 2.7vw, 38px)` | −0.03em |
+| Readout unit | Archivo | 13px | −0.008em |
+| Note headline | Archivo SemiExpanded 600 | 19px | −0.022em |
+| Machine line, note body | Archivo | 12.5px | −0.008em |
+| Live pill, readout note, hint | Archivo | 11.5px | −0.008em |
+| Row | Archivo | 13px | −0.008em |
+| Row annotation | Archivo | 10.5px | −0.008em |
+| Micro-label | Archivo 600 | 9px, uppercase | 0.16em |
+| Status strip | Archivo 700 | 10px, uppercase | 0.1em |
 | Path, identifier | JetBrains Mono | 11–12px | 0 |
 
 Readout notes cap at 32 characters, body copy at 66. Titles use
@@ -229,12 +229,22 @@ Readout notes cap at 32 characters, body copy at 66. Titles use
 **Every numeral in a column that can be compared is tabular.** Non-negotiable —
 `font-variant-numeric: tabular-nums` is set globally, not per component.
 
-**Bricolage Grotesque is provisional.** The Instrument Panel handoff specifies
-Archivo at `wdth 112` for display and `104` for UI. Archivo is not bundled in
-the repository and Bricolage is, and the handoff ships Bricolage as a wired-up
-alternate, so the prototype uses it. Adopting Archivo means bundling its
-variable woff2 and changing `Font.fathomDisplay`; it is one decision and it
-changes every screen. It has not been made.
+**Archivo, adopted 23 August.** One family for display, UI and numerals, with
+JetBrains Mono for paths. Bricolage Grotesque and Instrument Sans belonged to
+the poster direction and are gone from the bundle.
+
+Five static instances ship: Regular, Medium, SemiBold and Bold at normal width,
+and SemiExpanded SemiBold for titles and readout values. Attribution and the SIL
+Open Font License are in `THIRD_PARTY_NOTICES.md`.
+
+**`wdth 104` is not reachable and the UI face is 100.** The handoff specifies
+`wdth 112` for display and `104` for UI, which are variable-font axis values.
+Archivo ships as static instances at width classes 62, 75, 87.5, 100, 112.5 and
+125. SemiExpanded measures 112.5% against the specified 112 — close enough to be
+the same face — but nothing sits at 104, so the UI takes normal width at 100.
+The alternative was SemiExpanded at 112.5, which is more than twice as far from
+the specification in the other direction. Closing that four-unit gap needs the
+variable font, which is a separate decision about bundling a second file.
 
 ---
 

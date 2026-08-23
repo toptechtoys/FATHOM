@@ -16,6 +16,7 @@
 		1DB47E259FD47D4DA0F9B3E2 /* DeepScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEE6651EBD25A86CA7B6BE8 /* DeepScanView.swift */; };
 		1DF8C8D2CB4747FF2737150D /* CPUView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8341C837ABC0DBF21863688C /* CPUView.swift */; };
 		1E03B60ED88FB3A0BDF2F18D /* FathomAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5103585890A75C9E65679720 /* FathomAction.swift */; };
+		1EB64A85DD33B77EA1CFE8A1 /* Archivo_SemiExpanded-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FE1175921AF5DB99719DC703 /* Archivo_SemiExpanded-SemiBold.ttf */; };
 		224D999EBC11B0E0FD314388 /* FathomKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9EC85ED3F402750C6713C7DA /* FathomKit */; };
 		247FBC85DA9C41C0D3D1A57B /* BluetoothView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AAA420D99CCBAA8D33CD09F /* BluetoothView.swift */; };
 		2787064A4C984CA855F56D72 /* FathomDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = B151F28FCD074A2973C21BDE /* FathomDesign.swift */; };
@@ -27,10 +28,12 @@
 		56E04AB7B262EF5D986390F8 /* FathomRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 545DAABC5837C80A39A8A968 /* FathomRootView.swift */; };
 		5CD71D496F23B9A964B3C344 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F45B1BBF1E502165377975 /* MemoryView.swift */; };
 		5DD2A3A07A8CA8F173C4C97F /* ReclaimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8779E0AEA77AD830E2CCC2E7 /* ReclaimView.swift */; };
+		5E7AADB7018C027F1839ECE1 /* Archivo-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D4D125DA0B4069467AB19CE8 /* Archivo-SemiBold.ttf */; };
 		6046A233B426FEEA0C7B0E6F /* FathomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51D01C951D1F474F76464F2 /* FathomPanel.swift */; };
 		628172EE3332DD184B6F7A4F /* FathomWorldBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5A1184E63B9E35E804089D /* FathomWorldBackground.swift */; };
 		66625315D49EE6A99BA36D27 /* FathomLists.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2768BB1789961620CD28146 /* FathomLists.swift */; };
 		68BCA30176AE96025FDB51EB /* FathomGrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C910CA8A2FA8238A80D9D35 /* FathomGrain.swift */; };
+		6B123E8D34C8A124EE971D73 /* Archivo-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C68F18D20DDBD1F045638D5D /* Archivo-Regular.ttf */; };
 		6CC701C6C4D89F7AAE2912A8 /* JB-400.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */; };
 		70EF4FB835B04058A9FD97E4 /* FathomApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2C90C6B8600E922850878FE /* FathomApp.swift */; };
 		7346A8557B8ADF960BDCDF77 /* JB-500.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 449451493A035832EBCE933B /* JB-500.woff2 */; };
@@ -44,11 +47,12 @@
 		86D66191B509594994E5E926 /* HardwareMeasurementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */; };
 		88DD0719259B1367D339C749 /* DigestNotificationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C36AF54286367ED1515DD1 /* DigestNotificationModel.swift */; };
 		8A1AC222772DD85DDA8DAE42 /* NavIcons in Resources */ = {isa = PBXBuildFile; fileRef = FB25755FEEE672AC3A549DB6 /* NavIcons */; };
-		8C9CF78A2EB0072AA592493A /* Instrument-400-700.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 06E4AAE7EA26F36F2113797A /* Instrument-400-700.woff2 */; };
 		8EB854C3F6F93AC56FF3E7B8 /* FathomBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC84EF52CDA7D3DCC028872A /* FathomBarApp.swift */; };
 		8F4B019527E761D3BC4055B4 /* SensorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 539B24AFD3D55C78D146787E /* SensorsView.swift */; };
+		9471BFCE7326695F924F07E0 /* Archivo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 919F6E50B5E88A1F652E49F8 /* Archivo-Bold.ttf */; };
 		96CB042AD988988688D65D4C /* FathomSectionIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAFA57F521CD8D4E02A23EE2 /* FathomSectionIcon.swift */; };
 		9827274436CD35514F03A74A /* CloudAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A188703CB9CC4BFC475BFA /* CloudAppModel.swift */; };
+		9A6A95A45549DBFCF13D9218 /* LICENSE-Archivo.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0C7206B93E38D8904303A5CF /* LICENSE-Archivo.txt */; };
 		9C981B0DC1980DD3FF683C86 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F35CCAB9746A8E5D6566F9A /* TimelineView.swift */; };
 		A3940CBC432586E91CCCBA98 /* CloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CCB0D1EC7444D9DF70926E /* CloudView.swift */; };
 		A68931E29E500188A92CDE37 /* StorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71CCD5AC346A305E1CE6936 /* StorageView.swift */; };
@@ -59,6 +63,7 @@
 		AEFB57C37D262E8B61963EA1 /* FathomSurfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = B953DFFF2F70CD9827A61EC2 /* FathomSurfaces.swift */; };
 		B07EFBCE3966CE0364961007 /* PublicIPAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FCBB73760F21E3ACF21283 /* PublicIPAppModel.swift */; };
 		B3EAEA6C47065479B65ACE6B /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B53C4851511439539956F03 /* ExploreView.swift */; };
+		BA4B51561A60572EF54DD826 /* Archivo-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FF2650CF0DECAF046CB9BA21 /* Archivo-Medium.ttf */; };
 		BB5B49218EBCCB6395777AA7 /* MenuBarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031FE88C093F3A66F0287C00 /* MenuBarSettingsView.swift */; };
 		BD887A1E1388390E24271165 /* StorageAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 777FCF0EA20710D67810D800 /* StorageAppModel.swift */; };
 		C35495DA37820DECDB6566FC /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */; };
@@ -66,7 +71,6 @@
 		CCBD91DF100B410904841964 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */; };
 		D1E3B8F76C6F117645E1DE04 /* FathomBarSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C5696753C976CE6ED50826 /* FathomBarSampler.swift */; };
 		D29E9019C325B8C87B0887B8 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A927F52F7D48D2D39328DA48 /* AttributionView.swift */; };
-		DD5413373807F480D68DC1DA /* Bricolage-200-800.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = A0CF38A4B87D9BDFFF9157AC /* Bricolage-200-800.woff2 */; };
 		E08DA37B5FA5E29C9591113A /* WeeklyDigestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8576B6B198461A3F8D5E0B75 /* WeeklyDigestView.swift */; };
 		E27B078D696D1F69D7B39DCB /* GPUView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F927B51C8F9363546595F4 /* GPUView.swift */; };
 		E8BDD357ED9F649EEF505493 /* MaintenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFBFB98D440B3C4B66B38142 /* MaintenanceView.swift */; };
@@ -91,8 +95,8 @@
 /* Begin PBXFileReference section */
 		031FE88C093F3A66F0287C00 /* MenuBarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsView.swift; sourceTree = "<group>"; };
 		03F45B1BBF1E502165377975 /* MemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryView.swift; sourceTree = "<group>"; };
-		06E4AAE7EA26F36F2113797A /* Instrument-400-700.woff2 */ = {isa = PBXFileReference; path = "Instrument-400-700.woff2"; sourceTree = "<group>"; };
 		0AAA420D99CCBAA8D33CD09F /* BluetoothView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothView.swift; sourceTree = "<group>"; };
+		0C7206B93E38D8904303A5CF /* LICENSE-Archivo.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LICENSE-Archivo.txt"; sourceTree = "<group>"; };
 		0F7D35FD0094D7068E99038D /* FathomRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomRail.swift; sourceTree = "<group>"; };
 		1378B23D32A8C86763EF9187 /* FathomSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSectionHeader.swift; sourceTree = "<group>"; };
 		19AFC5B50088FCB4C10BA40E /* CountryFlagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryFlagView.swift; sourceTree = "<group>"; };
@@ -129,8 +133,8 @@
 		8576B6B198461A3F8D5E0B75 /* WeeklyDigestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyDigestView.swift; sourceTree = "<group>"; };
 		8779E0AEA77AD830E2CCC2E7 /* ReclaimView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReclaimView.swift; sourceTree = "<group>"; };
 		8ABEC91B120D4F6001235AE5 /* Fathom.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fathom.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		919F6E50B5E88A1F652E49F8 /* Archivo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Archivo-Bold.ttf"; sourceTree = "<group>"; };
 		9B53C4851511439539956F03 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
-		A0CF38A4B87D9BDFFF9157AC /* Bricolage-200-800.woff2 */ = {isa = PBXFileReference; path = "Bricolage-200-800.woff2"; sourceTree = "<group>"; };
 		A1462B4CBB0C807581885D9E /* HonestUnavailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HonestUnavailableView.swift; sourceTree = "<group>"; };
 		A2C90C6B8600E922850878FE /* FathomApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomApp.swift; sourceTree = "<group>"; };
 		A38F3DE0081B92E7A276145C /* OnboardingAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingAppModel.swift; sourceTree = "<group>"; };
@@ -143,11 +147,13 @@
 		B953DFFF2F70CD9827A61EC2 /* FathomSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSurfaces.swift; sourceTree = "<group>"; };
 		BAFA57F521CD8D4E02A23EE2 /* FathomSectionIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomSectionIcon.swift; sourceTree = "<group>"; };
 		BE4A2EE215BDF8ED6EF0EA7A /* HardwareAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareAppModel.swift; sourceTree = "<group>"; };
+		C68F18D20DDBD1F045638D5D /* Archivo-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Archivo-Regular.ttf"; sourceTree = "<group>"; };
 		C97FCFDAE0C6C91C52E86ABF /* CommandPaletteModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteModel.swift; sourceTree = "<group>"; };
 		CA040F5CC8D1BE9075402ED4 /* PublicIPPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicIPPanel.swift; sourceTree = "<group>"; };
 		CA364CE05EA2AD7319BB4BE6 /* HardwareMeasurementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareMeasurementView.swift; sourceTree = "<group>"; };
 		D3A188703CB9CC4BFC475BFA /* CloudAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudAppModel.swift; sourceTree = "<group>"; };
 		D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FathomBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4D125DA0B4069467AB19CE8 /* Archivo-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Archivo-SemiBold.ttf"; sourceTree = "<group>"; };
 		D5CCB0D1EC7444D9DF70926E /* CloudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudView.swift; sourceTree = "<group>"; };
 		DFBFB98D440B3C4B66B38142 /* MaintenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceView.swift; sourceTree = "<group>"; };
 		E51D01C951D1F474F76464F2 /* FathomPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomPanel.swift; sourceTree = "<group>"; };
@@ -159,6 +165,8 @@
 		F516517F811E44D1E159AAE6 /* FathomBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomBarController.swift; sourceTree = "<group>"; };
 		F7F927B51C8F9363546595F4 /* GPUView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUView.swift; sourceTree = "<group>"; };
 		FB25755FEEE672AC3A549DB6 /* NavIcons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = NavIcons; path = Fathom/Resources/NavIcons; sourceTree = SOURCE_ROOT; };
+		FE1175921AF5DB99719DC703 /* Archivo_SemiExpanded-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Archivo_SemiExpanded-SemiBold.ttf"; sourceTree = "<group>"; };
+		FF2650CF0DECAF046CB9BA21 /* Archivo-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Archivo-Medium.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -298,10 +306,14 @@
 		480C59CC2F44837417B91FD8 /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
-				A0CF38A4B87D9BDFFF9157AC /* Bricolage-200-800.woff2 */,
-				06E4AAE7EA26F36F2113797A /* Instrument-400-700.woff2 */,
+				FE1175921AF5DB99719DC703 /* Archivo_SemiExpanded-SemiBold.ttf */,
+				919F6E50B5E88A1F652E49F8 /* Archivo-Bold.ttf */,
+				FF2650CF0DECAF046CB9BA21 /* Archivo-Medium.ttf */,
+				C68F18D20DDBD1F045638D5D /* Archivo-Regular.ttf */,
+				D4D125DA0B4069467AB19CE8 /* Archivo-SemiBold.ttf */,
 				6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */,
 				449451493A035832EBCE933B /* JB-500.woff2 */,
+				0C7206B93E38D8904303A5CF /* LICENSE-Archivo.txt */,
 			);
 			path = Fonts;
 			sourceTree = "<group>";
@@ -579,12 +591,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9471BFCE7326695F924F07E0 /* Archivo-Bold.ttf in Resources */,
+				BA4B51561A60572EF54DD826 /* Archivo-Medium.ttf in Resources */,
+				6B123E8D34C8A124EE971D73 /* Archivo-Regular.ttf in Resources */,
+				5E7AADB7018C027F1839ECE1 /* Archivo-SemiBold.ttf in Resources */,
+				1EB64A85DD33B77EA1CFE8A1 /* Archivo_SemiExpanded-SemiBold.ttf in Resources */,
 				7E354ACCE4D66513004556BC /* Assets.xcassets in Resources */,
-				DD5413373807F480D68DC1DA /* Bricolage-200-800.woff2 in Resources */,
 				83ABE218205B9202A23BC3C5 /* CountryFlags in Resources */,
-				8C9CF78A2EB0072AA592493A /* Instrument-400-700.woff2 in Resources */,
 				6CC701C6C4D89F7AAE2912A8 /* JB-400.woff2 in Resources */,
 				7346A8557B8ADF960BDCDF77 /* JB-500.woff2 in Resources */,
+				9A6A95A45549DBFCF13D9218 /* LICENSE-Archivo.txt in Resources */,
 				8A1AC222772DD85DDA8DAE42 /* NavIcons in Resources */,
 				798ED73E3ECE1FD2E49BAE1E /* FathomBar.app in Resources */,
 			);

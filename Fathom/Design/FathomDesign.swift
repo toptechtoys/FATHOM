@@ -292,40 +292,62 @@ extension Color {
 }
 
 extension Font {
+    /// UI and numerals.
+    ///
+    /// Archivo at its normal width. The Instrument Panel handoff asks for
+    /// `wdth 104`, which only a variable font can hit — Archivo ships as static
+    /// instances at 62, 75, 87.5, 100, 112.5 and 125, so 100 is the nearest and
+    /// 104 is not reachable without the variable file. See *Type* in
+    /// FATHOM-DESIGN.md.
     static func fathomSystem(
         _ size: CGFloat,
         weight: Font.Weight = .regular,
         design: Font.Design = .default
     ) -> Font {
-        let name = design == .monospaced
-            ? ".AppleSystemUIFontMonospaced"
-            : ".AppleSystemUIFont"
+        guard design != .monospaced else {
+            return .custom(
+                ".AppleSystemUIFontMonospaced",
+                size: size,
+                relativeTo: fathomRelativeStyle(for: size)
+            )
+            .weight(weight)
+        }
         return .custom(
-            name,
+            "Archivo",
             size: size,
             relativeTo: fathomRelativeStyle(for: size)
         )
         .weight(weight)
     }
 
+    /// Section titles and readout values.
+    ///
+    /// Archivo SemiExpanded, which measures width class 6 — 112.5% of normal,
+    /// against the handoff's `wdth 112`. Close enough to be the same face.
     static func fathomDisplay(
         _ size: CGFloat,
         weight: Font.Weight = .semibold
     ) -> Font {
         .custom(
-            "Bricolage Grotesque 96pt ExtraBold",
+            "Archivo SemiExpanded",
             size: size,
             relativeTo: fathomRelativeStyle(for: size)
         )
             .weight(weight)
     }
 
+    /// Figures in a column that can be compared.
+    ///
+    /// Archivo, like the rest of the UI — the handoff specifies one family for
+    /// UI and numerals both, and Instrument Sans belonged to the earlier
+    /// direction. `monospacedDigit` makes the numerals tabular, which
+    /// FATHOM-DESIGN.md calls non-negotiable.
     static func fathomData(
         _ size: CGFloat,
         weight: Font.Weight = .regular
     ) -> Font {
         .custom(
-            "Instrument Sans",
+            "Archivo",
             size: size,
             relativeTo: fathomRelativeStyle(for: size)
         )
