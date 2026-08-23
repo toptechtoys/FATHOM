@@ -23,13 +23,122 @@ struct FathomReadoutGrid<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 190), spacing: 1)],
-            spacing: 1
-        ) {
+        FathomReadoutRow {
             content
         }
+        .frame(maxWidth: .infinity)
         .padding(.bottom, 4)
+    }
+}
+
+/// `repeat(auto-fit, minmax(190pt, 1fr))`, which SwiftUI has no column for.
+///
+/// `LazyVGrid` with `GridItem(.adaptive(minimum: 190))` is CSS *auto-fill*: it
+/// keeps the tracks nothing landed in. The first time this app was run, four
+/// readouts on a 2,184pt content column rendered at 198pt each and stopped a
+/// third of the way across, with *not published* wrapping onto two lines in
+/// three cells out of four. Nothing had gone wrong — that is what auto-fill
+/// does, and it is not what the prototype asks for.
+///
+/// A `Layout` can count its own subviews, which is the whole difference:
+/// auto-fit is auto-fill capped at the number of things there are to place.
+/// The arithmetic is `ReadoutRowLayout` in FathomKit, where it is tested.
+struct FathomReadoutRow: Layout {
+    /// The prototype's `minmax(190px, …)`.
+    var minimum: CGFloat = 190
+    /// The prototype's `gap: 1px` — and the hairline itself, since each cell
+    /// strokes its own boundary and two strokes meet in the gap.
+    var gap: CGFloat = 1
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        // A nil or infinite proposal means "how wide would you like to be".
+        // One row at the minimum track width is the honest answer, and it keeps
+        // an unbounded number out of the arithmetic below.
+        let natural = minimum * CGFloat(max(1, subviews.count))
+            + gap * CGFloat(max(0, subviews.count - 1))
+        let proposed = proposal.width
+        let width = (proposed?.isFinite == true ? proposed! : natural)
+        let heights = rowHeights(width: width, subviews: subviews)
+        return CGSize(
+            width: width,
+            height: heights.reduce(0, +)
+                + gap * CGFloat(max(0, heights.count - 1))
+        )
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let columns = ReadoutRowLayout.columnCount(
+            width: bounds.width,
+            itemCount: subviews.count,
+            minimum: minimum,
+            gap: gap
+        )
+        guard columns > 0 else { return }
+        let cell = ReadoutRowLayout.cellWidth(
+            width: bounds.width,
+            columns: columns,
+            gap: gap
+        )
+        let heights = rowHeights(width: bounds.width, subviews: subviews)
+        var y = bounds.minY
+        for (row, range) in ReadoutRowLayout.rows(
+            itemCount: subviews.count,
+            columns: columns
+        ).enumerated() {
+            for index in range {
+                subviews[index].place(
+                    at: CGPoint(
+                        x: bounds.minX
+                            + CGFloat(index - range.lowerBound) * (cell + gap),
+                        y: y
+                    ),
+                    proposal: ProposedViewSize(width: cell, height: heights[row])
+                )
+            }
+            y += heights[row] + gap
+        }
+    }
+
+    /// Every cell in a row is as tall as the tallest one in it.
+    ///
+    /// A readout whose note runs to three lines makes its neighbours match,
+    /// because the gap between two cells *is* the hairline and a short cell
+    /// would leave that line stopping in mid-air.
+    private func rowHeights(width: CGFloat, subviews: Subviews) -> [CGFloat] {
+        let columns = ReadoutRowLayout.columnCount(
+            width: width,
+            itemCount: subviews.count,
+            minimum: minimum,
+            gap: gap
+        )
+        guard columns > 0 else { return [] }
+        let cell = ReadoutRowLayout.cellWidth(
+            width: width,
+            columns: columns,
+            gap: gap
+        )
+        return ReadoutRowLayout.rows(
+            itemCount: subviews.count,
+            columns: columns
+        ).map { range in
+            range.reduce(CGFloat(0)) { tallest, index in
+                max(
+                    tallest,
+                    subviews[index].sizeThatFits(
+                        ProposedViewSize(width: cell, height: nil)
+                    ).height
+                )
+            }
+        }
     }
 }
 
