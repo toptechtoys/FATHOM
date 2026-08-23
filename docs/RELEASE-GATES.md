@@ -79,6 +79,19 @@ in `project.yml` fails the build. The scripted guards check every PNG in
    whether `.ultraThinMaterial` behind the cards erodes the margin the gate
    cannot model — and that VoiceOver, keyboard focus, Dynamic Type and Reduce
    Motion behave.
+
+   **Accessibility labels live in the shared components, not the sections.**
+   Eleven components carry `accessibilityLabel`; the section views carry almost
+   none of their own and rely entirely on those. That is deliberate — a label
+   written once beside the value it describes cannot drift from it — but it
+   means a component with a wrong label is wrong everywhere at once. **No
+   per-view VoiceOver audit has been done**, and it should be scoped as its own
+   reviewed change rather than folded into this pass.
+
+   Dynamic Type is settled as far as static reading can settle it: the fonts
+   scale, and the containers that used to clip were fixed. What is unproven is
+   whether the enlarged charts read well and whether the 9px tracked
+   micro-labels stay legible at Accessibility sizes.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it. `SystemMonitorModel` reads
    paired devices on its sampling loop, so a missing or rejected
@@ -100,14 +113,26 @@ in `project.yml` fails the build. The scripted guards check every PNG in
    *not published*; and leaving it stops the reads. Neither app target has a test
    bundle (`testTargets: []`), so this lifecycle has no automated coverage and
    must be exercised by hand.
-7. Once gates 1–6 are recorded, **delete `docs/HANDOFF.md`**. It is a
-   point-in-time session record rather than a living spec, and after this pass it
-   describes a repository state that no longer exists. Everything durable in it
-   is already here or in `FATHOM-DATA-SOURCES.md`, so nothing is lost. Move it to
-   the Trash — the same rule the product applies to a user's files applies to our
-   own.
+7. ~~Delete `docs/HANDOFF.md`.~~ **Done, 23 August.** It was a point-in-time
+   session record rather than a living spec, and it had come to describe a
+   repository state that no longer existed. Its two pieces of durable content
+   were moved here first — the credential state under *Distribution*, and the
+   accessibility caveat into gate 4 — so nothing was lost. It remains in git
+   history, which is this repository's version of the Trash: removed from the
+   working tree, recoverable, not destroyed.
 
 ## Distribution
+
+**None of this has been exercised, and the credentials do not exist yet.** On
+the development host `security find-identity -v -p codesigning` reports **0
+valid identities**, and `notarytool` has no `fathom-notary` profile. Signing and
+notarization are therefore untested end to end, not merely unrun — the script
+below has never had a real certificate to work with.
+
+Two further items are blocked on something outside this repository rather than
+on time: the **signed IOReport channel map** and the **expanded reclaim
+recipes** both need a trusted source and a signing key. Neither may be
+fabricated to unblock a build; an unsigned map stays *not published*.
 
 Configure the Developer ID certificate and a `notarytool` keychain profile
 locally; do not put credentials in the repository. Then run:
