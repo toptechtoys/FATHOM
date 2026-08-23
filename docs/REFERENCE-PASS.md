@@ -5,9 +5,13 @@ been measured. Leave a field blank rather than writing a plausible figure; a
 blank says *not measured*, and an invented number says something worse.
 
 `RELEASE-GATES.md` says what each gate is and why. This is where the results go.
-Fill it in on the reference machine, commit it to this branch, and merge when
-every gate has a result — including the ones that come back *not published*,
-which are outcomes rather than failures.
+Fill it in on the reference machine and commit it — as its own pull request if
+the results warrant discussion, directly if they do not. Record every gate,
+including the ones that come back *not published*, which are outcomes rather
+than failures.
+
+Copy this file per release rather than overwriting it. A pass is evidence about
+one commit on one machine, and last release's figures are not this release's.
 
 | | |
 |---|---|
