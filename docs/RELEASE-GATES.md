@@ -151,7 +151,35 @@ record them.
    yourself**: arrows through all twenty sections and back, Tab into the rail,
    Command-K for the palette.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
-   prompt and that the app keeps running through it. `SystemMonitorModel` reads
+   prompt and that the app keeps running through it.
+
+   **As of 24 August this gate cannot be reached: opening Bluetooth hangs the
+   app.** Clicking the Bluetooth rail item froze the whole window — the section
+   never appeared, the previous section stayed on screen, and the 1 Hz loop
+   stopped everywhere. Still blocked after forty seconds at 0.0% CPU, so it is
+   a wait rather than a spin. `sample(1)` puts the main thread here:
+
+   ```
+   closure #2 in BluetoothView.body.getter      BluetoothView.swift:20
+     SystemMonitorModel.beginBluetoothObservation()  SystemMonitorModel.swift:115
+       BluetoothReader.read()                        BluetoothReader.swift:66
+         +[IOBluetoothDevice pairedDevices]
+           +[IOBluetoothCoreBluetoothCoordinator sharedInstance]
+             -[IOBluetoothCoreBluetoothCoordinator init]      <- blocked
+   ```
+
+   `beginBluetoothObservation` is on the main actor and calls
+   `BluetoothReader().read()` synchronously from `onAppear`. The comment above
+   it already notes that the enumeration "runs on the main actor" — the
+   assumption is that it is cheap, and the first call is not: it builds the
+   CoreBluetooth coordinator, which blocks. Whether it blocks *because* the
+   consent prompt cannot be presented was not established.
+
+   Observed on an Intel MacBookPro16,1, which is not the reference machine, and
+   an unsigned debug build rather than the signed hardened one this gate calls
+   for. Reproduce it on Apple silicon before designing the fix. Gate 6 below
+   cannot be exercised at all until this is resolved, since it walks *through*
+   Bluetooth. `SystemMonitorModel` reads
    paired devices on its sampling loop, so a missing or rejected
    `NSBluetoothAlwaysUsageDescription` terminates the process rather than
    degrading; the unit suite proves the reader refuses to ask without the key,
