@@ -41,10 +41,25 @@ final class SystemMonitorModel: ObservableObject {
 
     /// How long the section waits before saying macOS has not answered.
     ///
-    /// Four ticks of the loop: long enough that a slow first read still lands
-    /// as a reading, short enough that a stalled one is a sentence on screen
-    /// rather than a frozen window.
-    private static let bluetoothDeadline = Duration.seconds(4)
+    /// **Measured, not chosen.** An instrumented build timed 48 consecutive
+    /// reads on the test machine: the first took **5,777 ms** — the
+    /// CoreBluetooth coordinator being built — and the remaining 47 had a
+    /// median of **3.5 ms** and a worst case of 83 ms. Three orders of
+    /// magnitude apart, with nothing in between.
+    ///
+    /// The first draft of this said four seconds, which was a number someone
+    /// liked the sound of. It sat *below* the cold read, so a normal launch
+    /// would have announced that macOS had failed to answer about two seconds
+    /// before it answered.
+    ///
+    /// Ten gives the cold read most of its own length again. It is not there
+    /// to catch a slow read — nothing here is slow once the coordinator
+    /// exists — it is there for the read that never returns at all, because
+    /// the consent prompt is waiting on a person and a person is unbounded.
+    ///
+    /// One machine, one Bluetooth stack, one sample of the case that matters.
+    /// `RELEASE-GATES.md` asks the reference machine to take it again.
+    private static let bluetoothDeadline = Duration.seconds(10)
 
     /// Five sections share this one loop, and SwiftUI presents the incoming
     /// section before the outgoing one disappears. Observers are counted rather
@@ -206,7 +221,7 @@ final class SystemMonitorModel: ObservableObject {
 
     private static let bluetoothDidNotAnswer = BluetoothSnapshot(
         devices: .notPublished(
-            reason: "macOS did not answer the paired-device request within four "
+            reason: "macOS did not answer the paired-device request within ten "
                 + "seconds. The request is still outstanding; this row fills in "
                 + "if it returns."
         )

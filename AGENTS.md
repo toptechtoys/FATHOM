@@ -224,6 +224,27 @@ Until then, do not write a test that asserts a reference figure from memory.
 An invented fixture is worse than no fixture: it passes, and it certifies
 nothing.
 
+**Make the app print the number before you believe a pixel.** Running it is
+the cheapest check here, and reading it wrong is the cheapest mistake. Three
+diagnoses in one day were wrong the same way: a window "opening below its
+minimum" that was measured off a screenshot at an assumed scale — the real
+scale is 0.52 px per point on the development display, and the window was
+opening at exactly its declared default; and twice, keyboard input "not being
+delivered" when it was arriving the whole time.
+
+Every one collapsed the moment something was instrumented to answer directly.
+A temporary overlay reporting `GRID 2,184x164` proved the readout row was
+sized correctly and specified wrongly. `defaults read com.exhibinaut.fathom`
+showed five saved window frames and named the real defect. An `NSEvent`
+counter beside a handler counter — arrivals versus calls — settled in one
+screenshot what two speculative fixes had not. `sample(1)` named the exact
+frame the Bluetooth read was parked in. Forty-eight timed reads turned a
+timeout somebody liked the sound of into one the machine chose.
+
+A screenshot shows you *that* something is wrong. It is very bad at *what*,
+and it will let you write a confident paragraph about a defect that does not
+exist. Add the counter, take the measurement, delete it afterwards.
+
 **`perflevel0` is the performance cluster.** Not efficiency. This is the most
 common bug in Mac monitoring code and it was in our own prototype.
 

@@ -191,6 +191,15 @@ record them.
    within four seconds*, then, once consent was given, ten paired devices and
    one connected.
 
+   **Take the read timing again while you are here.** The deadline before the
+   section says macOS has not answered is ten seconds, and that figure comes
+   from one machine: 48 consecutive reads, the first at **5,777 ms** while the
+   CoreBluetooth coordinator was built, the other 47 at a median of **3.5 ms**
+   and a worst case of 83 ms. The cold read is the only one that matters and
+   there is exactly one sample of it. If the reference machine's cold read is
+   materially slower, the deadline is too short and will announce a failure
+   just before the answer arrives — which is what four seconds did.
+
    **This does not close the gate.** It was seen on an Intel MacBookPro16,1 and
    an unsigned debug build; the gate asks for the signed, hardened, notarized
    build on Apple silicon, and only that proves the entitlement situation.
