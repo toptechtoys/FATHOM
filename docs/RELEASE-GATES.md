@@ -162,44 +162,31 @@ record them.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it.
 
-   **As of 24 August this gate cannot be reached: opening Bluetooth hangs the
-   app.** Clicking the Bluetooth rail item froze the whole window — the section
-   never appeared, the previous section stayed on screen, and the 1 Hz loop
-   stopped everywhere. Still blocked after forty seconds at 0.0% CPU, so it is
-   a wait rather than a spin. `sample(1)` puts the main thread here:
+   **The hang that used to block this gate is fixed, and what caused it is
+   worth keeping.** Opening the section froze the whole window: the reader was
+   `@MainActor` and called synchronously from `onAppear`, so the main thread
+   parked inside `-[IOBluetoothCoreBluetoothCoordinator init]` and the 1 Hz
+   loop stopped in every section. It was waiting on the TCC consent prompt —
+   which arrived minutes later, on the other display. Nothing exotic: the first
+   paired-device request on any Mac raises that prompt, and the answer comes
+   whenever the person gets to it. The app was at the mercy of a dialog nobody
+   had seen.
 
-   ```
-   closure #2 in BluetoothView.body.getter      BluetoothView.swift:20
-     SystemMonitorModel.beginBluetoothObservation()  SystemMonitorModel.swift:115
-       BluetoothReader.read()                        BluetoothReader.swift:66
-         +[IOBluetoothDevice pairedDevices]
-           +[IOBluetoothCoreBluetoothCoordinator sharedInstance]
-             -[IOBluetoothCoreBluetoothCoordinator init]      <- blocked
-   ```
+   The read now runs through `Task.detached`, like `MemoryReader` and
+   `GPUReader` on the same loop, and the section stops waiting after four
+   seconds and says so. It does not stop the *read* — a blocked `IOBluetooth`
+   call cannot be recalled — so the outstanding one keeps its place and the row
+   fills in if it ever returns. On the test machine that is exactly what
+   happened: *requested, macOS has not answered yet*, then *did not answer
+   within four seconds*, then, once consent was given, ten paired devices and
+   one connected.
 
-   `beginBluetoothObservation` is on the main actor and calls
-   `BluetoothReader().read()` synchronously from `onAppear`. The comment above
-   it already notes that the enumeration "runs on the main actor" — the
-   assumption is that it is cheap, and the first call is not: it builds the
-   CoreBluetooth coordinator, which blocks. Whether it blocks *because* the
-   consent prompt cannot be presented was not established.
+   **This does not close the gate.** It was seen on an Intel MacBookPro16,1 and
+   an unsigned debug build; the gate asks for the signed, hardened, notarized
+   build on Apple silicon, and only that proves the entitlement situation.
+   What is now known is that the granted path publishes devices and the denied
+   or pending path is a sentence on screen rather than a frozen app.
 
-   Observed on an Intel MacBookPro16,1, which is not the reference machine, and
-   an unsigned debug build rather than the signed hardened one this gate calls
-   for. Reproduce it on Apple silicon before designing the fix. Gate 6 below
-   cannot be exercised at all until this is resolved, since it walks *through*
-   Bluetooth. `SystemMonitorModel` reads
-   paired devices on its sampling loop, so a missing or rejected
-   `NSBluetoothAlwaysUsageDescription` terminates the process rather than
-   degrading; the unit suite proves the reader refuses to ask without the key,
-   but only the reference machine proves the granted path publishes devices.
-   Run this against the **signed, hardened, notarized** build, not just a local
-   unsigned one. `Fathom.entitlements` is deliberately empty and the hardened
-   runtime is enabled. If the signed build is denied paired-device enumeration,
-   the documented remedy is the `com.apple.security.device.bluetooth` resource
-   entitlement — add it only if the reference machine proves it is required, and
-   record the observed denial alongside it. A denial that cannot be resolved
-   stays *not published*; it is never replaced with another value.
 6. Walk CPU → Bluetooth → CPU → Memory and back. `SystemMonitorModel` counts its
    observers, and reads paired devices only while the Bluetooth section is on
    screen. Confirm three things: every section keeps updating after a switch
@@ -208,6 +195,14 @@ record them.
    *not published*; and leaving it stops the reads. Neither app target has a test
    bundle (`testTargets: []`), so this lifecycle has no automated coverage and
    must be exercised by hand.
+
+   **Walked on 24 August, on the wrong hardware.** CPU -> Bluetooth ->
+   Memory: every section kept updating across the switches, Bluetooth
+   showed its devices immediately on re-entry rather than flashing *not
+   published* — the model publishes the cached reading and refreshes
+   behind it — and leaving stopped the reads, with no `BluetoothReader` or
+   `IOBluetoothDevice` frames in a three-second sample and no thread growth.
+   Intel, unsigned; redo it here on the signed build.
 7. ~~Delete `docs/HANDOFF.md`.~~ **Done, 23 August.** It was a point-in-time
    session record rather than a living spec, and it had come to describe a
    repository state that no longer existed. Its two pieces of durable content

@@ -30,7 +30,24 @@ public struct BluetoothSnapshot: Sendable, Equatable {
     }
 }
 
-@MainActor
+/// Paired devices, as IOBluetooth publishes them.
+///
+/// **Deliberately not `@MainActor`, and it must stay that way.**
+/// `+[IOBluetoothDevice pairedDevices]` builds the CoreBluetooth coordinator
+/// on first use, and that call can block for an unbounded time — it did, on
+/// the first machine that ever ran this app: opening the Bluetooth section
+/// froze the whole window, the 1 Hz loop stopped in every section, and forty
+/// seconds later the main thread was still parked in
+/// `-[IOBluetoothCoreBluetoothCoordinator init]` at 0% CPU.
+///
+/// It was waiting on the TCC consent prompt, which arrived minutes later and
+/// on the other display. That is the ordinary case, not an exotic one: the
+/// first paired-device request on any Mac raises that prompt, and the answer
+/// arrives whenever the person gets to it. A screen may not be at the mercy of
+/// a hardware read, and this one was at the mercy of a dialog nobody had seen.
+///
+/// `MemoryReader` and `GPUReader` are already taken through `Task.detached` on
+/// the same sampling loop. This is the one that was not.
 public struct BluetoothReader {
     /// macOS terminates a process that asks for Bluetooth access without this
     /// string in its bundle, and enumerating paired devices issues that request.

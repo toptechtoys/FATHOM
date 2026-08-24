@@ -32,6 +32,19 @@ final class SystemMonitorModel: ObservableObject {
     private var pressureSource: DispatchSourceMemoryPressure?
     private var observerCount = 0
     private var bluetoothObserverCount = 0
+    /// The last paired-device reading that came back. The sampling loop
+    /// publishes this rather than taking a fresh one, because taking one can
+    /// block — see `refreshBluetoothIfIdle`.
+    private var latestBluetooth = SystemMonitorModel.bluetoothNotSampled
+    private var bluetoothReadInFlight = false
+    private var bluetoothReadGeneration = 0
+
+    /// How long the section waits before saying macOS has not answered.
+    ///
+    /// Four ticks of the loop: long enough that a slow first read still lands
+    /// as a reading, short enough that a stalled one is a sentence on screen
+    /// rather than a frozen window.
+    private static let bluetoothDeadline = Duration.seconds(4)
 
     /// Five sections share this one loop, and SwiftUI presents the incoming
     /// section before the outgoing one disappears. Observers are counted rather
@@ -62,7 +75,7 @@ final class SystemMonitorModel: ObservableObject {
                     GPUReader().read()
                 }.value
                 async let network = networkSampler.sample()
-                let bluetooth = self?.sampleBluetooth()
+                let bluetooth = self?.currentBluetooth()
                     ?? Self.bluetoothNotSampled
                 let presentation = SystemPresentation(
                     cpu: await cpu,
@@ -102,34 +115,100 @@ final class SystemMonitorModel: ObservableObject {
         pressureSource = nil
     }
 
-    /// Paired-device enumeration is TCC-gated and runs on the main actor, so it
+    /// Paired-device enumeration is TCC-gated and costs something, so it
     /// happens only while the Bluetooth section is on screen. Every other
     /// section would otherwise pay for a reading it never displays.
     func beginBluetoothObservation() {
         bluetoothObserverCount += 1
-        // Publish a real reading immediately rather than letting the section
-        // show "not read while closed" for up to a sampling interval.
-        guard bluetoothObserverCount == 1,
-              case let .result(presentation) = state else { return }
-        state = .result(
-            presentation.replacingBluetooth(with: BluetoothReader().read())
-        )
+        guard bluetoothObserverCount == 1 else { return }
+        // Neither of these blocks. This method used to call the reader inline,
+        // on the main actor, from `onAppear` — which is how opening this
+        // section froze the entire app.
+        refreshBluetoothIfIdle()
+        publishBluetooth()
     }
 
     func endBluetoothObservation() {
         bluetoothObserverCount = max(0, bluetoothObserverCount - 1)
     }
 
-    private func sampleBluetooth() -> BluetoothSnapshot {
-        guard bluetoothObserverCount > 0 else {
-            return Self.bluetoothNotSampled
+    /// What the loop publishes: the last reading that came back, never a fresh
+    /// call. Asks for a new one when nothing is outstanding.
+    private func currentBluetooth() -> BluetoothSnapshot {
+        guard bluetoothObserverCount > 0 else { return Self.bluetoothNotSampled }
+        refreshBluetoothIfIdle()
+        return latestBluetooth
+    }
+
+    /// Starts one paired-device read off the main actor, and a deadline.
+    ///
+    /// A blocked `IOBluetooth` call cannot be cancelled, so the deadline does
+    /// not stop the read — it stops the *waiting*. The section says macOS has
+    /// not answered, the app keeps sampling, and if the read ever returns,
+    /// `receiveBluetooth` publishes what it actually said.
+    private func refreshBluetoothIfIdle() {
+        guard !bluetoothReadInFlight else { return }
+        bluetoothReadInFlight = true
+        bluetoothReadGeneration += 1
+        let generation = bluetoothReadGeneration
+        if latestBluetooth == Self.bluetoothNotSampled {
+            latestBluetooth = Self.bluetoothRequested
         }
-        return BluetoothReader().read()
+
+        Task.detached(priority: .utility) { [weak self] in
+            let snapshot = BluetoothReader().read()
+            await self?.receiveBluetooth(snapshot, generation: generation)
+        }
+
+        Task { [weak self] in
+            try? await Task.sleep(for: Self.bluetoothDeadline)
+            self?.bluetoothDeadlineElapsed(generation: generation)
+        }
+    }
+
+    private func receiveBluetooth(
+        _ snapshot: BluetoothSnapshot,
+        generation: Int
+    ) {
+        guard generation == bluetoothReadGeneration else { return }
+        bluetoothReadInFlight = false
+        latestBluetooth = snapshot
+        publishBluetooth()
+    }
+
+    private func bluetoothDeadlineElapsed(generation: Int) {
+        guard generation == bluetoothReadGeneration,
+              bluetoothReadInFlight else { return }
+        // The in-flight flag stays set on purpose. The read is still parked
+        // somewhere inside IOBluetooth and nothing can recall it; starting a
+        // second one on the next tick would stack threads behind the same
+        // stall, one per second, for as long as the section is open.
+        latestBluetooth = Self.bluetoothDidNotAnswer
+        publishBluetooth()
+    }
+
+    private func publishBluetooth() {
+        guard case let .result(presentation) = state else { return }
+        state = .result(presentation.replacingBluetooth(with: latestBluetooth))
     }
 
     private static let bluetoothNotSampled = BluetoothSnapshot(
         devices: .notPublished(
             reason: "Paired devices are read only while the Bluetooth section is open"
+        )
+    )
+
+    private static let bluetoothRequested = BluetoothSnapshot(
+        devices: .notPublished(
+            reason: "Paired devices have been requested; macOS has not answered yet"
+        )
+    )
+
+    private static let bluetoothDidNotAnswer = BluetoothSnapshot(
+        devices: .notPublished(
+            reason: "macOS did not answer the paired-device request within four "
+                + "seconds. The request is still outstanding; this row fills in "
+                + "if it returns."
         )
     )
 
