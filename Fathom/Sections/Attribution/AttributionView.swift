@@ -14,6 +14,18 @@ struct AttributionView: View {
                     isLive: enabled
                 )
 
+                // Four readouts, as the prototype specifies. Three of them
+                // report *not published*, and that is the section working: the
+                // whole argument of Attribution is that a write nobody traced
+                // gets said out loud instead of being folded into a percentage.
+                // Showing two readouts and omitting the two we cannot answer
+                // would have hidden exactly the gap this screen is about.
+                //
+                // The prototype's fourth tile is *Watchers* — how many curated
+                // paths the stream is on. That number is our own configuration
+                // rather than something macOS publishes, and it has no row in
+                // FATHOM-DATA-SOURCES.md, so it is not rendered. Collection
+                // stands in its place and reports a fact we can source.
                 FathomReadoutGrid {
                     FathomMeasurementReadout(
                         label: "Written today",
@@ -21,6 +33,22 @@ struct AttributionView: View {
                             reason: "Two completed scans must bracket a persisted FSEvents causal window before bytes can be attributed to a process."
                         ),
                         note: "Traced to who wrote it",
+                        format: { $0 }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Explained",
+                        measurement: FathomKit.Measurement<String>.notPublished(
+                            reason: "The share of today's bytes traced to a process needs the same bracketed window. Without it there is no denominator, and a percentage without a denominator is a guess."
+                        ),
+                        note: "The remainder gets its own row",
+                        format: { $0 }
+                    )
+                    FathomMeasurementReadout(
+                        label: "Repeat offender",
+                        measurement: FathomKit.Measurement<String>.notPublished(
+                            reason: "Naming the process that recurs takes several days of attributed writes to compare. None have been attributed yet."
+                        ),
+                        note: "Across the last seven days",
                         format: { $0 }
                     )
                     FathomMeasurementReadout(
