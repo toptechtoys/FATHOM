@@ -288,16 +288,25 @@ struct FathomSegmentBar: View {
     }
 }
 
+/// The legend under a segment bar. Every segment is named, including the
+/// remainder.
+///
+/// This used to be a `LazyVGrid` of `.adaptive(minimum: 150)` columns, which
+/// clamped each item to a 150pt track however much room the panel had. The
+/// Memory section's longest label came out as *Not separately publishe…* on a
+/// 1,330pt-wide panel — a legend that truncates the name of the thing it
+/// exists to name, and in this case truncated the word *published*, which is
+/// the one word on that screen that carries the product's argument.
+///
+/// The prototype's `.leg` is `display:flex; flex-wrap:wrap; gap:8px 18px`:
+/// items take their own width and wrap when they run out. That is what this
+/// draws.
 private struct FlowLegend: View {
     let items: [FathomSegmentBar.Segment]
     let format: (Double) -> String
 
     var body: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 150), spacing: 18)],
-            alignment: .leading,
-            spacing: 8
-        ) {
+        FathomWrappingRow {
             ForEach(items) { item in
                 HStack(spacing: 7) {
                     RoundedRectangle(cornerRadius: 2)
@@ -308,10 +317,107 @@ private struct FlowLegend: View {
                         .foregroundStyle(
                             .white.opacity(FathomSurface.minimumTextOpacity)
                         )
-                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
         }
+    }
+}
+
+/// `display: flex; flex-wrap: wrap`, which SwiftUI has no container for.
+///
+/// Each item is measured at the width it actually wants and placed along the
+/// row until the next one will not fit; then the row breaks. An item wider
+/// than the whole container is offered the container's width and allowed to
+/// wrap or truncate on its own terms — that is the only case where anything
+/// here shortens a label.
+struct FathomWrappingRow: Layout {
+    /// The prototype's `gap: 8px 18px` — row gap and column gap.
+    var horizontalSpacing: CGFloat = 18
+    var verticalSpacing: CGFloat = 8
+
+    private struct Row {
+        var indices: [Int] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let available = usableWidth(proposal, subviews: subviews)
+        let (rows, _) = arrange(width: available, subviews: subviews)
+        let height = rows.reduce(0) { $0 + $1.height }
+            + verticalSpacing * CGFloat(max(0, rows.count - 1))
+        let widest = rows.map(\.width).max() ?? 0
+        return CGSize(width: min(available, max(widest, 0)), height: height)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let (rows, sizes) = arrange(width: bounds.width, subviews: subviews)
+        var y = bounds.minY
+        for row in rows {
+            var x = bounds.minX
+            for index in row.indices {
+                subviews[index].place(
+                    at: CGPoint(x: x, y: y),
+                    proposal: ProposedViewSize(sizes[index])
+                )
+                x += sizes[index].width + horizontalSpacing
+            }
+            y += row.height + verticalSpacing
+        }
+    }
+
+    /// A nil or infinite proposal means "how wide would you like to be", and
+    /// the honest answer for a flow row is one line of everything.
+    private func usableWidth(
+        _ proposal: ProposedViewSize,
+        subviews: Subviews
+    ) -> CGFloat {
+        if let width = proposal.width, width.isFinite, width > 0 { return width }
+        let natural = subviews.reduce(CGFloat(0)) {
+            $0 + $1.sizeThatFits(.unspecified).width
+        }
+        return natural + horizontalSpacing * CGFloat(max(0, subviews.count - 1))
+    }
+
+    private func arrange(
+        width: CGFloat,
+        subviews: Subviews
+    ) -> ([Row], [CGSize]) {
+        let sizes = subviews.map { subview -> CGSize in
+            let ideal = subview.sizeThatFits(.unspecified)
+            guard width.isFinite, ideal.width > width else { return ideal }
+            // Wider than everything: let it decide how to shorten itself.
+            return subview.sizeThatFits(
+                ProposedViewSize(width: width, height: nil)
+            )
+        }
+        var rows: [Row] = []
+        var current = Row()
+        for (index, size) in sizes.enumerated() {
+            let extended = current.indices.isEmpty
+                ? size.width
+                : current.width + horizontalSpacing + size.width
+            if !current.indices.isEmpty, extended > width {
+                rows.append(current)
+                current = Row(indices: [index], width: size.width, height: size.height)
+            } else {
+                current.indices.append(index)
+                current.width = extended
+                current.height = max(current.height, size.height)
+            }
+        }
+        if !current.indices.isEmpty { rows.append(current) }
+        return (rows, sizes)
     }
 }
 
