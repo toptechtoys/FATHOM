@@ -116,7 +116,7 @@ struct ReclaimView: View {
                         label: "Available",
                         measurement: total(groups) { $0.freedIfDeleted },
                         note: "Across \(groups.count) validated rules",
-                        format: { $0.formatted(.byteCount(style: .file)) }
+                        format: { ByteString.file($0) }
                     )
                     FathomReadout(
                         label: "Destination",
@@ -221,14 +221,14 @@ struct ReclaimView: View {
         guard case let .known(value, _) = group.freedIfDeleted else {
             return "not published"
         }
-        return value.formatted(.byteCount(style: .file))
+        return ByteString.file(value)
     }
 
     private func onDisk(_ group: ReclaimGroupPresentation) -> String {
         guard case let .known(value, _) = group.sizeOnDisk else {
             return "not published"
         }
-        return value.formatted(.byteCount(style: .file))
+        return ByteString.file(value)
     }
 
     /// Sums only what every rule published. A total that quietly omits the

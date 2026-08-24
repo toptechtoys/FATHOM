@@ -132,7 +132,7 @@ struct FathomBarPresentation: Sendable {
     ) -> (short: String, long: String) {
         switch snapshot.actuallyFree {
         case let .known(value, _):
-            let text = value.formatted(.byteCount(style: .file))
+            let text = ByteString.file(value)
             return (text, "\(text) actually free")
         case .notPublished:
             return ("— GB", "free space not published")
@@ -174,7 +174,7 @@ struct FathomBarPresentation: Sendable {
             return ("—/s", "network throughput not published")
         }
         let total = known.reduce(0, +)
-        let text = UInt64(total.rounded()).formatted(.byteCount(style: .file))
+        let text = ByteString.file(rounding: total)
         return ("↓\(text)/s", "download \(text) per second")
     }
 

@@ -296,7 +296,7 @@ struct TimelineView: View {
         guard case let .known(bytes, _) = measurement else {
             return "not published"
         }
-        return bytes.formatted(.byteCount(style: .file))
+        return ByteString.file(bytes)
     }
 
     private func firstDate(
@@ -342,8 +342,7 @@ struct TimelineView: View {
     }
 
     private func signedBytes(_ value: Int64) -> String {
-        let magnitude = UInt64(value.magnitude)
-            .formatted(.byteCount(style: .file))
+        let magnitude = ByteString.file(UInt64(value.magnitude))
         return value < 0 ? "−\(magnitude)" : "+\(magnitude)"
     }
 

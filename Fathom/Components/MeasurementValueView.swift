@@ -8,7 +8,7 @@ struct MeasurementValueView: View {
     var body: some View {
         switch measurement {
         case let .known(value, source):
-            Text(value.formatted(.byteCount(style: .file)))
+            Text(ByteString.file(value))
                 .font(
                     prominent
                         ? .fathomDisplay(42)

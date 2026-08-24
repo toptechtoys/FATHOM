@@ -113,9 +113,7 @@ struct NetworkView: View {
                             annotation: "up "
                                 + throughput(interface.sentBytesPerSecond)
                                 + " · "
-                                + interface.receivedBytes.formatted(
-                                    .byteCount(style: .file)
-                                )
+                                + ByteString.file(interface.receivedBytes)
                                 + " received in total"
                         )
                     }
@@ -215,8 +213,7 @@ struct NetworkView: View {
     }
 
     private func rate(_ bytesPerSecond: Double) -> String {
-        UInt64(max(0, bytesPerSecond))
-            .formatted(.byteCount(style: .file)) + "/s"
+        ByteString.perSecond(UInt64(max(0, bytesPerSecond)))
     }
 
     private func subtitle(_ configuration: NetworkConfigurationSnapshot) -> String {

@@ -227,8 +227,7 @@ struct WeeklyDigestView: View {
     }
 
     private func headline(_ delta: Int64) -> String {
-        let magnitude = UInt64(delta.magnitude)
-            .formatted(.byteCount(style: .file))
+        let magnitude = ByteString.file(UInt64(delta.magnitude))
         return delta < 0 ? "\(magnitude) fuller" : "\(magnitude) more free"
     }
 
@@ -241,8 +240,7 @@ struct WeeklyDigestView: View {
     }
 
     private func signedBytes(_ delta: Int64) -> String {
-        let magnitude = UInt64(delta.magnitude)
-            .formatted(.byteCount(style: .file))
+        let magnitude = ByteString.file(UInt64(delta.magnitude))
         return delta < 0 ? "−\(magnitude)" : "+\(magnitude)"
     }
 }

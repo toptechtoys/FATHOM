@@ -46,14 +46,11 @@ struct HardwareMeasurementView<Value: Sendable>: View {
 }
 
 func hardwareByteString(_ value: UInt64) -> String {
-    value.formatted(.byteCount(style: .file))
+    ByteString.file(value)
 }
 
 func hardwareByteString(_ value: Double) -> String {
-    guard value.isFinite, value >= 0, value <= Double(UInt64.max) else {
-        return "outside display range"
-    }
-    return UInt64(value.rounded()).formatted(.byteCount(style: .file))
+    ByteString.file(rounding: value)
 }
 
 func hardwareIntegerString(_ value: UInt64) -> String {

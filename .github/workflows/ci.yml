@@ -73,6 +73,15 @@ jobs:
             echo "::error::forbidden shipping API above (nothing is deleted; production reads the API)"
             exit 1
           fi
+          # ByteCountFormatStyle spells out zero by default, so a stray
+          # `.byteCount(` prints "Zero kB" where a figure belongs -- and it did,
+          # at twenty-eight call sites, until someone ran the app and read the
+          # Network section. ByteString is the one place that decision lives.
+          if grep -rn 'byteCount(' --include='*.swift' Fathom FathomKit FathomBar \
+               | grep -v 'FathomKit/System/ByteString.swift'; then
+            echo "::error::format bytes through FathomKit's ByteString, not .byteCount directly (it spells out zero)"
+            exit 1
+          fi
           if ! outbound=$(grep -rlE 'URLSession|URLRequest' \
                  --include='*.swift' Fathom FathomKit FathomBar); then
             echo "::error::no outbound-network file found; expected PublicIPService.swift"

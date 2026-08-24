@@ -302,7 +302,7 @@ struct StorageView: View {
     }
 
     private func bytes(_ value: UInt64) -> String {
-        value.formatted(.byteCount(style: .file))
+        ByteString.file(value)
     }
 }
 
@@ -363,8 +363,7 @@ private struct DiskThroughputPanel: View {
         case let .known(value, _):
             FathomDataRow.simple(
                 label,
-                value: UInt64(max(0, value))
-                    .formatted(.byteCount(style: .file)) + "/s",
+                value: ByteString.perSecond(UInt64(max(0, value))),
                 annotation: source.rawValue
             )
         case let .notPublished(reason):

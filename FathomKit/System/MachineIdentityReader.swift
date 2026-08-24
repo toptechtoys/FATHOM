@@ -33,7 +33,7 @@ public struct MachineIdentity: Sendable, Equatable {
         if case let .known(model, _) = model { parts.append(model) }
         if case let .known(bytes, _) = physicalMemoryBytes {
             parts.append(
-                bytes.formatted(.byteCount(style: .memory, allowedUnits: .gb))
+                ByteString.memoryGigabytes(bytes)
             )
         }
         switch daysRecorded {

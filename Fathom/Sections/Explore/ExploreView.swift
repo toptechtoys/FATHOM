@@ -60,13 +60,13 @@ struct ExploreView: View {
                     label: "On disk",
                     measurement: presentation.sizeOnDisk,
                     note: "Everything the scan traversed",
-                    format: { $0.formatted(.byteCount(style: .file)) }
+                    format: { ByteString.file($0) }
                 )
                 FathomMeasurementReadout(
                     label: "Freed if deleted",
                     measurement: presentation.freedIfDeleted,
                     note: "Sorted by this column, not the first",
-                    format: { $0.formatted(.byteCount(style: .file)) }
+                    format: { ByteString.file($0) }
                 )
             }
             .padding(.bottom, 22)

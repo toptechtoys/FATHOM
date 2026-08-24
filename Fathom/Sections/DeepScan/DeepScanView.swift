@@ -115,7 +115,7 @@ struct DeepScanView: View {
     }
 
     private func bytes(_ value: UInt64) -> String {
-        value.formatted(.byteCount(style: .file))
+        ByteString.file(value)
     }
     /// What "Scan again" costs, from the last scan rather than an estimate.
     ///

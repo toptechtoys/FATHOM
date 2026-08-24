@@ -112,6 +112,6 @@ struct MaintenanceView: View {
     }
 
     private func bytes(_ value: UInt64) -> String {
-        value.formatted(.byteCount(style: .file))
+        ByteString.file(value)
     }
 }

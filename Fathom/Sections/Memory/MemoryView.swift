@@ -183,7 +183,7 @@ struct MemoryView: View {
     }
 
     private func bytes(_ value: UInt64) -> String {
-        value.formatted(.byteCount(style: .memory))
+        ByteString.memory(value)
     }
 
     private func subtitle(_ memory: MemorySnapshot) -> String {
