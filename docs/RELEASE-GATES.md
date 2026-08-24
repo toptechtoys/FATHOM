@@ -152,13 +152,23 @@ record them.
    ever sits under the strip again, capture the window frame at the same
    moment.
 
-   *Keyboard navigation is still untested.* Arrow keys moved nothing, but
-   neither did the `Command-K` palette shortcut, which goes through the menu
-   bar and does not depend on SwiftUI focus at all. Two failures on two
-   unrelated paths point at the synthetic key events not being delivered rather
-   than at the app. Nothing here is evidence either way. **Press the keys
-   yourself**: arrows through all twenty sections and back, Tab into the rail,
-   Command-K for the palette.
+   *Arrow navigation was broken, and is fixed.* An earlier note here guessed
+   the key events were not being delivered. **They were.** An instrumented
+   build counted them arriving with an `NSEvent` monitor while SwiftUI's
+   `.onKeyPress` was called zero times — it only fires on a focused view, and
+   this window has none, because `Full Keyboard Access` is off by default and
+   Tab reaches no button in the rail. `Command-K` had been working the whole
+   time; the palette was opening on the other display.
+
+   Arrow navigation is now the window-level monitor the prototype specifies.
+   Verified by hand: Down and Right step forward, Up and Left step back,
+   `Command-K` still opens the palette, and arrows inside the palette move the
+   palette rather than the section behind it.
+
+   **What still wants a person here**: all twenty sections and back with the
+   arrows, `Tab` into the rail with Full Keyboard Access *on* — which this
+   machine had off, so the focus ring has never been seen doing its job — and
+   VoiceOver over the same path.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it.
 

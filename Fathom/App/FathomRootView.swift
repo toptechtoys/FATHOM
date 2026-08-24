@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum AppSection: String, CaseIterable, Identifiable {
@@ -147,7 +148,7 @@ struct FathomRootView: View {
         .foregroundStyle(.white)
         .preferredColorScheme(.dark)
         .animation(reduceMotion ? nil : .fathomWorld, value: selection)
-        .onKeyPress(action: navigate)
+        .modifier(ArrowSectionNavigation(step: step))
         .onReceive(
             NotificationCenter.default.publisher(for: .fathomShowCommandPalette)
         ) { _ in
@@ -159,20 +160,12 @@ struct FathomRootView: View {
     }
 
     /// Arrow keys move between sections in all four directions, wrapping at
-    /// both ends. A modified press is ignored so the app never eats a system
-    /// or text-editing shortcut.
-    private func navigate(_ press: KeyPress) -> KeyPress.Result {
-        guard press.modifiers.isEmpty else { return .ignored }
-        let step: Int
-        switch press.key {
-        case .downArrow, .rightArrow: step = 1
-        case .upArrow, .leftArrow: step = -1
-        default: return .ignored
-        }
+    /// both ends. Rail order, not `allCases`, so moving through the app
+    /// matches what the eye sees.
+    private func step(_ direction: Int) {
         let order = AppSection.railOrder
-        guard let index = order.firstIndex(of: selection) else { return .ignored }
-        selection = order[(index + step + order.count) % order.count]
-        return .handled
+        guard let index = order.firstIndex(of: selection) else { return }
+        selection = order[(index + direction + order.count) % order.count]
     }
 
     @ViewBuilder
@@ -223,5 +216,71 @@ struct FathomRootView: View {
         case .ssdHealth:
             SSDHealthView(openEndurance: { selection = .endurance })
         }
+    }
+}
+
+/// The prototype's `addEventListener('keydown', …)`, which is what this app's
+/// arrow navigation was actually specified as.
+///
+/// **`.onKeyPress` was the wrong primitive.** It only fires on a *focused*
+/// view, and this window has no focused view: `Full Keyboard Access` is off by
+/// default on macOS, so Tab reaches no button in the rail and nothing ever
+/// takes the focus `onKeyPress` waits for. An instrumented build settled it —
+/// an `NSEvent` monitor counted the arrow presses arriving at the process
+/// while `onKeyPress` was called **zero** times. Two attempts to fix it by
+/// making the root view focusable changed nothing, because the problem was
+/// never which view had focus.
+///
+/// A window-level monitor is what `build-prototype.py` specifies and what
+/// works. Consuming the event is that listener's `preventDefault()`: without
+/// it the arrow would also scroll the content column it just navigated away
+/// from.
+///
+/// It declines everything that belongs to something else. Modified presses are
+/// the system's or a menu's — `Command-K` opens the palette and must keep
+/// doing so. A press while a field editor is first responder is typing, not
+/// navigating, and the palette's search field is exactly that case. A press
+/// belonging to a sheet stays with the sheet.
+private struct ArrowSectionNavigation: ViewModifier {
+    let step: (Int) -> Void
+
+    @State private var monitor: Any?
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                guard monitor == nil else { return }
+                monitor = NSEvent.addLocalMonitorForEvents(
+                    matching: .keyDown
+                ) { event in
+                    guard Self.belongsToNavigation(event) else { return event }
+                    switch event.keyCode {
+                    case Self.downArrow, Self.rightArrow: step(1)
+                    case Self.upArrow, Self.leftArrow: step(-1)
+                    default: return event
+                    }
+                    return nil
+                }
+            }
+            .onDisappear {
+                if let monitor { NSEvent.removeMonitor(monitor) }
+                monitor = nil
+            }
+    }
+
+    private static let leftArrow: UInt16 = 123
+    private static let rightArrow: UInt16 = 124
+    private static let downArrow: UInt16 = 125
+    private static let upArrow: UInt16 = 126
+
+    private static func belongsToNavigation(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags
+            .intersection(.deviceIndependentFlagsMask)
+        guard modifiers.isDisjoint(with: [.command, .control, .option]) else {
+            return false
+        }
+        guard event.window?.isSheet != true else { return false }
+        if event.window?.firstResponder is NSText { return false }
+        return true
     }
 }
