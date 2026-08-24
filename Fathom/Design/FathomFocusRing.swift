@@ -60,6 +60,14 @@ enum FathomFocus {
     static let lineWidth: CGFloat = 2
     static let increasedLineWidth: CGFloat = 3
     static let offset: CGFloat = 3
+
+    /// How far the ring extends beyond the control it surrounds.
+    ///
+    /// The stroke is centred on the path, so half of it falls outside the
+    /// offset, and Increased Contrast widens it to 3pt. Anything that clips
+    /// its children has to leave this much room or the ring loses an edge —
+    /// `FathomRail` did, on the first icon.
+    static var reach: CGFloat { offset + increasedLineWidth / 2 }
 }
 
 extension View {

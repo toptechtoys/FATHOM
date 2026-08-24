@@ -165,10 +165,19 @@ record them.
    `Command-K` still opens the palette, and arrows inside the palette move the
    palette rather than the section behind it.
 
+   **The first rail icon used to lose the top of its focus ring.** A
+   `ScrollView` clips its children and the ring is drawn *outside* the icon it
+   surrounds; the first icon sat at exactly y=0, so the ring's top edge landed
+   at -4pt and was thrown away. The rail now takes `FathomFocus.reach` off the
+   traffic-light reservation and gives it back inside the scroll, so the ring
+   has room and no icon moves — measured both ways, first icon at window y=331
+   before and after, 335 without the compensation. The last icon was never
+   affected: it already had 8pt beneath it.
+
    **What still wants a person here**: all twenty sections and back with the
    arrows, `Tab` into the rail with Full Keyboard Access *on* — which this
-   machine had off, so the focus ring has never been seen doing its job — and
-   VoiceOver over the same path.
+   machine had off, so no ring has ever been seen where focus actually put it —
+   Increased Contrast widening it to 3pt, and VoiceOver over the same path.
 5. Open the Bluetooth section and confirm macOS shows the Bluetooth consent
    prompt and that the app keeps running through it.
 

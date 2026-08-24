@@ -19,8 +19,12 @@ struct FathomRail: View {
         VStack(spacing: 0) {
             // The system traffic lights sit here. Reserving their height keeps
             // the first icon clear of them without drawing anything.
+            //
+            // `reach` comes off this and goes back on inside the scroll below,
+            // so the first icon does not move: 34pt of clearance either way.
+            // The difference is which side of the clipping boundary it is on.
             Color.clear
-                .frame(height: 34)
+                .frame(height: 34 - FathomFocus.reach)
                 .accessibilityHidden(true)
 
             ScrollView {
@@ -37,6 +41,17 @@ struct FathomRail: View {
                         }
                     }
                 }
+                // A `ScrollView` clips its children, and the focus ring is
+                // drawn *outside* the icon it surrounds. The first icon sat at
+                // exactly y=0 — the app was asked and said so — which put the
+                // top of its ring at -4pt and threw that edge away. Nothing
+                // catches that but tabbing to the first icon and looking, and
+                // macOS ships with the keyboard navigation that makes it
+                // reachable turned off.
+                //
+                // The bottom already had 8pt, which clears the same reach; it
+                // is left alone because the last icon was never the problem.
+                .padding(.top, FathomFocus.reach)
                 .padding(.bottom, 8)
             }
             .scrollIndicators(.hidden)
