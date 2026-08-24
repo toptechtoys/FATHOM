@@ -16,6 +16,15 @@ final class AttributionAppModel: ObservableObject {
     private static let volumeUUIDKey = "attribution.volumeUUID"
 
     @Published private(set) var state: State = .disabled
+
+    /// How many curated paths the running stream is watching.
+    ///
+    /// The count the stream was *started* with, not the count
+    /// `recommendedStoragePaths` would suggest — those differ on a Mac that
+    /// has no `/usr/local`, and the readout says what is true of this machine.
+    /// Zero whenever nothing is watching, which is a reading and not a gap:
+    /// collection being off is a real answer to "how many".
+    @Published private(set) var watchedPathCount = 0
     private let recorder = FSEventRecorder()
     private var recording = false
 
@@ -36,6 +45,7 @@ final class AttributionAppModel: ObservableObject {
         let paths = FSEventRecorder.recommendedStoragePaths(home: home)
         guard let currentVolumeUUID = FSEventRecorder.volumeUUID(for: home)
         else {
+            watchedPathCount = 0
             state = .failed(
                 "FSEvents did not publish the watched volume identity"
             )
@@ -63,6 +73,7 @@ final class AttributionAppModel: ObservableObject {
             }
             try recorder.start(paths: paths, since: since)
             recording = true
+            watchedPathCount = paths.count
             UserDefaults.standard.set(
                 currentVolumeUUID,
                 forKey: Self.volumeUUIDKey
@@ -76,6 +87,7 @@ final class AttributionAppModel: ObservableObject {
             }
         } catch {
             recorder.setEventHandler(nil)
+            watchedPathCount = 0
             state = .failed("FSEvents causal window could not start: \(error)")
         }
     }
@@ -87,6 +99,7 @@ final class AttributionAppModel: ObservableObject {
             recorder.stop()
             recorder.setEventHandler(nil)
             recording = false
+            watchedPathCount = 0
             state = .recomputeRequired(reason)
             NotificationCenter.default.post(
                 name: .fathomStorageContinuityRescan,
@@ -106,6 +119,7 @@ final class AttributionAppModel: ObservableObject {
 
     private func stop() {
         recording = false
+        watchedPathCount = 0
         recorder.setEventHandler(nil)
         recorder.stop()
         if case .failed = state { return }

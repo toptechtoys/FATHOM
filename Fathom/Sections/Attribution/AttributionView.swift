@@ -21,11 +21,15 @@ struct AttributionView: View {
                 // Showing two readouts and omitting the two we cannot answer
                 // would have hidden exactly the gap this screen is about.
                 //
-                // The prototype's fourth tile is *Watchers* — how many curated
-                // paths the stream is on. That number is our own configuration
-                // rather than something macOS publishes, and it has no row in
-                // FATHOM-DATA-SOURCES.md, so it is not rendered. Collection
-                // stands in its place and reports a fact we can source.
+                // The fourth is *Watchers*, as the prototype has it. It went
+                // unrendered until the count had a row in
+                // FATHOM-DATA-SOURCES.md, because rule 1 does not care that a
+                // number is easy to get — the row names what it is: the paths
+                // actually handed to `FSEventStreamCreate` after
+                // `FileManager.fileExists` dropped the ones this Mac lacks.
+                //
+                // Zero is a reading, not a gap. Collection being off is a real
+                // answer to *how many*, so it is `known(0)` and says why.
                 FathomReadoutGrid {
                     FathomMeasurementReadout(
                         label: "Written today",
@@ -52,15 +56,16 @@ struct AttributionView: View {
                         format: { $0 }
                     )
                     FathomMeasurementReadout(
-                        label: "Collection",
-                        measurement: FathomKit.Measurement<String>.known(
-                            enabled ? "On" : "Off",
+                        label: "Watchers",
+                        measurement: FathomKit.Measurement<Int>.known(
+                            model.watchedPathCount,
                             source: .fseventsCausalWindow
                         ),
-                        note: enabled
-                            ? "Curated paths, durable event IDs"
-                            : "No background path history is retained",
-                        format: { $0 }
+                        unit: model.watchedPathCount == 1 ? "path" : "paths",
+                        note: model.watchedPathCount == 0
+                            ? "Collection is off; no background path history is retained"
+                            : "Curated paths, and they cost nothing while quiet",
+                        format: { $0.formatted() }
                     )
                 }
                 .padding(.bottom, 22)

@@ -399,6 +399,7 @@ Sampling stops entirely when the menu bar is hidden — observe
 | Change between scans | Exact subtraction of two completed persisted FATHOM scan measurements | Requires two known values; otherwise not published |
 | Per-process or app attribution | Not published until a complete FSEvents causal window exists | Unattributed remainder must remain its own row |
 | Curated-path causal events | `FSEventStreamCreate`, file-event flags and durable event IDs | Opt-in; event paths are evidence, not process attribution |
+| Curated paths under watch | Count of the paths actually handed to `FSEventStreamCreate`, after `FileManager.fileExists` has dropped the ones this Mac does not have | Live; zero while collection is off, because nothing is watched then |
 | Weekly notification authorization and pending delivery | `UNUserNotificationCenter` authorization settings and pending request identifier | Requested only after an explicit user action |
 | Unsafe shutdown change window | Exact subtraction of persisted NVMe SMART unsafe-shutdown counters | Requires a known observation at least 30 days old; counter resets are not published |
 
