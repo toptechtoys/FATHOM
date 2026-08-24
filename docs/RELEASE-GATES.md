@@ -135,13 +135,22 @@ record them.
    **Two things a walk of all twenty sections left open, 24 August.** Both were
    seen on an x86_64 build on an Intel host, so both want confirming here.
 
-   *The section title and the status strip overlap at the launch window size.*
-   The window came up at roughly 748x477 — below the `minWidth: 720,
-   minHeight: 560` the root view declares — and the display title rendered
-   underneath the strip's 25% black rather than below it. At full screen it is
-   correct. Why the window opened under its own stated minimum was not
-   established, so no fix was attempted: reproduce it, and record the size the
-   window actually opens at.
+   *The section title and the status strip overlapped, twice, and it has not
+   been reproduced since.* The display title rendered underneath the strip's
+   25% black rather than below it. **An earlier note here said the window had
+   opened below the `minWidth: 720, minHeight: 560` it declares. That was
+   wrong** — it was measured off a screenshot at an assumed scale, and the
+   screenshots are 0.52 px per point on this display. Every frame macOS has
+   ever saved for this window records `1200 760`, exactly the declared default.
+   Nothing has ever opened undersized.
+
+   What was real, and is now fixed, is that the window kept being restored to
+   frames recorded against a screen layout that no longer matched — see the
+   autosave-name defect in `FathomWindow`. That is the likeliest reason the
+   window kept reappearing in different places and on the other display, and
+   plausibly the reason for the overlap, but it is not proven. If the title
+   ever sits under the strip again, capture the window frame at the same
+   moment.
 
    *Keyboard navigation is still untested.* Arrow keys moved nothing, but
    neither did the `Command-K` palette shortcut, which goes through the menu
