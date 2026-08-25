@@ -507,12 +507,25 @@ struct FathomDayColumns: View {
         }
     }
 
+    /// Speaks what the drawing shows: growth and deletion separately, then
+    /// the net. A net-only summary collapsed the two-bar split into one
+    /// figure — the same collapse the baseline exists to prevent visually —
+    /// and called a half-recorded day "no record".
     private var summary: String {
         let described = days.map { day -> String in
-            guard let net = day.net else {
+            switch (day.written, day.deleted) {
+            case (nil, nil):
                 return "\(day.label), no record"
+            case let (written?, nil):
+                return "\(day.label), \(format(written)) written, "
+                    + "deletion not recorded"
+            case let (nil, deleted?):
+                return "\(day.label), \(format(deleted)) deleted, "
+                    + "growth not recorded"
+            case let (written?, deleted?):
+                return "\(day.label), \(format(written)) written, "
+                    + "\(format(deleted)) deleted, net \(format(written - deleted))"
             }
-            return "\(day.label), net \(format(net))"
         }
         return "Last seven days. " + described.joined(separator: ". ")
     }

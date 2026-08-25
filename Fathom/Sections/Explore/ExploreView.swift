@@ -237,16 +237,25 @@ private struct ExploreRow: View {
                 .padding(.leading, CGFloat(depth) * 18)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+                // The spoken role follows the value through the swap: which
+                // column a number sits in is invisible to VoiceOver, and the
+                // two-number distinction is the product.
                 MeasurementValueView(
                     measurement: swapsMeasurements
                         ? row.freedIfDeleted
-                        : row.sizeOnDisk
+                        : row.sizeOnDisk,
+                    spokenRole: swapsMeasurements
+                        ? "freed if deleted"
+                        : "on disk"
                 )
                     .frame(width: 150, alignment: .trailing)
                 MeasurementValueView(
                     measurement: swapsMeasurements
                         ? row.sizeOnDisk
-                        : row.freedIfDeleted
+                        : row.freedIfDeleted,
+                    spokenRole: swapsMeasurements
+                        ? "on disk"
+                        : "freed if deleted"
                 )
                     .frame(width: 180, alignment: .trailing)
             }
