@@ -3,7 +3,17 @@ import Foundation
 import Testing
 @testable import FathomKit
 
-@Test func nvmeSMARTFixtureMatchesTheReferenceMachineArithmetic() throws {
+/// Every figure below is a row from `FATHOM-DATA-SOURCES.md` §SSD health,
+/// restated as parsed fields — the counters the doc records in, the
+/// conversions it specifies out. That is what this test pins: the ×512 000,
+/// the kelvin subtraction and the two endurance derivations, against the
+/// reviewed contract rather than anyone's memory.
+///
+/// It is **not** the recorded-bytes fixture `RELEASE-GATES.md` gate 2 asks
+/// for, and must not be mistaken for it when that capture lands: no raw
+/// SMART log page has ever been committed here, and a parser that misreads
+/// real bytes would still pass this test.
+@Test func nvmeSMARTConversionsMatchTheRecordedContractRows() throws {
     var raw = fathom_nvme_smart_data()
     raw.temperature_kelvin = 321
     raw.available_spare = 100
@@ -81,11 +91,11 @@ private func known<T: Sendable>(
     _ measurement: FathomKit.Measurement<T>
 ) throws -> T {
     guard case let .known(value, _) = measurement else {
-        throw FixtureError.notKnown
+        throw NotKnownInTestError.notKnown
     }
     return value
 }
 
-private enum FixtureError: Error {
+private enum NotKnownInTestError: Error {
     case notKnown
 }
