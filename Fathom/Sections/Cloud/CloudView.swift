@@ -102,7 +102,7 @@ struct CloudView: View {
                         label: "Items",
                         measurement: FathomKit.Measurement<Int>.known(
                             records.count,
-                            source: .fts
+                            source: .ubiquitousDownloadingStatus
                         ),
                         note: "Read without opening contents",
                         format: { $0.formatted() }
@@ -145,11 +145,7 @@ struct CloudView: View {
                 FathomReadoutGrid {
                     FathomMeasurementReadout(
                         label: "Would free",
-                        measurement: plan.knownFreeableBytes.map {
-                            FathomKit.Measurement<UInt64>.known($0, source: .fts)
-                        } ?? .notPublished(
-                            reason: "No item in this plan published a freeable size."
-                        ),
+                        measurement: plan.freeableBytes,
                         note: "If you proceed",
                         format: bytes
                     )
@@ -157,7 +153,7 @@ struct CloudView: View {
                         label: "Items",
                         measurement: FathomKit.Measurement<Int>.known(
                             plan.items.count,
-                            source: .fts
+                            source: .ubiquitousDownloadingStatus
                         ),
                         note: "Reviewed, not yet evicted",
                         format: { $0.formatted() }
@@ -165,7 +161,11 @@ struct CloudView: View {
                 }
                 .padding(.bottom, 22)
 
-                FathomPanel(label: "Every item in the plan") {
+                FathomPanel(
+                    label: plan.items.count <= 12
+                        ? "Every item in the plan"
+                        : "Largest 12 of \(plan.items.count) items in the plan"
+                ) {
                     FathomTwoNumberTable(rows: rows(plan.items))
                 }
 
@@ -175,7 +175,7 @@ struct CloudView: View {
                         cost: "Files stay in iCloud and download again when opened.",
                         action: { confirmedPlan = plan }
                     )
-                    .disabled(plan.knownFreeableBytes == nil || plan.items.isEmpty)
+                    .disabled(!totalIsKnown(plan) || plan.items.isEmpty)
                     FathomAction(
                         title: "Back",
                         cost: "Discards this dry run. Nothing has been evicted.",
@@ -222,24 +222,26 @@ struct CloudView: View {
 
     private func rows(_ items: [CloudItemRecord]) -> [FathomTwoNumberTable.Row] {
         items
-            .sorted { known($0.sizeOnDisk) > known($1.sizeOnDisk) }
+            .sorted { sortKey($0.sizeOnDisk) > sortKey($1.sizeOnDisk) }
             .prefix(12)
             .map { item in
-                let freed = known(item.freedIfEvicted)
-                return FathomTwoNumberTable.Row(
+                FathomTwoNumberTable.Row(
                     name: item.url.path,
-                    onDisk: bytes(known(item.sizeOnDisk)),
-                    freed: freed == 0 ? nil : bytes(freed),
+                    onDisk: item.sizeOnDisk.described(bytes),
+                    freed: .cell(item.freedIfEvicted, format: bytes),
                     annotation: annotation(for: item)
                 )
             }
     }
 
-    /// Why an item frees nothing, when it frees nothing. macOS publishes the
-    /// downloading status, so the row can say which case it is instead of
-    /// leaving a zero to be interpreted.
+    /// Why an item frees nothing, when it measurably frees nothing. macOS
+    /// publishes the downloading status, so the row can say which case it is
+    /// instead of leaving a zero to be interpreted. An item whose eviction
+    /// size was not published gets no annotation: *already evicted* is a
+    /// claim, and nothing measured it.
     private func annotation(for item: CloudItemRecord) -> String? {
-        guard known(item.freedIfEvicted) == 0 else { return nil }
+        guard case let .known(freed, _) = item.freedIfEvicted, freed == 0
+        else { return nil }
         if case let .known(status, _) = item.downloadingStatus, !status.isEmpty {
             return status
         }
@@ -250,20 +252,24 @@ struct CloudView: View {
         _ records: [CloudItemRecord],
         _ value: (CloudItemRecord) -> FathomKit.Measurement<UInt64>
     ) -> FathomKit.Measurement<UInt64> {
-        let sum = records.reduce(UInt64(0)) { $0 + known(value($1)) }
-        let missing = records.count { record in
-            if case .known = value(record) { return false }
-            return true
+        FathomKit.Measurement.sum(
+            records.map(value),
+            source: .ubiquitousAllocatedSize
+        ) { missing, count in
+            "\(missing) of \(count) items did not publish a size."
         }
-        guard missing == 0 else {
-            return .notAttributable(measured: sum, explained: sum)
-        }
-        return .known(sum, source: .fts)
     }
 
-    private func known(_ measurement: FathomKit.Measurement<UInt64>) -> UInt64 {
+    /// Ordering only, never rendered: a row without a published size sorts
+    /// last rather than being hidden, and no zero from this reaches a screen.
+    private func sortKey(_ measurement: FathomKit.Measurement<UInt64>) -> UInt64 {
         guard case let .known(value, _) = measurement else { return 0 }
         return value
+    }
+
+    private func totalIsKnown(_ plan: CloudEvictionPlan) -> Bool {
+        if case .known = plan.freeableBytes { return true }
+        return false
     }
 
     private func bytes(_ value: UInt64) -> String {
@@ -271,6 +277,6 @@ struct CloudView: View {
     }
 
     private func freeable(_ plan: CloudEvictionPlan) -> String {
-        plan.knownFreeableBytes.map(bytes) ?? "not published"
+        plan.freeableBytes.described(bytes)
     }
 }

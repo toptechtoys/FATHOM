@@ -275,11 +275,10 @@ struct TimelineView: View {
     }
 
     private func deltaText(_ delta: FathomKit.Measurement<Int64>) -> String {
-        switch delta {
-        case let .known(value, _): signedBytes(value)
-        case .notPublished: "not published"
-        case let .notAttributable(measured, _): signedBytes(measured)
-        }
+        // `described` keeps the third state distinct: a partly-attributed
+        // delta used to render exactly like a known one, a hard number in
+        // the colour reserved for absent readings.
+        delta.described(signedBytes)
     }
 
     private func color(for delta: FathomKit.Measurement<Int64>) -> Color {
@@ -293,10 +292,7 @@ struct TimelineView: View {
     }
 
     private func value(_ measurement: FathomKit.Measurement<UInt64>) -> String {
-        guard case let .known(bytes, _) = measurement else {
-            return "not published"
-        }
-        return ByteString.file(bytes)
+        measurement.described(ByteString.file)
     }
 
     private func firstDate(

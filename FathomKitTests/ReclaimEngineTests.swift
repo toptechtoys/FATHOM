@@ -44,7 +44,10 @@ func reclaimDryRunRecordsIdentityAndBothNumbers() throws {
     #expect(item.metadata.identity == candidate.identity)
     #expect(item.sizeOnDisk == candidate.sizeOnDisk)
     #expect(item.freedIfDeleted == candidate.freedIfDeleted)
-    #expect(result.manifest.knownFreeableBytes != nil)
+    guard case .known = result.manifest.freeableBytes else {
+        Issue.record("a manifest of known items did not publish its total")
+        return
+    }
 }
 
 @Test
@@ -534,7 +537,9 @@ func cloudDryRunIncludesOnlyKnownPositiveEvictableBytes() {
         item("/tmp/missing", freeable: .notPublished(reason: "pin missing"))
     ])
     #expect(plan.items.map(\.url.path) == ["/tmp/positive"])
-    #expect(plan.knownFreeableBytes == 10)
+    #expect(
+        plan.freeableBytes == .known(10, source: .ubiquitousAllocatedSize)
+    )
 }
 
 @Test

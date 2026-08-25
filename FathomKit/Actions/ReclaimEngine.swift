@@ -101,14 +101,18 @@ public struct ReclaimManifest: Sendable, Equatable, Codable {
         )
     }
 
-    public var knownFreeableBytes: UInt64? {
-        items.reduce(UInt64(0)) { partial, item in
-            guard let partial else { return nil }
-            guard case let .known(value, _) = item.freedIfDeleted else {
-                return nil
-            }
-            let (sum, overflow) = partial.addingReportingOverflow(value)
-            return overflow ? nil : sum
+    /// What moving the manifest to the Trash would free, three states intact.
+    ///
+    /// Replaces `knownFreeableBytes: UInt64?` — the optional collapse the
+    /// contract bans. The cost sentence a confirmation dialog builds from
+    /// this is a claim, and *which way* it is unknown is part of the claim.
+    public var freeableBytes: Measurement<UInt64> {
+        Measurement.sum(
+            items.map(\.freedIfDeleted),
+            source: .fts
+        ) { missing, count in
+            "\(missing) of \(count) items in the manifest did not publish "
+                + "a freed-if-deleted size."
         }
     }
 }

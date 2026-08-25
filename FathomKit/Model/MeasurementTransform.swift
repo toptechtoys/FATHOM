@@ -67,6 +67,95 @@ public extension Measurement {
     }
 }
 
+public extension Measurement where Value == UInt64 {
+    /// Sums byte measurements without collapsing what any of them said.
+    ///
+    /// This is the one way to total a list of readings. The alternatives are
+    /// the two collapses the contract bans: skipping the rows that did not
+    /// publish, which yields a smaller number wearing the total's label, and
+    /// `notAttributable(measured: sum, explained: sum)`, which asserts the gap
+    /// is exactly zero — the opposite of the fact being reported.
+    ///
+    /// The rules, weakest state first:
+    /// - Any `notPublished` part makes the total not published, and the reason
+    ///   counts the missing parts rather than repeating one of their reasons.
+    /// - Otherwise, any `notAttributable` part makes the total unattributed,
+    ///   and **both halves are real sums**: a known value contributes itself
+    ///   to each half, so the gap keeps its true magnitude.
+    /// - Otherwise the total is known, with the provenance the caller states.
+    /// - A sum that overflows `UInt64` is not a byte count; it comes back
+    ///   not published saying so, never wrapped or clamped.
+    static func sum(
+        _ values: [Measurement<UInt64>],
+        source: DataSource,
+        missing: (_ count: Int, _ of: Int) -> String = {
+            "\($0) of \($1) items did not publish a size."
+        }
+    ) -> Measurement<UInt64> {
+        var measuredTotal: UInt64 = 0
+        var explainedTotal: UInt64 = 0
+        var notPublishedCount = 0
+        var hasGap = false
+        for value in values {
+            let halves: (measured: UInt64, explained: UInt64)
+            switch value {
+            case let .known(bytes, _):
+                halves = (bytes, bytes)
+            case .notPublished:
+                notPublishedCount += 1
+                continue
+            case let .notAttributable(measured, explained):
+                hasGap = true
+                halves = (measured, explained)
+            }
+            let (nextMeasured, overflowM) =
+                measuredTotal.addingReportingOverflow(halves.measured)
+            let (nextExplained, overflowE) =
+                explainedTotal.addingReportingOverflow(halves.explained)
+            guard !overflowM, !overflowE else {
+                return .notPublished(
+                    reason: "The sum of \(values.count) items is larger than "
+                        + "a byte count can represent."
+                )
+            }
+            measuredTotal = nextMeasured
+            explainedTotal = nextExplained
+        }
+        guard notPublishedCount == 0 else {
+            return .notPublished(
+                reason: missing(notPublishedCount, values.count)
+            )
+        }
+        guard !hasGap else {
+            return .notAttributable(
+                measured: measuredTotal,
+                explained: explainedTotal
+            )
+        }
+        return .known(measuredTotal, source: source)
+    }
+}
+
+public extension Measurement {
+    /// The measurement as words, with all three states sayable.
+    ///
+    /// For every place a measurement has to become a plain string — a dialog
+    /// title, a row value, a spoken label — rather than a
+    /// `MeasurementValueView`. Written once so that `notAttributable` cannot
+    /// quietly borrow the words of a state it is not: it is neither a figure
+    /// nor *not published*, and it reads as what it is, both halves stated.
+    func described(_ format: (Value) -> String) -> String {
+        switch self {
+        case let .known(value, _):
+            format(value)
+        case .notPublished:
+            "not published"
+        case let .notAttributable(measured, explained):
+            "\(format(measured)) measured · \(format(explained)) explained"
+        }
+    }
+}
+
 public extension MemorySnapshot {
     /// How much of physical memory is in use, 0 to 1.
     ///

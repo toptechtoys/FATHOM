@@ -218,38 +218,27 @@ struct ReclaimView: View {
     }
 
     private func freed(_ group: ReclaimGroupPresentation) -> String {
-        guard case let .known(value, _) = group.freedIfDeleted else {
-            return "not published"
-        }
-        return ByteString.file(value)
+        group.freedIfDeleted.described(ByteString.file)
     }
 
     private func onDisk(_ group: ReclaimGroupPresentation) -> String {
-        guard case let .known(value, _) = group.sizeOnDisk else {
-            return "not published"
-        }
-        return ByteString.file(value)
+        group.sizeOnDisk.described(ByteString.file)
     }
 
-    /// Sums only what every rule published. A total that quietly omits the
-    /// rules it could not read is a smaller number wearing the same label.
+    /// A total that quietly omits the rules it could not read is a smaller
+    /// number wearing the same label — so a missing rule makes the total
+    /// not published, with the count, and a partly-attributed rule keeps
+    /// its gap's true magnitude.
     private func total(
         _ groups: [ReclaimGroupPresentation],
         _ value: (ReclaimGroupPresentation) -> FathomKit.Measurement<UInt64>
     ) -> FathomKit.Measurement<UInt64> {
-        var sum: UInt64 = 0
-        var missing = false
-        for group in groups {
-            if case let .known(bytes, _) = value(group) {
-                sum += bytes
-            } else {
-                missing = true
-            }
+        FathomKit.Measurement.sum(
+            groups.map(value),
+            source: .fts
+        ) { missing, count in
+            "\(missing) of \(count) rules did not publish a size."
         }
-        guard !missing else {
-            return .notAttributable(measured: sum, explained: sum)
-        }
-        return .known(sum, source: .fts)
     }
 
     private func labeled(
@@ -317,7 +306,7 @@ struct ReclaimView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(
-                        dryRun.manifest.knownFreeableBytes == nil ||
+                        !totalIsKnown(dryRun.manifest) ||
                         (dryRun.manifest.recipe.safetyClass ==
                             .requiresPerItemConfirmation &&
                          confirmedRiskyPaths.isEmpty)
@@ -346,7 +335,12 @@ struct ReclaimView: View {
     }
 
     private func freeableText(_ manifest: ReclaimManifest) -> String {
-        manifest.knownFreeableBytes.map(hardwareByteString) ?? "not published"
+        manifest.freeableBytes.described(hardwareByteString)
+    }
+
+    private func totalIsKnown(_ manifest: ReclaimManifest) -> Bool {
+        if case .known = manifest.freeableBytes { return true }
+        return false
     }
 
     @ViewBuilder

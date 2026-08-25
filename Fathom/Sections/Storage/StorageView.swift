@@ -135,12 +135,33 @@ struct StorageView: View {
     @ViewBuilder
     private func treemap(_ presentation: StoragePresentation) -> some View {
         let regions = regions(presentation)
-        if regions.isEmpty {
+        if regions.drawn.isEmpty {
             FathomPanelUnavailable(
                 reason: "No top-level region published a size on disk."
             )
         } else {
-            FathomTreemap(regions: regions)
+            VStack(alignment: .leading, spacing: 0) {
+                FathomTreemap(regions: regions.drawn)
+                if regions.unsized > 0 {
+                    // A region without a published size has no area to draw.
+                    // It is named as missing rather than silently absorbed:
+                    // a treemap that drops rows overstates every tile it
+                    // kept.
+                    Text(
+                        regions.unsized == 1
+                            ? "1 top-level region did not publish a size "
+                                + "and is not drawn."
+                            : "\(regions.unsized) top-level regions did not "
+                                + "publish a size and are not drawn."
+                    )
+                    .font(.fathomSystem(11.5))
+                    .foregroundStyle(
+                        .white.opacity(FathomSurface.minimumTextOpacity)
+                    )
+                    .padding(.top, 7)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 
@@ -151,13 +172,19 @@ struct StorageView: View {
     /// silently drops the tail overstates everything it kept.
     private func regions(
         _ presentation: StoragePresentation
-    ) -> [FathomTreemap.Region] {
-        let ranked = presentation.rows
-            .map { row in (row, known(row.sizeOnDisk)) }
-            .sorted { $0.1 > $1.1 }
+    ) -> (drawn: [FathomTreemap.Region], unsized: Int) {
+        let sized = presentation.rows
+            .compactMap { row -> (ExplorePresentationRow, UInt64)? in
+                guard case let .known(size, _) = row.sizeOnDisk else {
+                    return nil
+                }
+                return (row, size)
+            }
+        let unsized = presentation.rows.count - sized.count
+        let ranked = sized.sorted { $0.1 > $1.1 }
         let top = Array(ranked.prefix(8))
         let shown = top.reduce(UInt64(0)) { $0 + $1.1 }
-        guard shown > 0 else { return [] }
+        guard shown > 0 else { return ([], unsized) }
 
         let total = ranked.reduce(UInt64(0)) { $0 + $1.1 }
         var result = top.map { row, size in
@@ -176,12 +203,20 @@ struct StorageView: View {
                 )
             )
         }
-        return result
+        return (result, unsized)
     }
 
     private func freeableSuffix(_ row: ExplorePresentationRow) -> String {
-        let freed = known(row.freedIfDeleted)
-        return freed == 0 ? " · frees nothing" : " · \(bytes(freed)) frees"
+        switch row.freedIfDeleted {
+        case let .known(freed, _):
+            freed == 0 ? " · frees nothing" : " · \(bytes(freed)) frees"
+        case .notPublished:
+            // "Frees nothing" is a claim about the file; this row never
+            // measured it.
+            " · freed if deleted not published"
+        case .notAttributable:
+            " · freed if deleted only partly attributed"
+        }
     }
 
     private func snapshotRow(
@@ -279,10 +314,6 @@ struct StorageView: View {
         return "\(bytes(finder - actual)) of that is not guaranteed to a write"
     }
 
-    private func known(_ measurement: FathomKit.Measurement<UInt64>) -> UInt64 {
-        guard case let .known(value, _) = measurement else { return 0 }
-        return value
-    }
 
     /// What "Scan again" costs, from the last scan rather than an estimate.
     ///

@@ -9,22 +9,61 @@ import SwiftUI
 /// colour and the figure, never the colour alone.
 struct FathomTwoNumberTable: View {
     struct Row: Identifiable {
+        /// What the freed-if-deleted column claims. Four cases, because the
+        /// column makes four different claims and the `String?` this replaces
+        /// could only spell two of them: `nil` stood for a measured zero, so
+        /// a reading that was never published rendered as the numeral `0` —
+        /// a not-published state presented as a measured fact.
+        enum Freed {
+            /// Deletion measurably frees this many bytes, pre-formatted.
+            case bytes(String)
+            /// Deletion measurably frees nothing. A fact, not a gap.
+            case nothing
+            /// macOS did not publish the reading.
+            case notPublished
+            /// Partly attributed; the text states both halves.
+            case gap(String)
+        }
+
         let id = UUID()
         let name: String
         let onDisk: String
-        /// `nil` when deletion would free nothing at all.
-        let freed: String?
+        let freed: Freed
         var annotation: String?
         var isPath = true
 
+        var freedText: String {
+            switch freed {
+            case let .bytes(text): text
+            case .nothing: "0"
+            case .notPublished: "not published"
+            case let .gap(text): text
+            }
+        }
+
         /// Freeing nothing is not a caution, it is a fact. Only a row that
         /// frees something conditionally earns the caution colour, and the
-        /// annotation always says why.
+        /// annotation always says why. The two gap states read at the same
+        /// dimmed weight as *frees nothing* — words where a figure goes,
+        /// never the figure's colour.
         var freedColor: Color {
-            guard freed != nil else {
-                return .white.opacity(FathomSurface.minimumTextOpacity)
+            switch freed {
+            case .bytes:
+                annotation == nil
+                    ? FathomSemantic.freeable
+                    : FathomSemantic.caution
+            case .nothing, .notPublished, .gap:
+                .white.opacity(FathomSurface.minimumTextOpacity)
             }
-            return annotation == nil ? FathomSemantic.freeable : FathomSemantic.caution
+        }
+
+        var freedSpoken: String {
+            switch freed {
+            case let .bytes(text): "\(text) freed if deleted"
+            case .nothing: "nothing freed if deleted"
+            case .notPublished: "freed if deleted not published"
+            case let .gap(text): "freed if deleted \(text)"
+            }
         }
     }
 
@@ -49,7 +88,7 @@ struct FathomTwoNumberTable: View {
                                 .monospacedDigit()
                                 .frame(width: 110, alignment: .trailing)
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text(row.freed ?? "0")
+                                Text(row.freedText)
                                     .font(.fathomSystem(13, weight: .medium))
                                     .monospacedDigit()
                                     .foregroundStyle(row.freedColor)
@@ -96,9 +135,28 @@ struct FathomTwoNumberTable: View {
     }
 
     private func label(for row: Row) -> String {
-        let freed = row.freed ?? "nothing"
-        let base = "\(row.name), \(row.onDisk) on disk, \(freed) freed if deleted"
+        let base = "\(row.name), \(row.onDisk) on disk, \(row.freedSpoken)"
         return row.annotation.map { "\(base), \($0)" } ?? base
+    }
+}
+
+extension FathomTwoNumberTable.Row.Freed {
+    /// The cell for a freed-if-deleted measurement, written beside the type
+    /// so the mapping from state to claim exists exactly once. A measured
+    /// zero is `.nothing`; the two gap states stay themselves rather than
+    /// borrowing the zero.
+    static func cell(
+        _ measurement: FathomKit.Measurement<UInt64>,
+        format: (UInt64) -> String
+    ) -> Self {
+        switch measurement {
+        case let .known(value, _):
+            value == 0 ? .nothing : .bytes(format(value))
+        case .notPublished:
+            .notPublished
+        case .notAttributable:
+            .gap(measurement.described(format))
+        }
     }
 }
 

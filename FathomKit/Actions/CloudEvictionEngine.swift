@@ -9,17 +9,21 @@ public struct CloudEvictionPlan: Sendable, Equatable, Codable {
         self.items = items
     }
 
-    public var knownFreeableBytes: UInt64? {
-        var total: UInt64 = 0
-        for item in items {
-            guard case let .known(value, _) = item.freedIfEvicted else {
-                return nil
-            }
-            let (next, overflow) = total.addingReportingOverflow(value)
-            if overflow { return nil }
-            total = next
+    /// What eviction would free, with the three states intact.
+    ///
+    /// This used to be `knownFreeableBytes: UInt64?`, the optional-returning
+    /// convenience accessor the contract bans: it collapsed *not published*,
+    /// *not attributable* and an arithmetic overflow into one `nil`, and the
+    /// views rendered every one of them as *not published* with a reason they
+    /// invented on the spot.
+    public var freeableBytes: Measurement<UInt64> {
+        Measurement.sum(
+            items.map(\.freedIfEvicted),
+            source: .ubiquitousAllocatedSize
+        ) { missing, count in
+            "\(missing) of \(count) items in the plan did not publish "
+                + "a freeable size."
         }
-        return total
     }
 }
 

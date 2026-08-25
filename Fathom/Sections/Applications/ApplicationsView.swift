@@ -121,24 +121,38 @@ struct ApplicationsView: View {
         _ records: [ApplicationPresentation]
     ) -> [FathomTwoNumberTable.Row] {
         records
-            .map { record -> (ApplicationPresentation, UInt64) in
-                (record, known(record.sizeOnDisk) + known(record.leftoverSizeOnDisk))
-            }
-            .sorted { $0.1 > $1.1 }
+            .sorted { sortKey($0) > sortKey($1) }
             .prefix(12)
-            .map { record, _ in
-                let freed = known(record.freedIfDeleted)
-                    + known(record.leftoverFreedIfDeleted)
-                let onDisk = known(record.sizeOnDisk)
-                    + known(record.leftoverSizeOnDisk)
-                return FathomTwoNumberTable.Row(
+            .map { record in
+                FathomTwoNumberTable.Row(
                     name: name(of: record),
-                    onDisk: bytes(onDisk),
-                    freed: freed == 0 ? nil : bytes(freed),
+                    onDisk: footprint(
+                        record.sizeOnDisk,
+                        record.leftoverSizeOnDisk
+                    ).described(bytes),
+                    freed: .cell(
+                        footprint(
+                            record.freedIfDeleted,
+                            record.leftoverFreedIfDeleted
+                        ),
+                        format: bytes
+                    ),
                     annotation: annotation(for: record),
                     isPath: false
                 )
             }
+    }
+
+    /// Bundle plus leftovers with the three states intact: one unpublished
+    /// half makes the pair unpublished, rather than quietly shrinking the
+    /// rendered footprint by whatever the missing half was.
+    private func footprint(
+        _ bundle: FathomKit.Measurement<UInt64>,
+        _ leftovers: FathomKit.Measurement<UInt64>
+    ) -> FathomKit.Measurement<UInt64> {
+        FathomKit.Measurement.sum([bundle, leftovers], source: .fts) { _, _ in
+            "Part of this app's footprint was not sized by the completed scan."
+        }
     }
 
     private func name(of record: ApplicationPresentation) -> String {
@@ -148,36 +162,47 @@ struct ApplicationsView: View {
         return record.record.url.lastPathComponent
     }
 
-    /// Names why the two columns differ, when they do.
+    /// Names why the two columns differ, when they do — and says when the
+    /// difference is unknowable, rather than staying silent about a row
+    /// whose leftovers were never sized.
     private func annotation(
         for record: ApplicationPresentation
     ) -> String? {
-        let leftovers = known(record.leftoverSizeOnDisk)
-        guard leftovers > 0 else { return nil }
-        return "\(bytes(leftovers)) of it is leftovers"
+        switch record.leftoverSizeOnDisk {
+        case let .known(leftovers, _):
+            guard leftovers > 0 else { return nil }
+            return "\(bytes(leftovers)) of it is leftovers"
+        case .notPublished:
+            return "leftovers were not sized by this scan"
+        case .notAttributable:
+            return "leftovers only partly attributed"
+        }
     }
 
     private func total(
         _ records: [ApplicationPresentation],
         _ value: (ApplicationPresentation) -> FathomKit.Measurement<UInt64>
     ) -> FathomKit.Measurement<UInt64> {
-        let sum = records.reduce(UInt64(0)) { $0 + known(value($1)) }
-        let missing = records.count { record in
-            if case .known = value(record) { return false }
-            return true
+        FathomKit.Measurement.sum(
+            records.map(value),
+            source: .fts
+        ) { missing, count in
+            "\(missing) of \(count) applications did not publish a size."
         }
-        guard missing == 0 else {
-            // A total that quietly omits the rows it could not read is a
-            // smaller number wearing the same label.
-            return .notAttributable(
-                measured: sum,
-                explained: sum
-            )
-        }
-        return .known(sum, source: .fts)
     }
 
-    private func known(_ measurement: FathomKit.Measurement<UInt64>) -> UInt64 {
+    /// Ordering only, never rendered: an unpublished half orders as zero, the
+    /// pair saturates rather than trapping, and no figure from this reaches
+    /// a screen.
+    private func sortKey(_ record: ApplicationPresentation) -> UInt64 {
+        let (sum, overflow) = sortKey(record.sizeOnDisk)
+            .addingReportingOverflow(sortKey(record.leftoverSizeOnDisk))
+        return overflow ? .max : sum
+    }
+
+    private func sortKey(
+        _ measurement: FathomKit.Measurement<UInt64>
+    ) -> UInt64 {
         guard case let .known(value, _) = measurement else { return 0 }
         return value
     }
