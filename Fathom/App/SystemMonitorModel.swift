@@ -59,7 +59,12 @@ final class SystemMonitorModel: ObservableObject {
     ///
     /// One machine, one Bluetooth stack, one sample of the case that matters.
     /// `RELEASE-GATES.md` asks the reference machine to take it again.
-    private static let bluetoothDeadline = Duration.seconds(10)
+    ///
+    /// The sentence the section shows is built from this number, so retuning
+    /// the deadline cannot leave the interface describing the old one.
+    private static let bluetoothDeadlineSeconds = 10
+    private static let bluetoothDeadline =
+        Duration.seconds(bluetoothDeadlineSeconds)
 
     /// Five sections share this one loop, and SwiftUI presents the incoming
     /// section before the outgoing one disappears. Observers are counted rather
@@ -221,9 +226,9 @@ final class SystemMonitorModel: ObservableObject {
 
     private static let bluetoothDidNotAnswer = BluetoothSnapshot(
         devices: .notPublished(
-            reason: "macOS did not answer the paired-device request within ten "
-                + "seconds. The request is still outstanding; this row fills in "
-                + "if it returns."
+            reason: "macOS did not answer the paired-device request within "
+                + "\(bluetoothDeadlineSeconds) seconds. The request is still "
+                + "outstanding; this row fills in if it returns."
         )
     )
 
