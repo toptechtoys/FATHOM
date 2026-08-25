@@ -102,38 +102,50 @@ struct FathomEmptySection: View {
     var action: (() -> Void)?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                FathomSectionHeader(
-                    title: title,
-                    subtitle: subtitle,
-                    isLive: false
-                )
-
-                FathomNote(headline: headline, detail: detail)
-
-                if let actionTitle, let action {
-                    FathomAction(
-                        title: actionTitle,
-                        cost: actionCost,
-                        isBusy: isBusy,
-                        action: action
+        // The header stays at the top; the message block floats in the
+        // middle of the leftover height instead of stacking under the header
+        // with a page of dead ground below it. The GeometryReader gives the
+        // inner column the viewport's height as a minimum, so the spacers
+        // can centre — and content taller than the viewport still scrolls.
+        GeometryReader { viewport in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    FathomSectionHeader(
+                        title: title,
+                        subtitle: subtitle,
+                        isLive: false
                     )
-                    .padding(.top, 22)
-                }
 
-                if isBusy, let busySince {
-                    // `style: .relative` keeps itself current; no timer.
-                    (Text("Running for ") + Text(busySince, style: .relative))
-                        .font(.fathomSystem(11.5))
-                        .monospacedDigit()
-                        .foregroundStyle(
-                            .white.opacity(FathomSurface.minimumTextOpacity)
+                    Spacer(minLength: 24)
+
+                    FathomNote(headline: headline, detail: detail)
+
+                    if let actionTitle, let action {
+                        FathomAction(
+                            title: actionTitle,
+                            cost: actionCost,
+                            isBusy: isBusy,
+                            action: action
                         )
-                        .padding(.top, 12)
+                        .padding(.top, 22)
+                    }
+
+                    if isBusy, let busySince {
+                        // `style: .relative` keeps itself current; no timer.
+                        (Text("Running for ") + Text(busySince, style: .relative))
+                            .font(.fathomSystem(11.5))
+                            .monospacedDigit()
+                            .foregroundStyle(
+                                .white.opacity(FathomSurface.minimumTextOpacity)
+                            )
+                            .padding(.top, 12)
+                    }
+
+                    Spacer(minLength: 96)
                 }
+                .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
+                .frame(minHeight: viewport.size.height)
             }
-            .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

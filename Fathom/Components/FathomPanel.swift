@@ -2,31 +2,42 @@ import SwiftUI
 
 /// Everything below the readouts.
 ///
-/// No card, no blur, no radius — a hairline across the top, a tracked label,
-/// and the content. The panel is a division of the page rather than an object
-/// sitting on it.
+/// The prototype drew this as a bare division — a hairline and a label. The
+/// native-feel pass makes it a card like the readouts above it, at the data
+/// row's 7% so the readout cards keep their heavier weight. Darkening the
+/// ground under 82% text only raises its contrast, so the gate's plate model
+/// stays the floor.
 struct FathomPanel<Content: View>: View {
     let label: String
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Rectangle()
-                .fill(.white.opacity(0.16))
-                .frame(height: 0.5)
-                .accessibilityHidden(true)
-
             Text(label.uppercased())
                 .font(.fathomSystem(9, weight: .semibold))
                 .tracking(1.44)
                 .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
-                .padding(.top, 22)
                 .padding(.bottom, 14)
 
             content
-                .padding(.bottom, 26)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(EdgeInsets(top: 18, leading: 20, bottom: 20, trailing: 20))
+        .background(FathomSurface.row)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.14), .white.opacity(0.04)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        }
+        .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
+        .padding(.bottom, 14)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(label)
     }

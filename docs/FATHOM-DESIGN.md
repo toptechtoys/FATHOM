@@ -294,6 +294,14 @@ What changed, each an owner decision reviewed on screen:
 - **Scanning screens carry a live elapsed clock** ("Running for …"), because
   a volume walk can print nothing for half an hour and a screen with no
   moving number reads as hung.
+- **Panels are cards too** (second review, same day): the bare
+  hairline-and-label division became a radius-12 card at the data row's 7%,
+  with the same top-lit border treatment as the readout cards at lower
+  strength, so readouts keep the heavier weight. Darkening the ground under
+  82% text only raises contrast, so the gate's plate model stays the floor.
+- **Empty and scanning sections centre their message block** in the leftover
+  viewport height instead of stacking it under the header with a page of
+  dead ground below.
 
 **Every numeral in a column that can be compared is tabular.** Non-negotiable —
 `font-variant-numeric: tabular-nums` is set globally, not per component.
