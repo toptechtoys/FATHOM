@@ -264,7 +264,10 @@ text contrast, and none was visible to inspection.
 
 Labels live in the shared components rather than the section views, so a label
 written beside the value it describes cannot drift from it — and a wrong one is
-wrong everywhere at once. No per-view VoiceOver audit has been done.
+wrong everywhere at once. A static per-view audit of labels, charts, motion
+gating and type scaling was done on 25 August and fixed what it found;
+VoiceOver itself has still never spoken this interface, which stays a
+reference-machine task in `RELEASE-GATES.md`.
 
 **CI runs every gate on arm64, and it is green.** The contrast gate, the
 forbidden-API audit and the privacy-string check all fail the build for real.

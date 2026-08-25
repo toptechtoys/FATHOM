@@ -123,9 +123,22 @@ record them.
    Eleven components carry `accessibilityLabel`; the section views carry almost
    none of their own and rely entirely on those. That is deliberate — a label
    written once beside the value it describes cannot drift from it — but it
-   means a component with a wrong label is wrong everywhere at once. **No
-   per-view VoiceOver audit has been done**, and it should be scoped as its own
-   reviewed change rather than folded into this pass.
+   means a component with a wrong label is wrong everywhere at once.
+
+   **A static per-view audit was done on 25 August — code-reading, not
+   listening.** It inventoried every accessibility modifier, chart, animation
+   and font in both UI targets and verified the good news: all seven animation
+   sites honour Reduce Motion, every font routes through a `relativeTo:`
+   scaling helper, and every hand-drawn chart carries a composed label that
+   names its source. It also fixed the four defects it found: the seven-day
+   columns spoke only the net of the two-bar split they draw and called a
+   half-recorded day *no record*; Explore's two byte columns were spoken as
+   bare counts with nothing saying which was *on disk* and which *freed if
+   deleted* — the exact distinction the product exists to draw; and the
+   unattributable readout printed raw unformatted integers. What a static
+   audit cannot settle stays here: **VoiceOver has never actually spoken this
+   interface**, and walking all twenty sections with it on the reference
+   machine remains open.
 
    Dynamic Type is settled as far as static reading can settle it: the fonts
    scale, and the containers that used to clip were fixed. What is unproven is
