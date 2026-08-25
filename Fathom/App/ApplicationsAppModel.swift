@@ -59,11 +59,29 @@ final class ApplicationsAppModel: ObservableObject {
             })
             return records.map { record in
                 let app = byPath[record.url.path]
-                let leftovers: [StorageEntry]
-                if case let .known(urls, _) = record.exactLeftoverURLs {
-                    leftovers = urls.compactMap { byPath[$0.path] }
-                } else {
-                    leftovers = []
+                let leftoverSize: FathomKit.Measurement<UInt64>
+                let leftoverFreed: FathomKit.Measurement<UInt64>
+                switch record.exactLeftoverURLs {
+                case let .known(urls, _):
+                    leftoverSize = leftoverSum(urls, byPath) { $0.sizeOnDisk }
+                    leftoverFreed = leftoverSum(urls, byPath) {
+                        $0.freedIfDeleted
+                    }
+                case let .notPublished(reason):
+                    // No bundle identifier means the leftovers cannot be
+                    // matched at all — which is not the same claim as zero
+                    // leftovers, and used to be rendered as one.
+                    leftoverSize = .notPublished(reason: reason)
+                    leftoverFreed = .notPublished(reason: reason)
+                case .notAttributable:
+                    leftoverSize = .notPublished(
+                        reason: "The leftover locations were only partly "
+                            + "attributable."
+                    )
+                    leftoverFreed = .notPublished(
+                        reason: "The leftover locations were only partly "
+                            + "attributable."
+                    )
                 }
                 return ApplicationPresentation(
                     record: record,
@@ -73,31 +91,32 @@ final class ApplicationsAppModel: ObservableObject {
                     freedIfDeleted: app?.freedIfDeleted ?? .notPublished(
                         reason: "The app path was absent from the completed scan"
                     ),
-                    leftoverSizeOnDisk: sum(leftovers.map(\.sizeOnDisk)),
-                    leftoverFreedIfDeleted: sum(
-                        leftovers.map(\.freedIfDeleted)
-                    )
+                    leftoverSizeOnDisk: leftoverSize,
+                    leftoverFreedIfDeleted: leftoverFreed
                 )
             }
         }.value
     }
 
-    private nonisolated static func sum(
-        _ values: [FathomKit.Measurement<UInt64>]
+    /// A leftover location the completed scan did not cover is a gap, not a
+    /// zero. The `compactMap` this replaces dropped it silently, so the
+    /// leftover figure rendered as known while quietly missing a place the
+    /// catalog had just confirmed exists on disk.
+    private nonisolated static func leftoverSum(
+        _ urls: [URL],
+        _ byPath: [String: StorageEntry],
+        _ value: (StorageEntry) -> FathomKit.Measurement<UInt64>
     ) -> FathomKit.Measurement<UInt64> {
-        var result: UInt64 = 0
-        for value in values {
-            switch value {
-            case let .known(bytes, _):
-                let (next, overflow) = result.addingReportingOverflow(bytes)
-                if overflow { return .notPublished(reason: "Size overflow") }
-                result = next
-            case let .notPublished(reason):
-                return .notPublished(reason: reason)
-            case let .notAttributable(measured, explained):
-                return .notAttributable(measured: measured, explained: explained)
-            }
+        FathomKit.Measurement.sum(
+            urls.map { url in
+                byPath[url.path].map(value) ?? .notPublished(
+                    reason: "\(url.path) was not sized by the completed scan."
+                )
+            },
+            source: .storageTreeAccounting
+        ) { missing, count in
+            "\(missing) of \(count) leftover locations were not sized by "
+                + "the completed scan. Run the Deep Scan again to size them."
         }
-        return .known(result, source: .storageTreeAccounting)
     }
 }

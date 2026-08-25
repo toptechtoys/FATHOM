@@ -121,12 +121,22 @@ public struct ApplicationCatalogReader: Sendable {
         )
     }
 
+    /// The six places `FATHOM-DATA-SOURCES.md` §Applications names, exactly.
+    ///
+    /// `Containers` was missing from this list for a while, and it is the one
+    /// that matters most: a sandboxed app keeps nearly everything in its
+    /// container, so the leftover figure undercounted precisely the apps the
+    /// column is about. Sizing a container is safe because the storage walk
+    /// is `FTS_PHYSICAL` — the symlinks containers hold back into the real
+    /// home are counted as links, never followed.
     private func exactLeftovers(bundleIdentifier: String) -> [URL] {
         let library = home.appending(path: "Library")
         let direct = [
             library.appending(path: "Application Support")
                 .appending(path: bundleIdentifier),
             library.appending(path: "Caches")
+                .appending(path: bundleIdentifier),
+            library.appending(path: "Containers")
                 .appending(path: bundleIdentifier),
             library.appending(path: "Logs")
                 .appending(path: bundleIdentifier),
