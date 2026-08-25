@@ -294,6 +294,21 @@ extension Color {
     }
 }
 
+/// The native-feel pass, 25 August 2026.
+///
+/// The owner watched the app run and called the type too small — the
+/// prototype's scale was drawn for a mockup, not read off a screen. Every
+/// stated size in this codebase still matches the prototype's numbers; the
+/// helpers below multiply them by this factor at render time, so the whole
+/// scale moves together and the factor is one reviewable number. When the
+/// factor settles, it gets baked into the prototype and FATHOM-DESIGN.md as
+/// the recorded sizes.
+enum FathomType {
+    /// 1.2 was reviewed on screen and still read small; 1.32 is the second
+    /// review's ask (another 10%).
+    static let scale: CGFloat = 1.32
+}
+
 extension Font {
     /// UI and numerals.
     ///
@@ -307,6 +322,7 @@ extension Font {
         weight: Font.Weight = .regular,
         design: Font.Design = .default
     ) -> Font {
+        let size = size * FathomType.scale
         guard design != .monospaced else {
             return .custom(
                 ".AppleSystemUIFontMonospaced",
@@ -331,7 +347,8 @@ extension Font {
         _ size: CGFloat,
         weight: Font.Weight = .semibold
     ) -> Font {
-        .custom(
+        let size = size * FathomType.scale
+        return .custom(
             "Archivo SemiExpanded",
             size: size,
             relativeTo: fathomRelativeStyle(for: size)
@@ -349,7 +366,8 @@ extension Font {
         _ size: CGFloat,
         weight: Font.Weight = .regular
     ) -> Font {
-        .custom(
+        let size = size * FathomType.scale
+        return .custom(
             "Archivo",
             size: size,
             relativeTo: fathomRelativeStyle(for: size)
@@ -359,7 +377,8 @@ extension Font {
     }
 
     static func fathomPath(_ size: CGFloat) -> Font {
-        .custom(
+        let size = size * FathomType.scale
+        return .custom(
             "JetBrains Mono",
             size: size,
             relativeTo: fathomRelativeStyle(for: size)

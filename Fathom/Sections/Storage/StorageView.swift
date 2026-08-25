@@ -26,6 +26,7 @@ struct StorageView: View {
                     detail: model.scanProgressMessage,
                     actionTitle: "Scanning…",
                     isBusy: true,
+                    busySince: model.scanStartedAt,
                     action: {}
                 )
             case let .failed(reason):

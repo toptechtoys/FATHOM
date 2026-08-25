@@ -44,11 +44,13 @@ struct FathomReadoutGrid<Content: View>: View {
 /// auto-fit is auto-fill capped at the number of things there are to place.
 /// The arithmetic is `ReadoutRowLayout` in FathomKit, where it is tested.
 struct FathomReadoutRow: Layout {
-    /// The prototype's `minmax(190px, …)`.
-    var minimum: CGFloat = 190
-    /// The prototype's `gap: 1px` — and the hairline itself, since each cell
-    /// strokes its own boundary and two strokes meet in the gap.
-    var gap: CGFloat = 1
+    /// The prototype drew `minmax(190px, …)`; the native-feel pass widened it
+    /// with the type it has to hold.
+    var minimum: CGFloat = 210
+    /// The prototype's `gap: 1px` made the cells one continuous table. The
+    /// native-feel pass separates them into cards, so the gap is real space
+    /// and each card owns its whole border.
+    var gap: CGFloat = 10
 
     func sizeThatFits(
         proposal: ProposedViewSize,
@@ -176,14 +178,25 @@ struct FathomReadout<Value: View>: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(EdgeInsets(top: 16, leading: 18, bottom: 18, trailing: 18))
+        .padding(EdgeInsets(top: 18, leading: 20, bottom: 20, trailing: 20))
         .background(isHovering ? FathomSurface.rowHover : FathomSurface.card)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay {
-            // Centred on the boundary, so half of it falls into the 1pt gap
-            // and meets the neighbour's half.
-            Rectangle()
-                .stroke(.white.opacity(0.14), lineWidth: 1)
+            // Each card owns its border: brighter along the top edge where
+            // the light would catch it, fading down the sides. Chrome only —
+            // no text sits on the stroke, so the gate's cell model is
+            // unchanged.
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.20), .white.opacity(0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
         }
+        .shadow(color: .black.opacity(0.22), radius: 8, y: 2)
         .animation(reduceMotion ? nil : .fathomHover, value: isHovering)
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .combine)

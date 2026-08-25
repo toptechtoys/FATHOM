@@ -83,7 +83,8 @@ screenshots of the same screen are identical. Both its opacity and its ceiling
 are read from source by `check-contrast.py`, which composites the brightest
 speckle the band permits.
 
-**The rail.** 64px, always an icon rail, never labelled. See *The rail*.
+**The rail.** Was 64px, icons only; a 214pt labelled sidebar since 25 August
+2026. See *The rail*.
 
 **The status strip.** 32px, `rgba(0,0,0,.25)`, 10px/700/.1em uppercase —
 `INSTRUMENT PANEL` left, `1 HZ · LIVE` right.
@@ -260,6 +261,40 @@ Everything else in this table matches the prototype exactly, and so do the
 spacings, radii, materials and motion durations. The type scale is the only
 place the two differ.
 
+**The whole scale renders ×1.32 as of 25 August 2026.** The owner watched the
+app run on a real display and called the table above too small — twice: a
+first pass at ×1.2 was reviewed on screen and still read small, and ×1.32 is
+the second review's ask. Every size in this document and the prototype is
+still the *stated* size; `FathomType.scale` in `FathomDesign.swift` multiplies
+them at render time so the scale moves as one number. When the factor
+settles, it gets baked into these tables and the prototype as the recorded
+sizes.
+
+---
+
+## The native-feel pass, 25 August 2026
+
+The owner reviewed the running app and directed it: *"it looks like a
+website, not a proper app — colors stay, text bigger, real buttons, like
+CleanMyMac."* The colour worlds, materials, grain and highlight are untouched.
+What changed, each an owner decision reviewed on screen:
+
+- **Type renders ×1.32** — see *Type* above.
+- **The icon rail became a 214pt labelled sidebar** — see *The rail* below.
+- **Readout cells became cards.** The 1px shared-hairline grid became a 10pt
+  gap; each card is radius 12 with its own border — a top-lit gradient
+  stroke, white 20% fading to 5% — and a soft shadow (black 22%, radius 8,
+  y 2). Cell minimum width 190 → 210 for the larger type. The cell's 16%
+  material and every text-bearing surface are unchanged, so the contrast
+  gate's model still holds; the border and shadow carry no text.
+- **The prominent action is a filled button**: black 82% text on white 88%
+  fill, radius 12 — the same pairing the menu-bar preview chip already
+  passes the gate with, at 12.04:1 worst-world. Hover lifts the fill to
+  100%. Secondary actions keep the translucent style.
+- **Scanning screens carry a live elapsed clock** ("Running for …"), because
+  a volume walk can print nothing for half an hour and a screen with no
+  moving number reads as hung.
+
 **Every numeral in a column that can be compared is tabular.** Non-negotiable —
 `font-variant-numeric: tabular-nums` is set globally, not per component.
 
@@ -331,6 +366,15 @@ never a verb with no object.
 ---
 
 ## The rail
+
+**Superseded 25 August 2026: the rail is now a 214pt labelled sidebar.** The
+prototype's rule was "always icons, never labels"; the owner reviewed the
+running app and asked for names beside the icons, CleanMyMac-style. Each row
+is icon + section name at 12px (×1.32) in a 34pt row, radius 8, full-width
+selection chrome; the groups, icons, colours, tooltips and accessible labels
+are unchanged, and the footer now shows the live pill and the widget's own
+measured cost as visible text rather than a tooltip. The paragraphs below
+describe the prototype's icon rail and remain the record of what it was.
 
 64px, fixed, never expands. Twenty items in four groups, divided by a 22×1px
 hairline rather than a text heading:

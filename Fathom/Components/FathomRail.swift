@@ -1,11 +1,13 @@
 import FathomKit
 import SwiftUI
 
-/// The 64pt navigation rail.
+/// The navigation sidebar.
 ///
-/// Fixed width, always icons, never labels — see *The rail* in
-/// `FATHOM-DESIGN.md`. Twenty sections in four groups, separated by a hairline
-/// rather than a text heading, so the grouping costs no vertical space.
+/// This began as the prototype's 64pt icon rail — "always icons, never
+/// labels". The owner reviewed the running app on 25 August and asked for
+/// names beside the icons, CleanMyMac-style, so it is now a 200pt labelled
+/// sidebar; FATHOM-DESIGN.md carries the change. Twenty sections in four
+/// groups, still separated by hairlines rather than headings.
 ///
 /// Two things the prototype draws that this deliberately does not. It paints
 /// three traffic lights, because a web page has to; the real window gets the
@@ -18,17 +20,17 @@ struct FathomRail: View {
     var body: some View {
         VStack(spacing: 0) {
             // The system traffic lights sit here. Reserving their height keeps
-            // the first icon clear of them without drawing anything.
+            // the first row clear of them without drawing anything.
             //
             // `reach` comes off this and goes back on inside the scroll below,
-            // so the first icon does not move: 34pt of clearance either way.
+            // so the first row does not move: 34pt of clearance either way.
             // The difference is which side of the clipping boundary it is on.
             Color.clear
                 .frame(height: 34 - FathomFocus.reach)
                 .accessibilityHidden(true)
 
             ScrollView {
-                VStack(spacing: 3) {
+                VStack(spacing: 2) {
                     ForEach(
                         Array(AppSection.railGroups.enumerated()),
                         id: \.offset
@@ -41,16 +43,17 @@ struct FathomRail: View {
                         }
                     }
                 }
+                .padding(.horizontal, 10)
                 // A `ScrollView` clips its children, and the focus ring is
-                // drawn *outside* the icon it surrounds. The first icon sat at
+                // drawn *outside* the row it surrounds. The first row sat at
                 // exactly y=0 — the app was asked and said so — which put the
                 // top of its ring at -4pt and threw that edge away. Nothing
-                // catches that but tabbing to the first icon and looking, and
+                // catches that but tabbing to the first row and looking, and
                 // macOS ships with the keyboard navigation that makes it
                 // reachable turned off.
                 //
                 // The bottom already had 8pt, which clears the same reach; it
-                // is left alone because the last icon was never the problem.
+                // is left alone because the last row was never the problem.
                 .padding(.top, FathomFocus.reach)
                 .padding(.bottom, 8)
             }
@@ -58,7 +61,7 @@ struct FathomRail: View {
 
             footer
         }
-        .frame(width: 64)
+        .frame(width: 214)
         .background(FathomSurface.rail)
         .background(.ultraThinMaterial.opacity(0.18))
         .overlay(alignment: .trailing) {
@@ -72,8 +75,9 @@ struct FathomRail: View {
 
     private var divider: some View {
         Rectangle()
-            .fill(.white.opacity(0.22))
-            .frame(width: 22, height: 1)
+            .fill(.white.opacity(0.18))
+            .frame(height: 1)
+            .padding(.horizontal, 12)
             .padding(.top, 9)
             .padding(.bottom, 8)
             .accessibilityHidden(true)
@@ -84,38 +88,47 @@ struct FathomRail: View {
         return Button {
             selection = section
         } label: {
-            FathomSectionIcon(section: section)
-                .foregroundStyle(
-                    isSelected ? .white : .white.opacity(0.82)
-                )
-                .frame(width: 42, height: 42)
-                .background {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        .white.opacity(0.26),
-                                        .white.opacity(0.13),
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
+            HStack(spacing: 10) {
+                FathomSectionIcon(section: section)
+                    .frame(width: 22)
+                Text(section.rawValue)
+                    .font(.fathomSystem(12, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(
+                isSelected ? .white : .white.opacity(0.82)
+            )
+            .padding(.horizontal, 10)
+            .frame(height: 34)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    .white.opacity(0.26),
+                                    .white.opacity(0.13),
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
                             )
-                            .overlay(alignment: .top) {
-                                Rectangle()
-                                    .fill(.white.opacity(0.3))
-                                    .frame(height: 1)
-                                    .clipShape(
-                                        RoundedRectangle(cornerRadius: 10)
-                                    )
-                            }
-                    }
+                        )
+                        .overlay(alignment: .top) {
+                            Rectangle()
+                                .fill(.white.opacity(0.3))
+                                .frame(height: 1)
+                                .clipShape(
+                                    RoundedRectangle(cornerRadius: 8)
+                                )
+                        }
                 }
-                .contentShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(RailItemButtonStyle())
-        .fathomFocusRing(cornerRadius: 10)
+        .fathomFocusRing(cornerRadius: 8)
         .help(section.rawValue)
         .accessibilityLabel(section.rawValue)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
@@ -132,9 +145,29 @@ struct FathomRail: View {
             Rectangle()
                 .fill(.white.opacity(0.1))
                 .frame(height: 0.5)
-            LiveDot()
-                .padding(.top, 12)
-                .padding(.bottom, 14)
+            HStack(spacing: 8) {
+                LiveDot()
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Live · 1 Hz")
+                        .font(.fathomSystem(10, weight: .semibold))
+                    // The sidebar has room now, so the app's own measured
+                    // cost is visible instead of hiding in a tooltip —
+                    // still the measured figure, never the budget.
+                    if case let .known(cost, _) = MeasuredIdleCost.load() {
+                        Text(
+                            "Widget \(cost.cpuPercent.formatted(.number.precision(.fractionLength(2))))% CPU"
+                        )
+                        .font(.fathomSystem(10))
+                        .foregroundStyle(
+                            .white.opacity(FathomSurface.minimumTextOpacity)
+                        )
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 14)
         }
         .help(costDescription)
         .accessibilityElement(children: .ignore)
@@ -164,7 +197,7 @@ private struct RailItemButtonStyle: ButtonStyle {
         configuration.label
             .background {
                 if isHovering && !configuration.isPressed {
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(.white.opacity(0.11))
                 }
             }

@@ -28,6 +28,7 @@ struct WeeklyDigestView: View {
                     detail: storage.scanProgressMessage,
                     actionTitle: "Scanning…",
                     isBusy: true,
+                    busySince: storage.scanStartedAt,
                     action: {}
                 )
             case let .failed(reason):

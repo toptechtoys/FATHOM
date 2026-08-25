@@ -19,6 +19,9 @@ final class StorageAppModel: ObservableObject {
     @Published private(set) var childLoadFailures: [Int64: String] = [:]
     @Published private(set) var scanProgressMessage =
         "Preparing the volume walk…"
+    /// When the running scan started — the one number every scanning screen
+    /// can always show while the walk itself has nothing to report yet.
+    @Published private(set) var scanStartedAt: Date?
     @Published private(set) var changeMonitoring:
         FathomKit.Measurement<String> = .notPublished(
             reason: "A completed scan is required before live updates start"
@@ -41,6 +44,7 @@ final class StorageAppModel: ObservableObject {
         loadingDirectoryIDs = []
         childLoadFailures = [:]
         scanProgressMessage = "Walking directory entries and recording allocated sizes…"
+        scanStartedAt = Date()
         state = .scanning
         startChangeMonitoring(allowDuringScan: true)
         Task {

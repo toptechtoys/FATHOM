@@ -27,6 +27,7 @@ struct ExploreView: View {
                     detail: model.scanProgressMessage,
                     actionTitle: "Scanning…",
                     isBusy: true,
+                    busySince: model.scanStartedAt,
                     action: {}
                 )
             case let .result(presentation):

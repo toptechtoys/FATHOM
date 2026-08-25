@@ -23,25 +23,45 @@ struct FathomAction: View {
                     if isBusy {
                         ProgressView()
                             .controlSize(.small)
-                            .tint(.white)
+                            .tint(isProminent ? .black : .white)
                     }
                     Text(title)
                 }
                 .font(.fathomSystem(13, weight: .semibold))
-                .padding(.horizontal, 20)
-                .padding(.vertical, 11)
-                .background(.white.opacity(isProminent ? 0.14 : 0.08))
+                .foregroundStyle(
+                    // The prominent fill reuses the menu-bar chip's gated
+                    // pairing — black 82% on white 88% — the one light
+                    // surface the contrast gate already composites.
+                    isProminent
+                        ? Color.black.opacity(0.82)
+                        : Color.white.opacity(0.92)
+                )
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+                .background(
+                    isProminent
+                        ? Color.white.opacity(isHovering && !isBusy ? 1 : 0.88)
+                        : Color.white.opacity(isHovering && !isBusy ? 0.14 : 0.08)
+                )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 15)
-                        .stroke(.white.opacity(0.22), lineWidth: 0.5)
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(
+                            .white.opacity(isProminent ? 0 : 0.22),
+                            lineWidth: 0.5
+                        )
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 15))
-                .scaleEffect(isHovering && !isBusy ? 1.04 : 1)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(
+                    color: .black.opacity(isProminent ? 0.28 : 0),
+                    radius: 9,
+                    y: 3
+                )
+                .scaleEffect(isHovering && !isBusy ? 1.02 : 1)
                 .animation(reduceMotion ? nil : .fathomPress, value: isHovering)
-                .contentShape(RoundedRectangle(cornerRadius: 15))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
-            .fathomFocusRing(cornerRadius: 15)
+            .fathomFocusRing(cornerRadius: 12)
             .disabled(isBusy)
             .onHover { isHovering = $0 }
 
@@ -75,6 +95,10 @@ struct FathomEmptySection: View {
     var actionTitle: String?
     var actionCost: String?
     var isBusy = false
+    /// When the work being waited on began. Rendered as a live elapsed clock
+    /// beside the busy state — a long walk that prints no numbers yet can
+    /// still always say how long it has been walking.
+    var busySince: Date?
     var action: (() -> Void)?
 
     var body: some View {
@@ -96,6 +120,17 @@ struct FathomEmptySection: View {
                         action: action
                     )
                     .padding(.top, 22)
+                }
+
+                if isBusy, let busySince {
+                    // `style: .relative` keeps itself current; no timer.
+                    (Text("Running for ") + Text(busySince, style: .relative))
+                        .font(.fathomSystem(11.5))
+                        .monospacedDigit()
+                        .foregroundStyle(
+                            .white.opacity(FathomSurface.minimumTextOpacity)
+                        )
+                        .padding(.top, 12)
                 }
             }
             .padding(EdgeInsets(top: 22, leading: 28, bottom: 40, trailing: 28))
