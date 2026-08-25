@@ -68,7 +68,11 @@ jobs:
           # grep, not ripgrep: rg is absent from the runner image, so this audit
           # exited "command not found" and had never actually run. These are the
           # product's non-negotiables; the check has to work.
-          if grep -rnE 'unlink\(|removeItem\(|Process\(|NSTask|system_profiler|tmutil|diskutil' \
+          # Every spelling of "spawn a process" and "delete a file" is listed,
+          # not just the polite ones: a violation written as posix_spawn or
+          # rmdir used to sail through a gate that only knew Process and
+          # removeItem.
+          if grep -rnE 'unlink\(|removeItem\(|rmdir\(|Process\(|NSTask|posix_spawn|popen\(|execv|NSAppleScript|NSUserUnixTask|NSUserScriptTask|system_profiler|tmutil|diskutil' \
                --include='*.swift' Fathom FathomKit FathomBar; then
             echo "::error::forbidden shipping API above (nothing is deleted; production reads the API)"
             exit 1
