@@ -87,9 +87,15 @@ struct CPUView: View {
                     clusterFrequency(channelMap)
                 }
 
+                // The prototype's copy here was demo data that leaked: "We
+                // show all eight" on a reference machine with twelve cores,
+                // and "the efficiency cores are carrying most of this" as a
+                // static claim about live load. The note now states the
+                // policy, which is true on every Mac including one that
+                // publishes no cluster split at all.
                 FathomNote(
-                    headline: "The efficiency cores are carrying most of this.",
-                    detail: "That is the scheduler doing its job, not a problem. We show all eight because an average would hide which cluster is actually working."
+                    headline: "An average would hide which cluster is working.",
+                    detail: "Every core is shown separately, because the scheduler routes work deliberately: background tasks land on the efficiency cores, and a busy efficiency cluster is macOS doing its job, not a problem."
                 )
             }
             .padding(34)
