@@ -140,23 +140,26 @@ a{color:var(--I);text-decoration:none}a:hover{color:#fff}
  background:radial-gradient(52% 58% at 50% 42%,rgba(255,255,255,.30) 0%,rgba(255,255,255,.10) 42%,transparent 72%)}
 
 /* The plate. Everything that carries text sits on it — see FATHOM-DESIGN.md. */
-#rail{width:64px;flex:none;position:relative;z-index:6;display:flex;flex-direction:column;
- align-items:center;padding:14px 0 12px;background:var(--plate);
+#rail{width:214px;flex:none;position:relative;z-index:6;display:flex;flex-direction:column;
+ align-items:stretch;padding:14px 0 12px;background:var(--plate);
  backdrop-filter:blur(46px) saturate(135%);border-right:.5px solid rgba(255,255,255,.09)}
-#lights{display:flex;flex-direction:column;gap:6px;padding:0 0 16px}
+#lights{display:flex;flex-direction:row;gap:6px;padding:0 14px 16px}
 #lights i{width:9px;height:9px;border-radius:50%;display:block}
-#navs{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1 1 0;min-height:0;overflow-y:auto}
-.nb{width:42px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;cursor:pointer;
+#navs{display:flex;flex-direction:column;align-items:stretch;gap:2px;flex:1 1 0;min-height:0;overflow-y:auto;padding:0 10px}
+.nb{width:100%;height:34px;flex:none;display:flex;align-items:center;gap:10px;padding:0 10px;text-align:left;border-radius:8px;cursor:pointer;
  border:0;background:transparent;padding:0;transition:background .22s var(--ease),transform .18s var(--ease)}
 .nb:hover{background:rgba(255,255,255,.11)}
 .nb:active{transform:scale(.94)}
 .nb.on{background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.13));
  box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
-.nb i{width:19px;height:19px;display:block;background:var(--tx);
+.nb span{font-size:12px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nb.on span{font-weight:600;color:#fff}
+.nb i{width:19px;height:19px;flex:none;display:block;background:var(--tx);
  filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
 .nb.on i{background:#fff}
-.ndv{width:22px;height:1px;background:rgba(255,255,255,.22);margin:9px 0 8px;flex:none}
-#foot{border-top:.5px solid rgba(255,255,255,.1);margin-top:8px;padding:12px 0 2px;display:grid;place-items:center}
+.ndv{height:1px;background:rgba(255,255,255,.18);margin:9px 12px 8px;flex:none}
+#foot{border-top:.5px solid rgba(255,255,255,.1);margin-top:8px;padding:12px 14px 2px;display:flex;align-items:center;gap:8px}
+#foot span{font-size:10px;font-weight:600;color:var(--tx)}
 #foot i{width:7px;height:7px;border-radius:50%;background:var(--L);box-shadow:0 0 9px var(--L);
  animation:pul 2.2s ease-in-out infinite}
 
@@ -182,9 +185,9 @@ a{color:var(--I);text-decoration:none}a:hover{color:#fff}
  animation:pul 2.2s ease-in-out infinite;flex:none}
 
 /* the gap IS the hairline */
-.rg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
+.rg{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;
  margin-bottom:4px}
-.rc{background:var(--cell);padding:16px 18px 18px;box-shadow:0 0 0 .5px var(--grid);
+.rc{background:var(--cell);padding:18px 20px 20px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.20),inset 0 0 0 1px rgba(255,255,255,.08),0 2px 8px rgba(0,0,0,.22);
  transition:background .25s var(--ease)}
 .rc:hover{background:var(--rowh)}
 .rl{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--tx);
@@ -195,7 +198,9 @@ a{color:var(--I);text-decoration:none}a:hover{color:#fff}
  letter-spacing:-.008em}
 .rn{font-size:11.5px;color:var(--tx);line-height:1.45;max-width:32ch;margin-top:10px}
 
-.pn{padding:22px 0 26px;border-top:.5px solid var(--hair)}
+.pn{padding:18px 20px 20px;background:var(--row);border-radius:12px;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.06),0 2px 8px rgba(0,0,0,.18);
+ margin-bottom:14px}
 .pl{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--tx);
  margin-bottom:14px}
 .rw{display:grid;grid-template-columns:minmax(0,1fr) 110px 150px;gap:10px;align-items:center;
@@ -250,8 +255,9 @@ a{color:var(--I);text-decoration:none}a:hover{color:#fff}
 .fi p{font-size:11.5px;color:var(--tx);margin-top:3px;max-width:66ch}
 .fi .v{text-align:right;font-weight:600;font-family:var(--num)}
 
-.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px}
-.g3 button{background:var(--cell);border:0;padding:13px 15px;text-align:left;cursor:pointer;
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px}
+.g3 button{background:var(--cell);border:0;padding:13px 15px;text-align:left;cursor:pointer;border-radius:12px;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.20),inset 0 0 0 1px rgba(255,255,255,.08),0 2px 8px rgba(0,0,0,.22);
  font:inherit;color:inherit;box-shadow:0 0 0 .5px var(--grid);
  transition:background .2s var(--ease)}
 .g3 button:hover{background:var(--rowh)}
@@ -298,10 +304,11 @@ a{color:var(--I);text-decoration:none}a:hover{color:#fff}
 .note p{font-size:12.5px;color:var(--tx);line-height:1.55}
 
 .act{margin-top:22px}
-.act button{background:rgba(255,255,255,.14);border:.5px solid rgba(255,255,255,.22);
+.act button{background:rgba(255,255,255,.88);color:rgba(0,0,0,.82);border:0;border-radius:12px;
+ box-shadow:0 3px 9px rgba(0,0,0,.28);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.20);color:#fff;font:inherit;font-size:13px;font-weight:600;
  padding:11px 20px;border-radius:15px;cursor:pointer;transition:transform .16s var(--ease),background .16s var(--ease)}
-.act button:hover{background:rgba(255,255,255,.2);transform:scale(1.04)}
+.act button:hover{background:#fff;transform:scale(1.02)}
 .act button:active{transform:scale(.96)}
 
 @media(max-width:760px){#col{padding:18px 16px 32px}.rw,.dev{grid-template-columns:minmax(0,1fr) 92px}
@@ -388,7 +395,7 @@ const navs=document.getElementById('navs');
 NAV.forEach(([head,keys],gi)=>{
  if(gi)navs.insertAdjacentHTML('beforeend',`<div class="ndv" role="separator"></div>`);
  keys.forEach(k=>navs.insertAdjacentHTML('beforeend',
-  `<button class="nb" data-k="${k}" title="${esc(TT[k])}" aria-label="${esc(TT[k])}"><i style="-webkit-mask:url(&quot;${IC[k]}&quot;) center/contain no-repeat;mask:url(&quot;${IC[k]}&quot;) center/contain no-repeat"></i></button>`));
+  `<button class="nb" data-k="${k}" title="${esc(TT[k])}" aria-label="${esc(TT[k])}"><i style="-webkit-mask:url(&quot;${IC[k]}&quot;) center/contain no-repeat;mask:url(&quot;${IC[k]}&quot;) center/contain no-repeat"></i><span>${esc(TT[k])}</span></button>`));
 });
 navs.addEventListener('click',e=>{const b=e.target.closest('.nb');if(b)go(b.dataset.k);});
 document.getElementById('col').addEventListener('click',e=>{
@@ -418,7 +425,7 @@ html = (
     "<!-- FATHOM — Instrument Panel. The visual spec. Self-contained: fonts and\n"
     "     icons are inlined, nothing is fetched. Materials and text alphas match\n"
     "     FathomSurface in Swift; see FATHOM-DESIGN.md for why they are what they\n"
-    "     are. Numbers simulate a MacBook Air M2; the app reads them for real. -->\n"
+    "     are. Numbers simulate a MacBook Air M2; the app reads them for real.\n     Native-feel pass, 25 August 2026: labelled 214px sidebar, card readouts\n     and panels, filled action button — owner-reviewed on screen; see\n     FATHOM-DESIGN.md. Type here is at stated sizes; the app renders them\n     x1.32 (FathomType.scale), to be baked in when the factor settles. -->\n"
     "<style>\n" + fonts + "\n" + CSS.strip() + "\n</style></head>\n"
     "<body>\n"
     '<div id="win">\n'
@@ -427,7 +434,7 @@ html = (
     '  <div id="lights"><i style="background:#FF5F57"></i>'
     '<i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>\n'
     '  <nav id="navs" aria-label="Sections"></nav>\n'
-    '  <div id="foot" title="0.2% CPU · energy 2.1"><i></i></div>\n'
+    '  <div id="foot" title="0.2% CPU · energy 2.1"><i></i><span>Live &middot; 1 Hz</span></div>\n'
     " </aside>\n"
     ' <main id="main">\n'
     '  <div id="strip"><span>INSTRUMENT PANEL</span><span>1 HZ &middot; LIVE</span></div>\n'
