@@ -147,6 +147,16 @@ static kern_return_t fathom_smc_read(
     return result;
 }
 
+// The log page is the wire payload, not a convenience struct: a recorded
+// fixture is only replayable byte for byte if this size never moves. Gate 2
+// captures exactly sizeof(NVMeSMARTData) bytes and the parser refuses any
+// other length, so a change here must invalidate every committed fixture
+// loudly, at build time, rather than quietly mis-parse one.
+_Static_assert(
+    sizeof(NVMeSMARTData) == FATHOM_NVME_SMART_LOG_PAGE_LENGTH,
+    "the NVMe SMART log page is the wire payload; a size change invalidates every committed fixture"
+);
+
 static void fathom_copy_smart(
     const NVMeSMARTData *source,
     fathom_nvme_smart_data *destination
@@ -172,15 +182,19 @@ static void fathom_copy_smart(
     destination->media_errors_high = source->MEDIA_ERRORS[1];
 }
 
-int32_t fathom_nvme_smart_read(
-    fathom_nvme_smart_data *output,
+// One IOKit walk, two callers. The parsed read and the raw log-page capture
+// must find the same controller by the same rules, or a fixture recorded on the
+// reference machine would be evidence about a device the shipping reader never
+// opened.
+static int32_t fathom_nvme_smart_read_data(
+    NVMeSMARTData *data,
     int32_t *error_code,
     uint32_t *controllers_seen
 ) {
-    if (output == NULL || error_code == NULL || controllers_seen == NULL) {
+    if (data == NULL || error_code == NULL || controllers_seen == NULL) {
         return -1;
     }
-    memset(output, 0, sizeof(*output));
+    memset(data, 0, sizeof(*data));
     *error_code = (int32_t)kIOReturnNotFound;
     *controllers_seen = 0;
 
@@ -248,13 +262,10 @@ int32_t fathom_nvme_smart_read(
             continue;
         }
 
-        NVMeSMARTData data;
-        memset(&data, 0, sizeof(data));
-        IOReturn read_result = (*smart)->SMARTReadData(smart, &data);
+        IOReturn read_result = (*smart)->SMARTReadData(smart, data);
         (*smart)->Release(smart);
         IODestroyPlugInInterface(plugin);
         if (read_result == kIOReturnSuccess) {
-            fathom_copy_smart(&data, output);
             *error_code = 0;
             IOObjectRelease(iterator);
             return 0;
@@ -264,6 +275,74 @@ int32_t fathom_nvme_smart_read(
 
     IOObjectRelease(iterator);
     return -1;
+}
+
+int32_t fathom_nvme_smart_read(
+    fathom_nvme_smart_data *output,
+    int32_t *error_code,
+    uint32_t *controllers_seen
+) {
+    if (output == NULL || error_code == NULL || controllers_seen == NULL) {
+        return -1;
+    }
+    memset(output, 0, sizeof(*output));
+
+    NVMeSMARTData data;
+    if (fathom_nvme_smart_read_data(
+            &data,
+            error_code,
+            controllers_seen
+        ) != 0) {
+        return -1;
+    }
+    fathom_copy_smart(&data, output);
+    return 0;
+}
+
+int32_t fathom_nvme_smart_copy_log_page(
+    uint8_t *buffer,
+    uint32_t buffer_length,
+    int32_t *error_code,
+    uint32_t *controllers_seen
+) {
+    if (buffer == NULL || error_code == NULL || controllers_seen == NULL) {
+        return -1;
+    }
+    if (buffer_length < sizeof(NVMeSMARTData)) {
+        *error_code = (int32_t)kIOReturnNoSpace;
+        *controllers_seen = 0;
+        return -1;
+    }
+    memset(buffer, 0, buffer_length);
+
+    NVMeSMARTData data;
+    if (fathom_nvme_smart_read_data(
+            &data,
+            error_code,
+            controllers_seen
+        ) != 0) {
+        return -1;
+    }
+    memcpy(buffer, &data, sizeof(NVMeSMARTData));
+    return 0;
+}
+
+int32_t fathom_nvme_smart_parse_log_page(
+    const uint8_t *bytes,
+    uint32_t length,
+    fathom_nvme_smart_data *output
+) {
+    if (bytes == NULL || output == NULL ||
+        length != sizeof(NVMeSMARTData)) {
+        return -1;
+    }
+    // memcpy into a local rather than casting the buffer: NVMeSMARTData is
+    // #pragma pack(1), so a cast hands the field accesses an unaligned
+    // pointer, which is undefined behaviour the optimiser is free to act on.
+    NVMeSMARTData data;
+    memcpy(&data, bytes, sizeof(data));
+    fathom_copy_smart(&data, output);
+    return 0;
 }
 
 int32_t fathom_smc_copy_keys(
@@ -928,6 +1007,57 @@ int32_t fathom_ioreport_sampler_copy_delta(
     *bytes = buffer;
     *length = (uint64_t)data_length;
     *error_code = 0;
+    return 0;
+}
+
+int32_t fathom_ioreport_sampler_copy_subscribed_channels(
+    fathom_ioreport_sampler sampler,
+    uint8_t **bytes,
+    uint64_t *length,
+    int32_t *error_code
+) {
+    fathom_ioreport_sampler_state *state = sampler;
+    if (state == NULL || bytes == NULL || length == NULL ||
+        error_code == NULL || state->subscribed_channels == NULL) {
+        return -1;
+    }
+    *bytes = NULL;
+    *length = 0;
+    *error_code = 0;
+
+    // This is the dictionary IOReportCreateSubscription handed back: the set
+    // of channels this process is actually subscribed to, as opposed to the
+    // set it asked for. Gate 2 names it because it is the only record of what
+    // the reference machine agreed to publish.
+    CFErrorRef serialization_error = NULL;
+    CFDataRef data = CFPropertyListCreateData(
+        kCFAllocatorDefault,
+        state->subscribed_channels,
+        kCFPropertyListBinaryFormat_v1_0,
+        0,
+        &serialization_error
+    );
+    if (serialization_error != NULL) {
+        CFRelease(serialization_error);
+    }
+    if (data == NULL) {
+        // libIOReport is free to put non-property-list values in here. Saying
+        // so is the honest outcome; a partial copy would be a fixture that
+        // claims to be the subscription and is not.
+        *error_code = 12;
+        return -1;
+    }
+    CFIndex data_length = CFDataGetLength(data);
+    uint8_t *buffer = malloc((size_t)data_length);
+    if (buffer == NULL) {
+        CFRelease(data);
+        *error_code = 13;
+        return -1;
+    }
+    memcpy(buffer, CFDataGetBytePtr(data), (size_t)data_length);
+    CFRelease(data);
+    *bytes = buffer;
+    *length = (uint64_t)data_length;
     return 0;
 }
 

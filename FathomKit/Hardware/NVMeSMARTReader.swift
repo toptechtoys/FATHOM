@@ -57,16 +57,85 @@ public struct NVMeSMARTReader: Sendable {
             &errorCode,
             &controllersSeen
         ) == 0 else {
-            let reason: String
-            if controllersSeen == 0 {
-                reason = "No NVMe SMART-capable controller was published"
-            } else {
-                reason =
-                    "macOS denied or failed the read-only NVMe SMART user client (IOReturn \(errorCode))"
-            }
-            return Self.notPublished(reason: reason)
+            return Self.notPublished(
+                reason: Self.failureReason(
+                    errorCode: errorCode,
+                    controllersSeen: controllersSeen
+                )
+            )
         }
         return Self.parse(raw)
+    }
+
+    /// The 512-byte log page exactly as the controller returned it.
+    ///
+    /// `read()` throws away 495 of those bytes, so until this existed no layer
+    /// of FATHOM could hand anyone the payload gate 2 has to record. Nothing in
+    /// the UI calls it; it is the capture path, and the fixture it produces is
+    /// what lets `parse(logPage:)` be tested against a real drive off the
+    /// reference machine.
+    public func readRawLogPage() -> Measurement<Data> {
+        var buffer = [UInt8](
+            repeating: 0,
+            count: Int(FATHOM_NVME_SMART_LOG_PAGE_LENGTH)
+        )
+        var errorCode: Int32 = 0
+        var controllersSeen: UInt32 = 0
+        guard fathom_nvme_smart_copy_log_page(
+            &buffer,
+            UInt32(FATHOM_NVME_SMART_LOG_PAGE_LENGTH),
+            &errorCode,
+            &controllersSeen
+        ) == 0 else {
+            return .notPublished(
+                reason: Self.failureReason(
+                    errorCode: errorCode,
+                    controllersSeen: controllersSeen
+                )
+            )
+        }
+        return .known(Data(buffer), source: .nvmeSMARTLogPage)
+    }
+
+    /// Replays a recorded log page through the shipping parser.
+    ///
+    /// The point of a fixture is that it runs the code that ships, not a copy
+    /// of it, so this hands the recorded bytes to the same `fathom_copy_smart`
+    /// the live read uses and then to the same `parse(_:)`.
+    public static func parse(
+        logPage data: Data
+    ) -> Measurement<NVMeSMARTSnapshot> {
+        guard data.count == Int(FATHOM_NVME_SMART_LOG_PAGE_LENGTH) else {
+            return .notPublished(
+                reason: "A recorded NVMe SMART log page must be exactly \(FATHOM_NVME_SMART_LOG_PAGE_LENGTH) bytes; this one is \(data.count)"
+            )
+        }
+        var raw = fathom_nvme_smart_data()
+        let parsed = data.withUnsafeBytes { buffer in
+            fathom_nvme_smart_parse_log_page(
+                buffer.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                UInt32(data.count),
+                &raw
+            )
+        }
+        guard parsed == 0 else {
+            return .notPublished(
+                reason: "The recorded NVMe SMART log page could not be parsed"
+            )
+        }
+        return .known(parse(raw), source: .nvmeSMARTLogPage)
+    }
+
+    /// Shared so the live read and the raw capture cannot drift into telling
+    /// the operator two different stories about the same denial.
+    private static func failureReason(
+        errorCode: Int32,
+        controllersSeen: UInt32
+    ) -> String {
+        if controllersSeen == 0 {
+            return "No NVMe SMART-capable controller was published"
+        }
+        return "macOS denied or failed the read-only NVMe SMART user client (IOReturn \(errorCode))"
     }
 
     static func parse(

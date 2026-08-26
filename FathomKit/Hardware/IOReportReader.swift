@@ -24,6 +24,24 @@ public struct IOReportReader: Sendable {
     public init() {}
 
     public func channelInventory() -> Measurement<[IOReportChannel]> {
+        switch channelInventoryPayload() {
+        case let .known(data, _):
+            return Self.decodeChannelInventory(data)
+        case let .notPublished(reason):
+            return .notPublished(reason: reason)
+        case .notAttributable:
+            return .notPublished(
+                reason: "The IOReport channel inventory is not attributable"
+            )
+        }
+    }
+
+    /// The serialized inventory before anything decodes it.
+    ///
+    /// The bridge already builds a binary property list and the reader used to
+    /// decode and free it in the same breath, so the payload existed for
+    /// microseconds and reached nobody. Gate 2 has to commit it.
+    public func channelInventoryPayload() -> Measurement<Data> {
         var pointer: UnsafeMutablePointer<UInt8>?
         var length: UInt64 = 0
         var errorCode: Int32 = 0
@@ -42,7 +60,16 @@ public struct IOReportReader: Sendable {
                 reason: "IOReport channel inventory exceeds the process range"
             )
         }
-        let data = Data(bytes: pointer, count: Int(length))
+        return .known(
+            Data(bytes: pointer, count: Int(length)),
+            source: .ioReportChannelInventory
+        )
+    }
+
+    /// Decodes a live or recorded inventory payload.
+    public static func decodeChannelInventory(
+        _ data: Data
+    ) -> Measurement<[IOReportChannel]> {
         do {
             let channels = try PropertyListDecoder().decode(
                 [IOReportChannel].self,

@@ -39,6 +39,34 @@ int32_t fathom_nvme_smart_read(
     uint32_t *controllers_seen
 );
 
+/// The size of the NVMe SMART / Health Information log page, which is fixed by
+/// the NVMe specification. A static assertion in FathomHardware.c ties this to
+/// `sizeof(NVMeSMARTData)` so a recorded fixture can never be silently
+/// re-interpreted at a different length.
+#define FATHOM_NVME_SMART_LOG_PAGE_LENGTH 512
+
+/// Copies the raw NVMe SMART / Health Information log page (log page 0x02)
+/// exactly as the controller returned it, into a caller-provided buffer of at
+/// least FATHOM_NVME_SMART_LOG_PAGE_LENGTH bytes. Read-only; no command
+/// changes controller state. Finds its controller by the same rules as
+/// fathom_nvme_smart_read, and reports the same `error_code` and
+/// `controllers_seen`.
+int32_t fathom_nvme_smart_copy_log_page(
+    uint8_t *buffer,
+    uint32_t buffer_length,
+    int32_t *error_code,
+    uint32_t *controllers_seen
+);
+
+/// Parses a previously recorded log page into the same struct the live read
+/// produces, so a committed fixture replays the shipping parser rather than a
+/// copy of it. Returns non-zero unless `length` is exactly the log page length.
+int32_t fathom_nvme_smart_parse_log_page(
+    const uint8_t *bytes,
+    uint32_t length,
+    fathom_nvme_smart_data *output
+);
+
 typedef struct fathom_smc_value {
     uint32_t key;
     uint32_t data_type;
@@ -97,6 +125,17 @@ int32_t fathom_ioreport_sampler_prime(
 
 /// Captures a delta and serializes its channel values as a binary plist.
 int32_t fathom_ioreport_sampler_copy_delta(
+    fathom_ioreport_sampler sampler,
+    uint8_t **bytes,
+    uint64_t *length,
+    int32_t *error_code
+);
+
+/// Serializes the channel set IOReportCreateSubscription actually granted, as
+/// a binary property list. This is the subscription itself rather than a
+/// sample of it, and it is what records which channels a given Mac agreed to
+/// publish to this process.
+int32_t fathom_ioreport_sampler_copy_subscribed_channels(
     fathom_ioreport_sampler sampler,
     uint8_t **bytes,
     uint64_t *length,
