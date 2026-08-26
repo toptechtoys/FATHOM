@@ -16,10 +16,19 @@ enum ConsequenceAlertScheduler {
     ) async -> FathomKit.Measurement<String> {
         do {
             let index = try StorageIndex(url: presentation.indexURL)
-            let result = try await index.directoryGrowthFindings(
-                scanID: presentation.scanID
-            )
-            await index.close()
+            let result: FathomKit.Measurement<[DirectoryGrowthFinding]>
+            do {
+                result = try await index.directoryGrowthFindings(
+                    scanID: presentation.scanID
+                )
+                await index.close()
+            } catch {
+                // close() is what checkpoints the write-ahead log, so a throw
+                // between open and close used to leave the log to
+                // non-deterministic ARC release.
+                await index.close()
+                throw error
+            }
             switch result {
             case let .known(findings, source):
                 guard let largest = findings.first else {

@@ -29,11 +29,20 @@ final class CommandPaletteModel: ObservableObject {
             do {
                 try await Task.sleep(for: .milliseconds(120))
                 let index = try StorageIndex(url: storage.indexURL)
-                let results = try await index.searchStagedEntries(
-                    scanID: storage.scanID,
-                    query: query
-                )
-                await index.close()
+                let results: FathomKit.Measurement<[StagedStorageNodeSummary]>
+                do {
+                    results = try await index.searchStagedEntries(
+                        scanID: storage.scanID,
+                        query: query
+                    )
+                    await index.close()
+                } catch {
+                    // close() is what checkpoints the write-ahead log, so a
+                    // throw between open and close used to leave the log to
+                    // non-deterministic ARC release.
+                    await index.close()
+                    throw error
+                }
                 guard !Task.isCancelled else { return }
                 state = .result(results)
             } catch is CancellationError {

@@ -205,9 +205,25 @@ public struct DirectoryGrowthFinding: Sendable, Equatable {
 
 /// The regenerable storage index. Reclaim journaling must never use this file.
 public actor StorageIndex {
-    public static let schemaVersion: Int32 = 8
+    public static let schemaVersion: Int32 = 9
+
+    /// 16,384 pages × 4,096 = 64 MB. This is a compromise, not a derived
+    /// optimum. SQLite's default of 1,000 pages checkpoints every 4 MB, which
+    /// writes the database file far harder — and this app ships an
+    /// SSD-endurance screen, so bytes written to the drive are a cost it is
+    /// not entitled to be careless with. The budget does nothing at all until
+    /// the traversal commits in batches: SQLite only auto-checkpoints at the
+    /// end of a committing write transaction, and a whole-volume walk used to
+    /// be one transaction from first entry to last.
+    static let defaultWALAutocheckpointPages: Int32 = 16_384
+
+    /// One batch of staged entries per commit. At the 749 bytes/entry measured
+    /// over 200,000 real paths on the owner's machine this is ≈37 MB of pages,
+    /// one batch clear of the 64 MB autocheckpoint budget above.
+    static let defaultTraversalBatchSize: Int64 = 50_000
 
     private let handle: DatabaseHandle
+    private let traversalBatchSize: Int64
 
     public init(url: URL) throws {
         try self.init(
@@ -271,8 +287,14 @@ public actor StorageIndex {
 
     init(
         url: URL,
+        walAutocheckpointPages: Int32 =
+            StorageIndex.defaultWALAutocheckpointPages,
+        traversalBatchSize: Int64 = StorageIndex.defaultTraversalBatchSize,
         maximumAdditionalPagesForTesting: Int32?
     ) throws {
+        // Assigned before anything that can throw, so the failure paths below
+        // do not have to care about it.
+        self.traversalBatchSize = max(1, traversalBatchSize)
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -315,6 +337,10 @@ public actor StorageIndex {
             try execute(
                 database: openedDatabase,
                 sql: "PRAGMA temp_store = FILE"
+            )
+            try execute(
+                database: openedDatabase,
+                sql: "PRAGMA wal_autocheckpoint = \(walAutocheckpointPages)"
             )
             try execute(
                 database: openedDatabase,
@@ -374,6 +400,16 @@ public actor StorageIndex {
                 name: "allocation_block_size",
                 definition: "INTEGER"
             )
+            // Schema 9. The traversal now commits in batches, so a killed
+            // scan leaves committed rows behind. This column is the only
+            // thing that still distinguishes a finished scan from a partial
+            // one, and `precedingStagedScanID` filters on it.
+            try ensureColumn(
+                database: openedDatabase,
+                table: "staged_scans",
+                name: "completed_at",
+                definition: "REAL"
+            )
             try execute(
                 database: openedDatabase,
                 sql: "PRAGMA user_version = \(Self.schemaVersion)"
@@ -404,12 +440,31 @@ public actor StorageIndex {
         handle = DatabaseHandle(openedDatabase)
     }
 
+    /// Checkpointing here is the difference between an index that costs what
+    /// it holds and one that costs what it has ever held. Until a checkpoint
+    /// runs, the `-wal` carries a full page-image copy of everything written
+    /// since the last one, and SQLite only ever extends that file: it is
+    /// shortened by a checkpoint in TRUNCATE mode, or by SQLite's own
+    /// close-time cleanup, which a SIGKILL skips. Measured on the owner's
+    /// machine: 3,841,203,752 bytes of `-wal` beside a 4,096-byte database,
+    /// of which 3.48 GiB carried salts that no longer matched the header and
+    /// could never be read again.
+    ///
+    /// `sqlite3_close_v2`, not `sqlite3_close`: the plain form returns
+    /// SQLITE_BUSY and leaves the connection open when a statement is
+    /// unfinalized, and this function used to throw that code away while
+    /// nilling the handle — which stranded the connection and its log with
+    /// nothing able to retry. `close_v2` always releases.
     public func close() {
         guard let database = handle.pointer else {
             return
         }
-        sqlite3_close(database)
+        try? execute(
+            database: database,
+            sql: "PRAGMA wal_checkpoint(TRUNCATE)"
+        )
         handle.pointer = nil
+        sqlite3_close_v2(database)
     }
 
     public func store(
@@ -644,6 +699,9 @@ public actor StorageIndex {
             var directoryStack: [(depth: UInt64, id: Int64)] = []
             var nextID: Int64 = 0
             var regularFileCount: UInt64 = 0
+            // Read once into a local so the walk closure captures a value
+            // rather than the actor.
+            let batchSize = traversalBatchSize
             let summary = try StorageScanner().walk(at: rootURL) { entry in
                 guard
                     let location = entry.traversalLocation,
@@ -753,6 +811,25 @@ public actor StorageIndex {
                     regularFileCount += 1
                 }
                 nextID += 1
+
+                // The whole walk used to run inside one BEGIN IMMEDIATE, and
+                // SQLite only auto-checkpoints at the end of a committing
+                // write transaction — so the log was structurally guaranteed
+                // to reach the full page image of an entire scan before any
+                // checkpoint was possible. On the owner's volume that was a
+                // 3.6 GB `-wal` beside a 4 KB database. Committing per batch
+                // is what lets the autocheckpoint budget above ever fire.
+                //
+                // The cancellation check belongs on this boundary and nowhere
+                // else: it is the only point in the walk where the database
+                // is in a consistent state. Before it existed a whole-volume
+                // scan could only be stopped by killing the process, which is
+                // exactly how the 3.48 GiB of unreadable log was created.
+                if nextID % batchSize == 0 {
+                    try execute(database: database, sql: "COMMIT")
+                    try Task.checkCancellation()
+                    try execute(database: database, sql: "BEGIN IMMEDIATE")
+                }
             }
 
             let issueStatement = try prepare(
@@ -786,7 +863,28 @@ public actor StorageIndex {
                 )
                 try stepDone(issueStatement, database: database)
             }
+            try markStagedScanComplete(
+                database: database,
+                scanID: scanID,
+                completedAt: Date()
+            )
             try execute(database: database, sql: "COMMIT")
+            do {
+                try pruneStagedScans(database: database, keeping: 2)
+            } catch {
+                // Retention is not worth discarding a completed whole-volume
+                // scan for — that scan can take hours and is already durable.
+                // Record why it failed rather than swallowing it.
+                try? setDiagnosticValue(
+                    String(describing: error),
+                    forKey: "last_staged_scan_prune_error"
+                )
+            }
+            // The log holds a full page image of everything written since the
+            // last checkpoint. Truncating at the end of the longest stage is
+            // what stops a finished scan from leaving a multi-gigabyte `-wal`
+            // behind for a process that may never close cleanly.
+            truncateWriteAheadLog(database: database)
             return StagedTraversalScan(
                 scanID: scanID,
                 rootURL: rootURL,
@@ -799,6 +897,193 @@ public actor StorageIndex {
             try? execute(database: database, sql: "ROLLBACK")
             throw error
         }
+    }
+
+    /// Copies the log back into the database file and shortens it to nothing.
+    ///
+    /// Best-effort by design: TRUNCATE blocks until every reader has finished
+    /// and returns busy without truncating if one has not, and a busy
+    /// checkpoint at the end of a stage is not a reason to fail the stage.
+    /// The next one will do it.
+    ///
+    /// Called at the end of the long stages only. `inspectStagedExtents`
+    /// deliberately does not, because it already commits once per page of at
+    /// least 128 files: a truncate per page would rewrite the database file
+    /// thousands of times in one scan, and the autocheckpoint budget covers
+    /// that loop instead.
+    private func truncateWriteAheadLog(database: OpaquePointer) {
+        try? execute(
+            database: database,
+            sql: "PRAGMA wal_checkpoint(TRUNCATE)"
+        )
+    }
+
+    /// Marks a staged scan as one that reached its last entry.
+    ///
+    /// Before the traversal committed in batches, the single transaction was
+    /// the only thing that made a partial staged scan impossible. It is not
+    /// any more, so this marker is what `precedingStagedScanID` reads to tell
+    /// a finished generation from an abandoned one.
+    private func markStagedScanComplete(
+        database: OpaquePointer,
+        scanID: Int64,
+        completedAt: Date
+    ) throws {
+        let statement = try prepare(
+            database: database,
+            sql: "UPDATE staged_scans SET completed_at = ? WHERE id = ?"
+        )
+        defer { sqlite3_finalize(statement) }
+        try check(
+            sqlite3_bind_double(
+                statement,
+                1,
+                completedAt.timeIntervalSince1970
+            ),
+            database: database
+        )
+        try bindInt64(scanID, at: 2, statement: statement)
+        try stepDone(statement, database: database)
+    }
+
+    /// Keeps the newest complete generations and drops everything older.
+    ///
+    /// Nothing pruned these before, so every completed whole-volume scan
+    /// added a full index generation permanently — on the owner's machine one
+    /// generation measures in gigabytes. `history_samples` already had
+    /// retention in `compactHistory`; staged scans had none.
+    ///
+    /// Two generations, not one: `precedingStagedScanID` needs the previous
+    /// scan for `directoryGrowthFindings` and for `changed this week`.
+    ///
+    /// The cutoff is the oldest *complete* scan being kept, and everything
+    /// with a lower id goes — abandoned generations included. Nothing newer
+    /// is ever touched, which is what keeps a traversal running on another
+    /// connection safe: now that the walk commits in batches it no longer
+    /// holds the write lock for its whole duration, so a second scan can be
+    /// in flight, and an in-flight scan always holds the highest id.
+    ///
+    /// Deliberately no VACUUM. It needs a full temporary copy of a multi-GB
+    /// database and `PRAGMA temp_store = FILE` puts that copy on the volume
+    /// the user is already short of space on. Freed pages are reused by the
+    /// next scan, so the file plateaus at about one generation's size instead
+    /// of growing by one for every scan ever run.
+    private func pruneStagedScans(
+        database: OpaquePointer,
+        keeping keepCount: Int64
+    ) throws {
+        try execute(database: database, sql: "BEGIN IMMEDIATE")
+        do {
+            // Deferred to COMMIT because staged_entries carries a
+            // self-referential (scan_id, parent_id) key: a bulk delete would
+            // otherwise trip on whichever parent SQLite happened to remove
+            // before its children.
+            try execute(
+                database: database,
+                sql: "PRAGMA defer_foreign_keys = ON"
+            )
+            let obsolete = try obsoleteStagedScanIDs(
+                database: database,
+                keeping: keepCount
+            )
+            for obsoleteScanID in obsolete {
+                // staged_segments references staged_entries with no cascade,
+                // so the derived accounting has to go first.
+                try clearStagedDerivedAccounting(
+                    database: database,
+                    scanID: obsoleteScanID
+                )
+                try deleteStagedSnapshotReferences(
+                    database: database,
+                    scanID: obsoleteScanID
+                )
+                // Deleting staged_entries fires staged_entries_search_delete,
+                // which is the only thing that clears the FTS5 rows: the
+                // virtual table has no foreign key to cascade from.
+                for table in [
+                    "staged_entries",
+                    "staged_issues"
+                ] {
+                    let statement = try prepare(
+                        database: database,
+                        sql: "DELETE FROM \(table) WHERE scan_id = ?"
+                    )
+                    defer { sqlite3_finalize(statement) }
+                    try bindInt64(
+                        obsoleteScanID,
+                        at: 1,
+                        statement: statement
+                    )
+                    try stepDone(statement, database: database)
+                }
+                let statement = try prepare(
+                    database: database,
+                    sql: "DELETE FROM staged_scans WHERE id = ?"
+                )
+                defer { sqlite3_finalize(statement) }
+                try bindInt64(obsoleteScanID, at: 1, statement: statement)
+                try stepDone(statement, database: database)
+            }
+            try execute(database: database, sql: "COMMIT")
+        } catch {
+            try? execute(database: database, sql: "ROLLBACK")
+            throw error
+        }
+    }
+
+    private func obsoleteStagedScanIDs(
+        database: OpaquePointer,
+        keeping keepCount: Int64
+    ) throws -> [Int64] {
+        // When no scan has ever completed the subquery is NULL, `id < NULL`
+        // is NULL, and nothing is selected — which is the right answer, not
+        // an accident.
+        let statement = try prepare(
+            database: database,
+            sql: """
+                SELECT id FROM staged_scans
+                WHERE id < (
+                    SELECT MIN(id) FROM (
+                        SELECT id FROM staged_scans
+                        WHERE completed_at IS NOT NULL
+                        ORDER BY id DESC LIMIT ?
+                    )
+                )
+                ORDER BY id
+                """
+        )
+        defer { sqlite3_finalize(statement) }
+        try bindInt64(keepCount, at: 1, statement: statement)
+        var ids: [Int64] = []
+        while true {
+            let code = sqlite3_step(statement)
+            if code == SQLITE_DONE { break }
+            guard code == SQLITE_ROW else {
+                throw sqliteError(database: database, code: code)
+            }
+            ids.append(sqlite3_column_int64(statement, 0))
+        }
+        return ids
+    }
+
+    /// The number of staged generations the index is holding.
+    ///
+    /// Exists so retention can be asserted directly rather than inferred from
+    /// a query that would also pass for the wrong reason.
+    public func stagedScanCount() throws -> Int64 {
+        guard let database = handle.pointer else {
+            throw StorageIndexError.closed
+        }
+        let statement = try prepare(
+            database: database,
+            sql: "SELECT COUNT(*) FROM staged_scans"
+        )
+        defer { sqlite3_finalize(statement) }
+        let code = sqlite3_step(statement)
+        guard code == SQLITE_ROW else {
+            throw sqliteError(database: database, code: code)
+        }
+        return sqlite3_column_int64(statement, 0)
     }
 
     /// Rewalks only changed directory subtrees, preserving extent maps for
@@ -872,6 +1157,7 @@ public actor StorageIndex {
                 issues: issues
             )
             try execute(database: database, sql: "COMMIT")
+            truncateWriteAheadLog(database: database)
             return issues
         } catch {
             try? execute(database: database, sql: "ROLLBACK")
@@ -1158,6 +1444,7 @@ public actor StorageIndex {
                 incompleteSubtree: incompleteSubtree
             )
             try execute(database: database, sql: "COMMIT")
+            truncateWriteAheadLog(database: database)
 
             let measurement: Measurement<UInt64>
             if incompleteSubtree[0] {
@@ -1245,6 +1532,7 @@ public actor StorageIndex {
                     scanID: scanID
                 )
                 try execute(database: database, sql: "COMMIT")
+                truncateWriteAheadLog(database: database)
                 return StagedFreeableAccountingSummary(
                     scanID: scanID,
                     freedIfDeleted: .known(
@@ -1332,6 +1620,7 @@ public actor StorageIndex {
                     try stepDone(statement, database: database)
                 }
             try execute(database: database, sql: "COMMIT")
+            truncateWriteAheadLog(database: database)
             return coverage
         } catch {
             try? execute(database: database, sql: "ROLLBACK")
@@ -1391,6 +1680,7 @@ public actor StorageIndex {
                     scanID: scanID
                 )
                 try execute(database: database, sql: "COMMIT")
+                truncateWriteAheadLog(database: database)
                 return StagedFreeableAccountingSummary(
                     scanID: scanID,
                     freedIfDeleted: .known(
@@ -1702,6 +1992,17 @@ public actor StorageIndex {
         return .known(findings, source: .persistedDirectoryGrowthDelta)
     }
 
+    /// The sole scan-pair selector: `directoryGrowthFindings` and
+    /// `searchStagedEntries(.changedThisWeek)` both come through here, and
+    /// every other staged query takes an explicit scan id from a completed
+    /// `StoragePresentation`.
+    ///
+    /// The `completed_at` filter is load-bearing. Now that the traversal
+    /// commits in batches, an interrupted scan leaves committed entry rows
+    /// but no `staged_node_totals` — and both callers join those totals, so
+    /// choosing a partial scan as `previous` would return an empty result
+    /// set. The product would then say *nothing changed* where it should say
+    /// *not published*.
     private func precedingStagedScanID(
         database: OpaquePointer,
         before scanID: Int64,
@@ -1712,6 +2013,7 @@ public actor StorageIndex {
             sql: """
                 SELECT id FROM staged_scans
                 WHERE id < ? AND started_at >= ?
+                    AND completed_at IS NOT NULL
                 ORDER BY id DESC LIMIT 1
                 """
         )
@@ -2131,7 +2433,8 @@ public actor StorageIndex {
             id INTEGER PRIMARY KEY,
             root_path TEXT NOT NULL,
             scope INTEGER NOT NULL CHECK (scope IN (0, 1)),
-            started_at REAL NOT NULL
+            started_at REAL NOT NULL,
+            completed_at REAL
         );
 
         CREATE TABLE IF NOT EXISTS staged_entries (
@@ -2317,9 +2620,15 @@ private final class DatabaseHandle: @unchecked Sendable {
         self.pointer = pointer
     }
 
+    /// An index dropped without `close()` must still truncate its log, or the
+    /// whole reclaim depends on every caller remembering to close.
     deinit {
         if let pointer {
-            sqlite3_close(pointer)
+            try? execute(
+                database: pointer,
+                sql: "PRAGMA wal_checkpoint(TRUNCATE)"
+            )
+            sqlite3_close_v2(pointer)
         }
     }
 }

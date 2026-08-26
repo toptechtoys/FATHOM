@@ -26,6 +26,14 @@ final class StorageAppModel: ObservableObject {
         FathomKit.Measurement<String> = .notPublished(
             reason: "A completed scan is required before live updates start"
         )
+    /// What FATHOM's own index costs on the volume FATHOM is measuring. It is
+    /// already inside the on-disk total — the walk has no exclusion list —
+    /// and this names it rather than leaving gigabytes anonymous under
+    /// Application Support.
+    @Published private(set) var indexFootprint:
+        FathomKit.Measurement<UInt64> = .notPublished(
+            reason: "The index has not been measured yet"
+        )
     private var continuityRescanPending = false
     private let changeRecorder = FSEventRecorder()
     private var pendingChangePaths: Set<String> = []
@@ -33,6 +41,40 @@ final class StorageAppModel: ObservableObject {
     private var incrementalUpdateRunning = false
     private var changeRecording = false
     private var referencePollingTask: Task<Void, Never>?
+
+    /// The one definition of where the index lives. It used to be built
+    /// inline inside `performScan`, which meant nothing outside a scan could
+    /// name the file — including the reclaim below.
+    nonisolated static var indexURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Library")
+            .appending(path: "Application Support")
+            .appending(path: "FATHOM")
+            .appending(path: "storage.sqlite")
+    }
+
+    /// Reclaims a write-ahead log a killed scan left behind, at launch.
+    ///
+    /// This is the only place that helps a user who interrupts a scan and
+    /// never completes another one: every other opener of the index takes a
+    /// `StoragePresentation`, which only exists after a scan finishes, so
+    /// before this the bytes simply stayed. On the owner's machine that was
+    /// 3.6 GB, of which 3.48 GiB SQLite could never read again.
+    ///
+    /// Gated on `.idle` so it can never contend with a scan the user has
+    /// already started in the first seconds after launch.
+    func reclaimInterruptedIndexAtLaunch() {
+        guard case .idle = state else { return }
+        Task {
+            let url = Self.indexURL
+            _ = await Task.detached(priority: .utility) {
+                try? StorageIndexReclaim.reclaim(indexURL: url)
+            }.value
+            indexFootprint = StorageIndexReclaim.footprintBytes(
+                indexURL: url
+            )
+        }
+    }
 
     func scanSelectedVolume() {
         if case .scanning = state {
@@ -55,18 +97,29 @@ final class StorageAppModel: ObservableObject {
                 let historyIndex = try StorageIndex(
                     url: presentation.indexURL
                 )
-                try await historyIndex.recordHistory(
-                    StorageHistorySample(
-                        volumePath: presentation.volumePath,
-                        actuallyFree: presentation.actuallyFree,
-                        sizeOnDisk: presentation.sizeOnDisk,
-                        freedIfDeleted: presentation.freedIfDeleted,
-                        purgeable: presentation.purgeable,
-                        topLevel: presentation.historyNodes
+                do {
+                    try await historyIndex.recordHistory(
+                        StorageHistorySample(
+                            volumePath: presentation.volumePath,
+                            actuallyFree: presentation.actuallyFree,
+                            sizeOnDisk: presentation.sizeOnDisk,
+                            freedIfDeleted: presentation.freedIfDeleted,
+                            purgeable: presentation.purgeable,
+                            topLevel: presentation.historyNodes
+                        )
                     )
-                )
-                await historyIndex.close()
+                    await historyIndex.close()
+                } catch {
+                    // close() is what checkpoints the log, so it has to run
+                    // on the failure path too or a throw here strands the
+                    // whole scan's write-ahead log on disk.
+                    await historyIndex.close()
+                    throw error
+                }
                 state = .result(presentation)
+                indexFootprint = StorageIndexReclaim.footprintBytes(
+                    indexURL: presentation.indexURL
+                )
                 startChangeMonitoring()
                 if UserDefaults.standard.bool(
                     forKey: ConsequenceAlertScheduler.directoryPreferenceKey
@@ -285,6 +338,9 @@ final class StorageAppModel: ObservableObject {
             loadingDirectoryIDs = []
             childLoadFailures = [:]
             state = .result(refreshed)
+            indexFootprint = StorageIndexReclaim.footprintBytes(
+                indexURL: refreshed.indexURL
+            )
             changeMonitoring = .known(
                 "Up to date after \(paths.count) changed subtree\(paths.count == 1 ? "" : "s")",
                 source: .fseventsCausalWindow
@@ -488,11 +544,17 @@ final class StorageAppModel: ObservableObject {
         Task {
             do {
                 let index = try StorageIndex(url: presentation.indexURL)
-                let stagedRows = try await index.stagedChildren(
-                    scanID: presentation.scanID,
-                    parentID: row.id
-                )
-                await index.close()
+                let stagedRows: [StagedStorageNodeSummary]
+                do {
+                    stagedRows = try await index.stagedChildren(
+                        scanID: presentation.scanID,
+                        parentID: row.id
+                    )
+                    await index.close()
+                } catch {
+                    await index.close()
+                    throw error
+                }
                 childrenByParent[row.id] = Self.presentationRows(
                     stagedRows
                 )
@@ -518,12 +580,7 @@ final class StorageAppModel: ObservableObject {
 
         return try await Task.detached(priority: .userInitiated) {
             let scanStarted = ContinuousClock.now
-            let applicationSupport = homeURL
-                .appending(path: "Library")
-                .appending(path: "Application Support")
-                .appending(path: "FATHOM")
-            let indexURL = applicationSupport
-                .appending(path: "storage.sqlite")
+            let indexURL = Self.indexURL
             let snapshotMountPoint = homeURL
                 .appending(path: "Library")
                 .appending(path: "Application Support")

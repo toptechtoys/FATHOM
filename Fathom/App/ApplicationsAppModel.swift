@@ -49,11 +49,20 @@ final class ApplicationsAppModel: ObservableObject {
                 return paths
             }
             let index = try StorageIndex(url: storage.indexURL)
-            let entries = try await index.stagedReclaimEntries(
-                scanID: storage.scanID,
-                paths: paths
-            )
-            await index.close()
+            let entries: [StorageEntry]
+            do {
+                entries = try await index.stagedReclaimEntries(
+                    scanID: storage.scanID,
+                    paths: paths
+                )
+                await index.close()
+            } catch {
+                // close() is what checkpoints the write-ahead log, so a throw
+                // between open and close used to leave the log to
+                // non-deterministic ARC release.
+                await index.close()
+                throw error
+            }
             let byPath = Dictionary(uniqueKeysWithValues: entries.map {
                 ($0.path, $0)
             })

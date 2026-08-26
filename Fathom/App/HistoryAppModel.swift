@@ -29,11 +29,19 @@ final class HistoryAppModel: ObservableObject {
             do {
                 let samples = try await Task.detached(priority: .utility) {
                     let index = try StorageIndex(url: storage.indexURL)
-                    let rows = try await index.historySamples(
-                        volumePath: storage.volumePath
-                    )
-                    await index.close()
-                    return rows
+                    do {
+                        let rows = try await index.historySamples(
+                            volumePath: storage.volumePath
+                        )
+                        await index.close()
+                        return rows
+                    } catch {
+                        // close() is what checkpoints the write-ahead log, so
+                        // a throw between open and close used to leave the
+                        // log to non-deterministic ARC release.
+                        await index.close()
+                        throw error
+                    }
                 }.value
                 state = .result(
                     samples: samples,

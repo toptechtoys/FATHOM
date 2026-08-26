@@ -79,6 +79,18 @@ struct StorageView: View {
                         note: "Counted by Finder, not guaranteed to a write",
                         format: bytes
                     )
+                    // The index lives on the volume it measures and the walk
+                    // has no exclusion list, so these bytes were always in
+                    // the totals beside them — anonymous, under Application
+                    // Support. On the owner's Mac that was 3.6 GB. Naming it
+                    // is the honest answer; hiding it from the total would
+                    // not be.
+                    FathomMeasurementReadout(
+                        label: "FATHOM's own index",
+                        measurement: model.indexFootprint,
+                        note: "Already inside the totals beside this, not extra",
+                        format: bytes
+                    )
                 }
                 .padding(.bottom, 22)
 
