@@ -64,17 +64,28 @@ struct FathomAction: View {
             .fathomFocusRing(cornerRadius: 12)
             .disabled(isBusy)
             .onHover { isHovering = $0 }
+            // The label goes on the Button itself. It used to go on the
+            // enclosing HStack, under `.accessibilityElement(children:
+            // .ignore)` — which replaces the children with one element that
+            // has no action, so VoiceOver saw a thing that announced itself
+            // as a button and did nothing when activated. The manually added
+            // `.isButton` trait was the tell: a real Button never needs one.
+            //
+            // Every route to data in this app is a FathomAction, including
+            // "Run the first Deep Scan", so that made the whole product
+            // plausibly unreachable by screen reader.
+            .accessibilityLabel(cost.map { "\(title). \($0)" } ?? title)
 
             if let cost {
                 Text(cost)
                     .font(.fathomSystem(11.5))
                     .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
                     .fixedSize(horizontal: false, vertical: true)
+                    // Already spoken as part of the button's label; left
+                    // visible, and not repeated to VoiceOver.
+                    .accessibilityHidden(true)
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(cost.map { "\(title). \($0)" } ?? title)
     }
 }
 
