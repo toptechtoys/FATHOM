@@ -1,12 +1,14 @@
 # FATHOM — Design System
 
-**Status: LOCKED, v2.0 · 23 August 2026 — Instrument Panel**
+**Status: LOCKED, v2.1 · 25 August 2026 — Instrument Panel, native-feel pass**
 Visual spec: `fathom-app.html`. Open it. It is normative — where this document
 and the prototype disagree, the prototype wins.
 
 v2.0 replaced the poster direction with the Instrument Panel on 23 August: one
-always-on window, every section a set of live readouts behind a 64px icon rail.
-No poster, no Scan button, no result state.
+always-on window, every section a set of live readouts, behind a 64px icon rail
+at the time. No poster, no Scan button, no result state. v2.1 is the owner's
+native-feel pass of 25 August, which turned that rail into a 214pt labelled
+sidebar and the readouts and panels into cards; see *The native-feel pass*.
 
 Locked means the argument is over. Implement it. Changes go through the
 prototype first, then this document, then Swift. Not the other way round.
@@ -16,9 +18,12 @@ semantic palette and focus ring are gated by `scripts/check-contrast.py`; the
 rail, readout grid and all thirteen panel types are built, and every one of the
 twenty sections uses them.
 
-Audited value by value against the prototype: spacings, radii, type sizes,
-tracking, motion durations and the focus ring all match. The type scale is the
-one divergence, recorded under *Type*.
+Audited value by value against the prototype: colour worlds, materials, grain,
+highlight, spacings, tracking and the focus ring all match. The divergences are
+recorded in *Type* (the ×1.32 scale) and *The native-feel pass* (the sidebar,
+the readout and panel cards, the filled action button), and in *Motion* — the
+section enter rides the 550 ms colour-world curve rather than a 450 ms curve of
+its own.
 
 ---
 
@@ -94,13 +99,14 @@ speckle the band permits.
 carrying a pulsing dot and the section's own subtitle. `.5px` bottom hairline,
 20px below it.
 
-**The readouts.** Three or four cells across the top of every section, in a grid
-of `repeat(auto-fit, minmax(190px, 1fr))`, 1px apart, each drawing its own
-hairline — *the gap is the rule*. No radius, no lift, no shadow. Hover deepens
-the cell.
+**The readouts.** Three or four cards across the top of every section, laid out
+auto-fit at `minmax(210pt, 1fr)` with a 10pt gap. Each is radius 12 over the 16%
+cell material, with a top-lit gradient border (white 20% fading to 5%, 1pt) and
+a soft shadow (black 22%, radius 8, y 2). Hover deepens the card.
 
-**The panels.** Everything below the readouts. No card, no blur: a `.5px` top
-hairline, a tracked label, and the content.
+**The panels.** Everything below the readouts. A radius-12 card at the data
+row's 7%, with the same top-lit border at lower strength (white 14% to 4%) and a
+lighter shadow (black 18%, radius 8, y 2), a tracked label, and the content.
 
 A section with nothing to show yet says so in a note and offers the one action
 that would fill it. It does not show a poster and it does not show zeros.
@@ -182,7 +188,7 @@ table cannot.
 | Type | Used by | What it is |
 |---|---|---|
 | Sparkline | CPU, GPU, Memory, Network, Sensors | 60 samples at 1 Hz. `viewBox 0 0 1000 56`, 52px tall, 2.5px stroke, area fill at 13% |
-| Core bars | CPU | Eight vertical bars from a baseline. Performance cores at 92% white, efficiency at 50%. Height animates 600ms |
+| Core bars | CPU | One vertical bar per logical core, from a baseline — twelve on the reference M4 Pro. Performance cores at 92% white, efficiency at 50%. Height animates 600ms |
 | Two-number table | Deep Scan, Explore, SSD Health | Item / on disk / freed if deleted. Zero-recovery rows read `0 GB`; freeable values take the freeable colour |
 | Segment bar | Memory, Cloud | Stacked proportional bar with a legend naming every segment, *unaccounted* included |
 | Treemap | Storage | Area is size on disk. Every rectangle names its own two numbers |
@@ -258,8 +264,8 @@ for. Type here answers to the user's text size, not to how wide they dragged the
 window.
 
 Everything else in this table matches the prototype exactly, and so do the
-spacings, radii, materials and motion durations. The type scale is the only
-place the two differ.
+spacings, tracking, materials, and the hover, press and core-bar durations. The
+scale factor and the native-feel pass are the divergences, both recorded below.
 
 **The whole scale renders ×1.32 as of 25 August 2026.** The owner watched the
 app run on a real display and called the table above too small — twice: a
@@ -338,31 +344,33 @@ lighten are in **The plate, and why the materials are dark** below.
 | Data row | `rgba(0,0,0,.07)` | the plate |
 | Data row, hover | `rgba(0,0,0,.13)` | the plate |
 | Status strip | `rgba(0,0,0,.25)` | the plate |
-| Grid hairline | `.5px rgba(255,255,255,.14)` ring per cell | the cell |
+| Readout card border | 1pt `linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,.05))` | the card |
+| Panel card border | 1pt `linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04))` | the card |
 | Panel divider | `.5px rgba(255,255,255,.16)` | — |
 | Rail edge | `.5px rgba(255,255,255,.09)` | — |
 | Active rail item | `linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.13))` | the rail |
 
-Radii: 15 window · 14 digest card · 12 row · 10 rail item · 8 focus ring ·
-**0 for readout cells and panels**. The square cell is the instrument-panel
-departure from the old card radii, and it is deliberate: a readout is not a card.
+Radii: 15 window · 14 digest card · 12 readout card · 12 panel card ·
+12 action button · 12 row · 8 rail item · 8 focus ring. The square,
+hairline-separated cell belonged to the pre-native-feel Instrument Panel and is
+gone: the cells sit 10pt apart now and each owns its whole border, so a readout
+is a card again.
 
-**The grid hairline is drawn by the cells, not behind them.** Each readout cell
-carries its own `.5px` ring and the cells sit 1px apart, so two rings meet to
-make the line. The obvious construction — a hairline-coloured container showing
-through the gap — breaks on the last row: when the cell count does not fill the
-row, the leftover track shows as a pale block. Rings leave it as plate.
-
-The rail keeps `backdrop-filter: blur(46px) saturate(135%)`. Nothing else blurs.
-The old white-tinted tiles and the detail panel are gone.
+The rail keeps `backdrop-filter: blur(46px) saturate(135%)`. The only other blur
+in the app is Reclaim's journal-recovery banner, which draws
+`.ultraThinMaterial` under its own text in all three of its states; the contrast
+gate cannot model either, so both are reference-machine readings. The old
+white-tinted tiles and the detail panel are gone.
 
 ---
 
 ## Actions
 
-A section that can do something ends with one pill: `rgba(255,255,255,.14)`,
-`.5px` white border at 22%, `inset 0 1px 0 rgba(255,255,255,.20)`, 15px radius,
-13px semibold. Hover `scale(1.04)`, press `scale(0.96)`, 160ms.
+A section that can do something ends with one button, 13px semibold, radius 12.
+**Prominent**: black 82% text on a white 88% fill, 100% on hover, no border,
+shadow black 28% at radius 9, y 3. **Secondary**: white 92% text on a white 8%
+fill, 14% on hover, `.5px` white border at 22%, no shadow. Hover `scale(1.02)`,
+170ms; there is no press transform.
 
 One per section, never two. The circular Scan button is gone with the poster —
 there is nothing to start.
@@ -379,10 +387,14 @@ never a verb with no object.
 prototype's rule was "always icons, never labels"; the owner reviewed the
 running app and asked for names beside the icons, CleanMyMac-style. Each row
 is icon + section name at 12px (×1.32) in a 34pt row, radius 8, full-width
-selection chrome; the groups, icons, colours, tooltips and accessible labels
-are unchanged, and the footer now shows the live pill and the widget's own
-measured cost as visible text rather than a tooltip. The paragraphs below
-describe the prototype's icon rail and remain the record of what it was.
+selection chrome, in a sidebar 214pt wide; the groups, icons, colours, tooltips
+and accessible labels are unchanged, and the footer now shows the live pill and
+the widget's own measured cost as visible text rather than a tooltip.
+
+The prototype was regenerated on 25 August and now draws the 214px sidebar too,
+so the paragraphs below are the historical record of the icon rail, not a live
+specification — nothing draws them any more. The group table, the icon
+construction and the traffic-light reservation still hold.
 
 64px, fixed, never expands. Twenty items in four groups, divided by a 22×1px
 hairline rather than a text heading:
@@ -402,9 +414,14 @@ a tooltip and as its accessible label.
 
 Traffic lights sit above: three 9px circles, 6px apart, 16px of padding below.
 
-The footer is a single 7px `#5CE6A8` dot with a 9px glow, pulsing 2.2s, whose
-tooltip carries the app's own idle cost — `0.2% CPU · energy 2.1`. Showing your
-own cost in your own chrome is a claim only an honest utility can make.
+The footer carries a single 7px `#5CE6A8` dot with a 9px glow, pulsing 2.2s,
+beside the words *Live · 1 Hz* and the widget's own **measured** CPU figure as
+visible text; the full sentence — item count and, before the widget has
+measured itself, the fact that it has not — is in the tooltip and the accessible
+label. It is never the 0.2% budget: the prototype's hardcoded
+`0.2% CPU · energy 2.1` is exactly the claim non-negotiable 8 exists to stop.
+Showing your own cost in your own chrome is a claim only an honest utility can
+make, and only if the number is measured.
 
 The public IP row moved into the Network section. The rail has no room for it
 and no business holding it.
@@ -416,14 +433,18 @@ and no business holding it.
 Fluid by default. `clamp()` on type, `auto-fit` / `minmax()` on every grid so
 readouts and rows reflow without breakpoints.
 
-**There is no 1080px breakpoint any more.** The rail is an icon rail at every
-width, so the old sidebar collapse has nothing left to do.
+**There is no 1080px breakpoint any more.** The sidebar is 214pt at every width
+and does not collapse, so the old sidebar collapse has nothing left to do.
 
 **≤ 760px.** Content padding tightens to `18px 16px 32px`. Tables and device
 rows drop to two columns, and the row annotation moves inline beside its value
 instead of below it.
 
-Verified with no horizontal overflow at 1520, 1200, 1000, 820 and 720px.
+Verified with no horizontal overflow at 1520, 1200, 1000, 820 and 720px —
+against the 64px icon rail and the unscaled type. **Not re-verified since the
+214pt sidebar and the ×1.32 scale**, which leave 506pt of content at the 720pt
+minimum, and a readout card's minimum is 210pt, so two cards per row is the most
+that fits there. Re-walk the widths before treating this as settled.
 
 Minimum window: 720 × 560.
 
@@ -433,7 +454,7 @@ Minimum window: 720 × 560.
 
 | Event | Duration | Curve |
 |---|---|---|
-| Section enter | 450 ms, `translateY(12px)` and fade | `cubic-bezier(.16,1,.3,1)` |
+| Section enter | 550 ms, `translateY(12px)` and fade — it rides the colour-world curve rather than one of its own | `cubic-bezier(.16,1,.3,1)` |
 | Colour world change | 550 ms | same |
 | Core bar height | 600 ms | same |
 | Rail item hover | 220 ms | same |
@@ -442,6 +463,10 @@ Minimum window: 720 × 560.
 | Live dot pulse | 2.2 s loop | ease-in-out |
 
 The 7.5s object breathe is gone, along with the object it belonged to.
+`Animation.fathomEnter` in `FathomDesign.swift` still declares the 450 ms curve
+and nothing references it; `FathomRootView` drives the transition with
+`.fathomWorld`. Wire it up or delete it, but do not restate 450 ms here while
+0.55 is what runs.
 
 Under Reduce Motion: the section enter, the live pulse and the colour transition
 all stop. Press and hover feedback remain — they confirm an action, which is
@@ -509,8 +534,9 @@ worst world's plate — clear, though not by much, which is why the gate reads t
 value from `FathomFocus.ringOpacity` and fails the build if it is weakened.
 
 VoiceOver labels state value *and* provenance: *"Freed if deleted, 0 gigabytes,
-sparse file."* Sparklines, core bars and segment bars carry meaning no label
-currently states, and each needs one before it ships.
+sparse file."* Every hand-drawn chart — sparkline, core bars, segment bar and
+day columns — carries a composed label that names its source. The static audit
+of 25 August verified all four and fixed the two that spoke incomplete figures.
 
 **Dynamic Type.** Every font helper passes `relativeTo:`, so the whole scale
 grows — including the 9px tracked micro-labels, which are the case that worried
@@ -592,12 +618,16 @@ an ellipse centred at `(0.60, 0.29)` of the window with radii
 `(0.416w, 0.510h)`, proportional so it looks the same on a 13-inch display and a
 32-inch one.
 
-**The materials are black where the design draws them white.** The largest of
-the departures on this page, and a deliberate one. On a plate, a white tint lightens back toward the field the plate
-exists to escape — the design's white 7% row measures 1.96:1 and its lightening
-13% hover 3.60:1, both short of the rule. The magnitudes the design chose are
-kept exactly; only the sign is flipped. Which is the same conclusion the next
-paragraph reached the first time.
+**The materials are black where the original handoff drew them white.** The
+largest of the departures on this page, and a deliberate one. On a plate, a
+white tint lightens back toward the field the plate exists to escape — the
+design's white 7% row measures 1.96:1 and its lightening 13% hover 3.60:1, both
+short of the rule. The magnitudes the design chose are kept exactly; only the
+sign is flipped. The prototype has since been regenerated with the black values
+(`--plate:rgba(0,0,0,.45)`, `--cell:rgba(0,0,0,.16)`, `--row:rgba(0,0,0,.07)`,
+`--rowh:rgba(0,0,0,.13)`), so this is now a record of the decision rather than a
+live disagreement. Which is the same conclusion the next paragraph reached the
+first time.
 
 **Hover deepens, it never lightens.** On a dark ground a lighter hover walks the
 contrast back toward the field, which is how the first draft of this change

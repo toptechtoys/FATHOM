@@ -14,10 +14,13 @@ Quick orientation, in reading order:
 
 The interface is implemented and **has now been run and looked at** — as an
 x86_64 build on an Intel Mac, which shows every layout and no Apple-silicon
-reading. It found a defect in the first ten minutes that the compiler, the
-contrast gate and the arithmetic had all passed. Read `AGENTS.md` §Build order
-before adding to it, and run it when you change a screen.
+reading. It found two defects in the first ten minutes that the compiler, the
+contrast gate and the arithmetic had all passed, and it drove the owner's
+native-feel pass of 25 August. Read `AGENTS.md` §Build order before adding to
+it, and run it when you change a screen.
 
 The one rule that overrides everything: **never render a number you cannot trace
 to a row in FATHOM-DATA-SOURCES.md.** If you need a new number, add the row
-first, with its syscall or IOKit key, and get it reviewed.
+first, with its syscall or IOKit key, and get it reviewed. `DataSource` cases
+are checked against that document by `scripts/check-data-sources.py`, which runs
+in CI, so an undocumented case fails the build rather than a review.

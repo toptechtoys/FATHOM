@@ -22,7 +22,10 @@ These are product law. A pull request that violates one does not merge, no
 matter how good the code is.
 
 1. **Never invent a number.** If a value cannot be traced to a row in
-   `FATHOM-DATA-SOURCES.md`, it does not render. Add the row first.
+   `FATHOM-DATA-SOURCES.md`, it does not render. Add the row first. This one is
+   gated rather than reviewed: `scripts/check-data-sources.py` reads every raw
+   value out of the `DataSource` enum and fails the build if one of them is not
+   named in the document. Review had already missed three.
 2. **Three states for every value: known, not published, not attributable.**
    Every view must handle all three. Not-published rows render greyed with the
    words *not published*. Unattributed remainders get their own row, never
@@ -55,28 +58,51 @@ matter how good the code is.
 ## Repository layout
 
 ```
+Package.swift           FathomKit, the C shims, the CLI, the test target
+project.yml             XcodeGen input; Fathom.xcodeproj is generated from it
 Fathom.xcodeproj
 Fathom/                 SwiftUI app
   App/                  entry point, window, navigation
   Design/               tokens, worlds, plate, grain, focus ring, fonts
   Sections/             one folder per section, 20 total
-  Components/           rail, readout grid, panel, and the 13 panel types
+  Components/           rail, readout grid, panel, and 12 of the 13 panel
+                        types — Rule rows lives in Sections/Reclaim
+  Resources/            asset catalogue, Info.plist, entitlements
 FathomKit/              all measurement, no UI, fully testable
   Storage/              FTS walk, two-number engine, clone + sparse detection
-  Hardware/             SMART, SMC, IOReport, IOKit
+  Hardware/             SMART, SMC, IOReport, IOHID, IOKit
+    ChannelMaps/        the Ed25519-signed IOReport channel map
   System/               CPU, GPU, memory, network, bluetooth
   Model/                Measurement<T> and the three-state type
+  Actions/              reclaim engine, recipe catalogue, cloud eviction,
+                        application catalogue, journal recovery
+    Recipes/            reclaim-recipes.json and its detached signature
+Sources/                the C shims Swift cannot reach directly
+  CFathomHardware/      IOKit, IOReport, IOHID
+  CFathomStorage/       fts(3), fgetattrlist, F_LOG2PHYS_EXT, SEEK_HOLE
+  CSQLite/              the amalgamation the storage index builds on
 FathomBar/              menu bar widget target
-FathomKitTests/         fixtures from the reference machine
+FathomCLI/
+  FathomCLI.swift       the `fathom` binary RELEASE-GATES gate 1 runs
+FathomKitTests/         behaviour tests only; no recorded hardware bytes,
+                        no declared resources
+tests/release.bats      the release script's own tests
 scripts/
   check-contrast.py     the contrast gate; runs in CI
+  check-data-sources.py the data-source gate; runs in CI
   build-prototype.py    regenerates docs/fathom-app.html
+  prototype-content.js  the prototype's section content, read by the above
+  release.sh            sign, notarise, staple; see §Distribution
 docs/
   FATHOM-PRD.md
   FATHOM-DESIGN.md
   FATHOM-DATA-SOURCES.md
   RELEASE-GATES.md      what the reference machine must still prove
+  REFERENCE-PASS.md     the blank form those gates are recorded on
+  M1-ENGINE-STATUS.md
+  FATHOM-LOGO-BRIEF.md
   fathom-app.html       the locked visual reference
+  runbooks/
 ```
 
 **Presentation logic that makes a claim belongs in FathomKit, not beside the
@@ -147,15 +173,17 @@ history, so they can only be honest after the app has been running for days.
 
 Home and Deep Scan assemble from the others and land last, not first.
 
-**Status, 24 August 2026.** M1–M7 are implemented and all twenty sections are on
-the Instrument Panel vocabulary. What is left is the reference-machine
-measurements in `RELEASE-GATES.md`.
+**Status, 25 August 2026.** M1–M7 are implemented, all twenty sections are on
+the Instrument Panel vocabulary, and the owner's native-feel pass has been
+applied across every one of them — 214pt labelled sidebar, type at ×1.32, card
+readouts and panels, filled action buttons. What is left is the
+reference-machine measurements in `RELEASE-GATES.md`.
 
 **The interface has now been seen running, and it is worth knowing exactly how
 much that settles.** `project.yml` pins `ARCHS: arm64`; overriding it builds a
 working x86_64 app, and that ran on an Intel MacBookPro16,1 under macOS 26.
 Every screen was walked. Two defects turned up in the first ten minutes that
-thirty-nine commits of compiler, contrast gate and arithmetic had not: the
+the compiler, the contrast gate and the arithmetic had all passed: the
 readout row resolved to CSS `auto-fill` and stopped a third of the way across
 every section, and the `Layout` written to fix it trapped on SwiftUI's infinite
 width proposal and killed the app at launch with no crash report.
@@ -177,7 +205,8 @@ render the not-published state and open an issue. Do not approximate.
 
 **The prototype is the visual spec.** `docs/fathom-app.html` is locked, and it
 is the Instrument Panel — one always-on window, every section a set of readouts
-behind a 64px rail. Match its spacing, type scale, colour worlds and materials.
+beside a 214px labelled sidebar. Match its spacing, type scale, colour worlds
+and materials.
 If you believe a screen needs to change, change the prototype first and get it
 approved, then implement. Do not diverge silently in Swift.
 
@@ -188,16 +217,18 @@ are separated cards, the prominent action is a filled button, and scanning
 screens carry an elapsed clock. Each is recorded with its values in
 `FATHOM-DESIGN.md` §*The native-feel pass*. The colour worlds, materials,
 grain, highlight and everything else still follow the prototype, and the
-prototype still owes a regeneration to fold these in.
+prototype was regenerated on 25 August to fold these in, so it and the app
+agree again.
 
 It is generated by `scripts/build-prototype.py`, so edit that and re-run it
 rather than hand-editing 700 KB of embedded fonts.
 
 **Where the prototype and the contrast rule disagree, the rule wins — and you
-record it.** This has happened five times: the design's white materials, two
-semantic colours, the grain's blend, the readout cell's depth, and the white
-highlight over the field, which the app draws at half the prototype's strength
-because 30% puts body text at 4.24:1. Each is documented in `FATHOM-DESIGN.md`
+record it.** This has happened four times: the design's white materials — one
+flip, which took the readout cell, the data row and its hover from white tint to
+black — two semantic colours, the grain's blend, and the white highlight over
+the field, which the app draws at half the prototype's strength because 30% puts
+body text at 4.24:1. Each is documented in `FATHOM-DESIGN.md`
 with the measurement that forced it. Never silently soften a design value; state
 what it measured and what you changed it to.
 
@@ -279,7 +310,10 @@ VoiceOver itself has still never spoken this interface, which stays a
 reference-machine task in `RELEASE-GATES.md`.
 
 **CI runs every gate on arm64, and it is green.** The contrast gate, the
-forbidden-API audit and the privacy-string check all fail the build for real.
+data-source gate, the forbidden-API audit and the privacy-string check all fail
+the build for real. The forbidden-API audit greps `Fathom/`, `FathomKit/` and
+`FathomBar/` only, so `FathomCLI/`, `Sources/` and `scripts/` are ungated and
+were last checked clean by hand — do not read its green as covering them.
 Run them locally before you push anyway — they are fast — but remember a local
 run cross-compiles from whatever host you are on and CI does not. When the two
 disagree, CI is right.

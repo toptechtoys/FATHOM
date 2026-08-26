@@ -62,6 +62,13 @@ jobs:
           # Reads the colour worlds, the scrim and the text alpha from source,
           # so it measures what the app renders rather than a restated copy.
           python3 scripts/check-contrast.py
+      - name: Verify every DataSource is documented
+        run: |
+          # Non-negotiable 1, made mechanical. Review had already let three
+          # cases ship rendering values with no row behind them -- IOHID
+          # temperature, the IOBlockStorageDriver counters and SF_DATALESS --
+          # which is the one rule the product's whole position rests on.
+          python3 scripts/check-data-sources.py
       - name: Audit forbidden shipping APIs
         run: |
           set -eu

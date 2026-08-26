@@ -1,7 +1,9 @@
 # M1 — Storage engine status
 
-M1 is in progress. This file records what the engine can prove today and keeps
-unfinished accounting from being mistaken for a published value.
+M1 is implemented. Its two remaining exit gates are reference-machine
+measurements, recorded below and as gate 1 of `RELEASE-GATES.md` — not
+unfinished implementation. This file records what the engine can prove today and
+keeps unfinished accounting from being mistaken for a published value.
 
 ## Implemented
 

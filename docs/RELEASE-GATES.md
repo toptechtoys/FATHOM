@@ -8,7 +8,22 @@ before a release can be called complete.
 
 Green on `macos-26`, running every step on a real arm64 runner: LFS checkout,
 `shellcheck`, `bats`, `xcodegen`, `swift test`, Release builds of both schemes,
-the privacy usage descriptions, the contrast gate and the forbidden-API audit.
+the privacy usage descriptions, the contrast gate, the data-source gate and the
+forbidden-API audit.
+
+**The data-source gate makes non-negotiable 1 mechanical.**
+`scripts/check-data-sources.py` reads every raw value out of the `DataSource`
+enum and fails the build if one of them is missing from that document's *source
+index*, is spelled differently there, or names a section that does not exist.
+Until 26 August the rule was enforced by review, and review had missed three:
+`IOHIDEventSystemClient` temperature, the `IOBlockStorageDriver` byte counters
+and the `SF_DATALESS` flag all rendered values in the shipping UI with no row
+behind them. Their rows exist now, and a fourth omission fails a build rather
+than waiting for an audit.
+
+The forbidden-API audit greps `Fathom/`, `FathomKit/` and `FathomBar/` only, so
+`FathomCLI/`, `Sources/` and `scripts/` are ungated and were last checked clean
+by hand.
 
 **It was dark from 4 August to 23 August 2026 and the cause is worth recording.**
 Thirty-one consecutive runs failed in three to four seconds with no runner
@@ -116,8 +131,10 @@ record them.
    cannot settle: that the plate reads correctly on a real display — including
    whether the rail's `.ultraThinMaterial` erodes the 0.10 of margin its
    unselected icons have, which the gate cannot model because a material's
-   composite depends on the wallpaper behind the window — and that VoiceOver,
-   keyboard focus, Dynamic Type and Reduce Motion behave.
+   composite depends on the wallpaper behind the window, and whether Reclaim's
+   journal-recovery banner, which draws `.ultraThinMaterial` directly under its
+   own text in all three of its states, lightens the ground beneath it — and
+   that VoiceOver, keyboard focus, Dynamic Type and Reduce Motion behave.
 
    **Accessibility labels live in the shared components, not the sections.**
    Eleven components carry `accessibilityLabel`; the section views carry almost
@@ -146,7 +163,10 @@ record them.
    micro-labels stay legible at Accessibility sizes.
 
    **Two things a walk of all twenty sections left open, 24 August.** Both were
-   seen on an x86_64 build on an Intel host, so both want confirming here.
+   seen on an x86_64 build on an Intel host, so both want confirming here — and
+   both predate the 25 August native-feel pass, which changed the sidebar
+   width, the type scale and every readout and panel, so the layout they were
+   seen against no longer exists.
 
    *The section title and the status strip overlapped, twice, and it has not
    been reproduced since.* The display title rendered underneath the strip's
@@ -205,13 +225,15 @@ record them.
    had seen.
 
    The read now runs through `Task.detached`, like `MemoryReader` and
-   `GPUReader` on the same loop, and the section stops waiting after four
-   seconds and says so. It does not stop the *read* — a blocked `IOBluetooth`
-   call cannot be recalled — so the outstanding one keeps its place and the row
-   fills in if it ever returns. On the test machine that is exactly what
-   happened: *requested, macOS has not answered yet*, then *did not answer
-   within four seconds*, then, once consent was given, ten paired devices and
-   one connected.
+   `GPUReader` on the same loop, and the section stops waiting after ten
+   seconds and says so — `SystemMonitorModel.bluetoothDeadlineSeconds = 10`,
+   interpolated into the sentence the section shows. It does not stop the
+   *read* — a blocked `IOBluetooth` call cannot be recalled — so the
+   outstanding one keeps its place and the row fills in if it ever returns. On
+   the test machine that is exactly what happened: *requested, macOS has not
+   answered yet*, then *did not answer within four seconds* — the deadline in
+   force that day, since retuned to ten — then, once consent was given, ten
+   paired devices and one connected.
 
    **Take the read timing again while you are here.** The deadline before the
    section says macOS has not answered is ten seconds, and that figure comes

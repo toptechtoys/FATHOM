@@ -14,10 +14,11 @@ are part of that calculation.
 
 ## The interface
 
-One always-on window: twenty sections behind a 64-point icon rail, each a set of
-live readouts sampled at 1 Hz while visible. There is nothing to start and no
-result screen to wait for. A section with nothing measured yet says so in a
-sentence and offers the one action that would fill it, rather than showing zeros.
+One always-on window: twenty sections beside a 214-point labelled sidebar, each
+a set of live readouts sampled at 1 Hz while visible. There is nothing to start
+and no result screen to wait for. A section with nothing measured yet says so in
+a sentence and offers the one action that would fill it, rather than showing
+zeros.
 
 Home is allowed to say nothing is wrong, and does when there is nothing to
 report. A chart draws a second nobody measured as a gap rather than
@@ -29,17 +30,19 @@ idle-cost claim in the app's own chrome is a reading rather than a target.
 ## Status
 
 The app is implemented, and CI builds both targets on an arm64 runner with the
-test suite, the privacy checks, the contrast gate and the forbidden-API audit
-all passing.
+test suite, the privacy checks, the contrast gate, the data-source gate and the
+forbidden-API audit all passing.
 
 **The interface has been seen running, on the wrong architecture.** Overriding
 `ARCHS` builds a working x86_64 app, and walking all twenty sections on an Intel
-Mac found a layout defect the compiler, the contrast gate and the arithmetic had
-all passed. What it cannot show is any Apple-silicon reading: IOReport, SMC
-temperature, `perflevel1` and the NVMe SMART user client all render *not
-published* there, which is the app being honest rather than the app being
-checked. Those, the remaining reference-machine measurements, and signing and
-notarization are enumerated in
+Mac found two layout defects the compiler, the contrast gate and the arithmetic
+had all passed. It also drove the owner's native-feel pass of 25 August — the
+labelled sidebar, type at ×1.32, card readouts and panels, and a filled action
+button — which is in the app and in the prototype. What it cannot show is any
+Apple-silicon reading: IOReport, SMC temperature, `perflevel1` and the NVMe
+SMART user client all render *not published* there, which is the app being
+honest rather than the app being checked. Those, the remaining
+reference-machine measurements, and signing and notarization are enumerated in
 [docs/RELEASE-GATES.md](docs/RELEASE-GATES.md), with a blank record to fill in at
 [docs/REFERENCE-PASS.md](docs/REFERENCE-PASS.md).
 

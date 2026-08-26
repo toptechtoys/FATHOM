@@ -124,20 +124,28 @@ treemap whose areas are load-bearing, and a row that reads *does not report*.
 | Reduce Motion | |
 | The plate reads correctly on a real display | |
 | `.ultraThinMaterial` behind the rail — does it erode the margin? | |
+| `.ultraThinMaterial` under Reclaim's journal-recovery banner text | |
 
-Two things the contrast gate cannot model and a person must judge:
+Three things the contrast gate cannot model and a person must judge:
 
 - Whether the `.ultraThinMaterial.opacity(0.18)` beneath `FathomRail`'s plate
   lightens the composite enough to matter. This is the tightest place it could
   have landed: the rail's unselected icons at 82% white keep 0.10 of margin over
   the 4.5:1 rule, and a material cannot be composited from source because its
   result depends on the wallpaper behind the window.
+- Whether Reclaim's journal-recovery banner, which draws `.ultraThinMaterial`
+  directly under its own text in all three of its states, lightens the ground
+  beneath it. Same reason: a material's composite depends on what is behind the
+  window.
 - Whether the enlarged charts read well at Accessibility sizes, and whether the
   9px tracked micro-labels stay legible.
 
-**No per-view VoiceOver audit has been done.** Labels live in the shared
-components, so a wrong one is wrong everywhere at once. Scope that audit as its
-own reviewed change rather than folding it in here.
+**A static per-view audit was done on 25 August — code-reading, not listening.**
+It verified the labels, the charts, the animation gating and the type scaling,
+and fixed the four defects it found. Labels live in the shared components, so a
+wrong one is wrong everywhere at once, which is what makes reading them worth
+something. What it could not settle is whether VoiceOver actually speaks this
+interface correctly: that is the row above, and it has never been done.
 
 ---
 
@@ -151,7 +159,15 @@ Signed, hardened and notarized — not a local unsigned build.
 | Consent prompt appears | |
 | App survives the prompt | |
 | Paired devices publish after granting | |
+| Cold Bluetooth read, ms (first read only) | |
 | If denied: the exact denial observed | |
+
+**Time the first read.** The ten-second deadline before the section says macOS
+has not answered rests on a single sample — 5,777 ms on an Intel
+MacBookPro16,1 while the CoreBluetooth coordinator was built, against a median
+of 3.5 ms for the 47 reads after it. The cold read is the only one that matters
+and there is exactly one of it. A materially slower cold read here means the
+deadline is too short.
 
 If the signed build is denied enumeration, the documented remedy is
 `com.apple.security.device.bluetooth`. Add it **only** if this machine proves it

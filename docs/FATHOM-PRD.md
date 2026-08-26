@@ -816,7 +816,9 @@ Every figure in the prototype was read from a real machine, not invented.
 Mac mini M4 Pro, macOS Tahoe 26.5.2, 8 performance + 4 efficiency cores, 16-core
 GPU, 24 GB, volume EXHIBINAUT 494.38 GB APFS, drive APPLE SSD AP0512Z.
 Full table in `FATHOM-DATA-SOURCES.md`, which is now the controlling document
-for every number in the product. These readings are the test fixtures.
+for every number in the product. These readings are the reference contract, not
+test fixtures — no test replays real hardware bytes, and capturing them is
+gate 2 of `RELEASE-GATES.md`.
 
 ## 22.3 Three corrections to earlier drafts
 
@@ -898,9 +900,10 @@ it mid-sprint. This records what replaced it, for the same reason.*
 ## 23.1 The direction changed, and the prototype moved first
 
 `docs/fathom-app.html` is now the **Instrument Panel**: one always-on window,
-every section a set of live readouts behind a 64px icon rail. No poster, no
-Scan button, no result state to wait for. `FATHOM-DESIGN.md` is v2.0 and
-documents it.
+every section a set of live readouts beside a labelled sidebar. No poster, no
+Scan button, no result state to wait for. `FATHOM-DESIGN.md` is v2.1 and
+documents it. The sidebar was a 64px icon rail until the native-feel pass of
+25 August; see §23.9.
 
 The order in `AGENTS.md` held — prototype, then the design document, then Swift.
 That order is the reason this amendment can be short: nothing was implemented
@@ -923,8 +926,8 @@ honestly; and **Explore keeps a tree** rather than a flat two-number table.
 
 ## 23.3 §22.5 amended: the public IP moved to Network
 
-It was in the sidebar, alongside the app's own cost. The rail is icon-only at
-every width, so the row moved to the Network section — where the address it
+It was in the sidebar, alongside the app's own cost. The rail carried no room
+for it, so the row moved to the Network section — where the address it
 reports belongs, and where the privacy control now sits beside the value it
 governs rather than in a footer. Everything else in §22.5 stands: one outbound
 request, cached, disableable, no identifier, flags bundled.
@@ -961,10 +964,11 @@ four-unit gap needs the variable font, which is a separate decision.
 
 ## 23.6 §22.6 amended: the 1080px breakpoint is gone
 
-The rail is 64px at every width, so there is no expanded sidebar left to
-collapse. One structural breakpoint remains, at 760px. Verified across all
-twenty sections at 1520, 1200, 1000, 820 and 720px with no horizontal overflow.
-Minimum window unchanged at 720 × 560.
+The sidebar does not collapse at any width, so there is nothing left to break
+on. One structural breakpoint remains, at 760px. The sweep across all twenty
+sections at 1520, 1200, 1000, 820 and 720px found no horizontal overflow, but it
+was walked against the 64px icon rail and the unscaled type; it needs re-walking
+against the 214pt sidebar and ×1.32. Minimum window unchanged at 720 × 560.
 
 ## 23.7 Contrast became a gate rather than a claim
 
@@ -988,14 +992,40 @@ Every buildable item is built and every design decision is closed. What remains
 needs the reference machine, and is enumerated in `RELEASE-GATES.md`: the
 benchmark with its disk-headroom figure, the hardware fixture comparison, the
 idle-cost reading, Bluetooth against a signed build, the navigation lifecycle,
-and the accessibility pass — including a per-view VoiceOver audit that has never
-been done.
+and the accessibility pass — including VoiceOver, which a static per-view audit
+on 25 August could not settle because it read code rather than listened.
 
 Signing and notarization remain untested end to end. There is no Developer ID
 certificate on the development host and no `notarytool` profile, so
 `scripts/release.sh` has never run against real credentials.
 
-**And nothing has been seen.** The implementation was verified by compiler, by
-gate and by arithmetic, which caught every defect named above. None of that says
-whether twenty screens are legible. That is the largest open risk in the project
-and it is one afternoon of work to close.
+**The interface has been seen, on the wrong architecture.** An x86_64 build ran
+on an Intel MacBookPro16,1 under macOS 26 and every screen was walked. It found
+layout defects the compiler, the contrast gate and the arithmetic had all
+passed, and it is what drove the native-feel pass in §23.9. What it cannot show
+is any Apple-silicon reading: IOReport, SMC temperature, `perflevel1` and the
+NVMe SMART user client all render *not published* there. Apple silicon, a signed
+build and a real display remain the open risk, and they are `RELEASE-GATES.md`.
+
+## 23.9 The native-feel pass, 25 August 2026
+
+The owner watched the app run on a real display and directed five changes. Each
+is an owner decision reviewed on screen, and each is recorded with its values in
+`FATHOM-DESIGN.md` §*The native-feel pass*; the prototype was regenerated the
+same day, so it and the app agree again.
+
+- **Type renders ×1.32.** The stated sizes are unchanged; `FathomType.scale`
+  multiplies them. A first pass at ×1.2 was reviewed and still read small.
+- **The icon rail became a 214pt labelled sidebar**, names beside the icons.
+- **Readout cells became cards** — a 10pt gap instead of the 1px shared
+  hairline, radius 12, a top-lit border and a soft shadow.
+- **Panels became cards too**, at the data row's 7%, with the same border
+  treatment at lower strength.
+- **The prominent action is a filled button**, and scanning screens carry a
+  live elapsed clock, because a volume walk can print nothing for half an hour
+  and a screen with no moving number reads as hung.
+
+None of it touched a text-bearing surface's material, so the contrast gate's
+model still holds and it still passes. What it did invalidate is the responsive
+sweep in §23.6 and the two open observations in `RELEASE-GATES.md` gate 4: all
+three were taken against a layout that no longer exists.

@@ -1,7 +1,10 @@
 # FATHOM — Data Sources
 
 **Every number in the product, and the exact API it comes from.**
-Version 1.0 · locked 30 July 2026 · reference machine EXHIBINAUT
+Version 1.1 · 26 August 2026 · v1.0 locked 30 July 2026 · reference machine EXHIBINAUT
+Rows added since the lock are dated in git. `scripts/check-data-sources.py`
+fails the build if a `DataSource` case is missing from *The source index* at the
+end of this document.
 
 This is the most important engineering document in the project. FATHOM's entire
 position is that it does not invent numbers. That promise is only as good as this
@@ -119,18 +122,19 @@ The Attribution screen's 4.5% unattributed row and the Bluetooth screen's
 |---|---|---|
 | Volume capacity, free | `URLResourceValues.volumeAvailableCapacityForImportantUsage` | This is the honest free number. Not `volumeAvailableCapacity`. |
 | Finder's free number | `statfs(2)` `f_bavail × f_bsize` | Read it only to show the discrepancy. |
-| Logical size | `NSURLFileSizeKey` | What Finder's Get Info shows. |
-| Physical size on disk | `NSURLFileAllocatedSizeKey` | Differs from logical for sparse and compressed files. |
+| Logical size | `stat(2).st_size` | What Finder's Get Info shows. Read from the FTS walk, not from an `NSURL` resource key. |
+| Physical size on disk | `stat(2).st_blocks × 512` | Differs from logical for sparse and compressed files. Read from the FTS walk, not from an `NSURL` resource key. |
 | File modification time | `stat(2).st_mtimespec` | Persisted for scan diffs and stale-target checks. |
 | Filesystem allocation block size | `fstatfs(2).f_bsize` | Used to normalize `F_LOG2PHYS_EXT` logical spans to physical allocation ranges; the union must reconcile exactly to `st_blocks × 512`. |
-| Total allocated incl. clones | `NSURLTotalFileAllocatedSizeKey` | |
-| Clone identity / reference count | `getattrlist(2)` / `fgetattrlist(2)` with `ATTR_CMNEXT_CLONEID` (`0x100`) and `ATTR_CMNEXT_CLONE_REFCNT` | Identifies full-clone families and members outside the scanned tree. |
+| Clone identity / reference count | `fgetattrlist(2)` with `ATTR_CMNEXT_CLONEID` (`0x100`) and `ATTR_CMNEXT_CLONE_REFCNT` | Identifies full-clone families and members outside the scanned tree. |
 | Shared physical extents | `F_LOG2PHYS_EXT` via `fcntl(2)` | Detects shared ranges, including partially diverged clones. Deleting one file may free nothing. |
 | Clone-family accounting | Derived from physical-extent overlap, `(st_dev, st_ino, st_nlink)`, and clone reference count | Shared blocks are credited once at the members' lowest common ancestor. A proven outside member makes the family zero-freeable. |
 | Storage tree totals | Derived from `stat(2)` allocated bytes and clone-family lowest-common-ancestor credits | Family members are removed from additive totals and their physical union is credited exactly once. |
 | Freed if deleted | Derived from physical-extent reference sets, complete-volume scope, read-only snapshot extent manifests, and open-file identities | A physical range is credited only when every live reference is in the deletion set and no mounted snapshot manifest still references it. |
 | Open file identities | `proc_listallpids(3)`, `proc_pidinfo(PROC_PIDLISTFDS)`, and `proc_pidfdinfo(PROC_PIDFDVNODEPATHINFO)` | Private-but-shipped libproc interface. If any live process denies enumeration, the complete identity set is *not published*. |
 | Sparse file real occupancy | `SEEK_HOLE` / `SEEK_DATA` via `lseek(2)` | This is how Docker's 62.4 GB resolves to 0 GB freeable. |
+| Dataless (cloud-evicted) file | `stat(2).st_flags & SF_DATALESS` from the FTS walk | Detected from traversal metadata. The file is never opened, because opening a dataless file forces a download — see the PRD's *dataless-file trap*. |
+| Disk read/write throughput | `IOBlockStorageDriver.Statistics` cumulative byte counters, delta over the sample interval | The counters are cumulative, so a first sample is not a rate and renders *not published*; so does a counter that has gone backwards, which means the counter reset. |
 | Purgeable space | `APFSVolumeGetPurgeableSpace` (private) **or** difference of the two capacity keys | Prefer the public difference. Document which you used. |
 | Local snapshots | `fs_snapshot_list(2)` | Programmatic and read-only, but Apple documents it as requiring superuser privileges plus an additional entitlement. If denied, render *not published*. `tmutil` is prototype-only because the shipping build does not shell out. |
 | Snapshot physical references | Read-only `fs_snapshot_mount(2)`, then `FTS(3)` plus `F_LOG2PHYS_EXT` for each mounted snapshot | Manifests are published only when every listed snapshot mounts, traverses, maps, and unmounts successfully. Apple documents the mount call as entitlement-gated; denial renders *not published*. |
@@ -254,8 +258,20 @@ entire Endurance feature.
 
 ## Sensors and power
 
-Read from the **SMC** (`AppleSMC` via `IOKit`). Enumerate keys, do not hardcode
-a list — the set varies by model and by OS version.
+Temperatures come from `IOHIDEventSystemClient`, event type 15, one reading per
+published temperature service — **not** from the SMC, which an earlier draft of
+this section said. Fans and total system power come from the **SMC**
+(`AppleSMC` via `IOKit`); enumerate keys, do not hardcode a list, because the
+set varies by model and by OS version. Component power comes from `IOReport`.
+The Sensors section labels each panel with the interface that produced it, so
+the screen and this table can be checked against each other.
+
+| Value | Source | Notes |
+|---|---|---|
+| Per-sensor temperature | `IOHIDEventSystemClient` temperature event type 15 | °C, one reading per published service. A Mac that publishes no temperature service renders *not published*; a missing sensor is never interpolated from its neighbours. |
+| Fan speed | `AppleSMC read-only key read`, actual-speed keys only | RPM. A machine with no fans publishes no keys, which is *not published*, not zero. |
+| Total system power | `AppleSMC` key `PSTR` | Watts, whole machine. |
+| SMC key inventory | `AppleSMC key enumeration` | The published set varies by model and OS build, so it is read rather than assumed. |
 
 Friendly IOReport channel labels come only from an Ed25519-verified map bundled
 with the app. A missing model/build match renders *not published*. FATHOM does
@@ -304,8 +320,13 @@ definitive FileVault policy status.
 | Local IP | `getifaddrs(3)`, active non-loopback IPv4/IPv6 addresses | 192.168.1.149 |
 | DNS, router, MAC | `SCDynamicStore` | 192.168.1.1 |
 | Wi-Fi SSID, RSSI | `CoreWLAN` associated interface; SSID read is user-triggered because macOS gates it behind Location Services | not captured on Ethernet reference |
-| Latency, jitter | ICMP to the gateway, rolling window | 229 ms, 7 ms |
 | Public IP + country | `GET https://cloudflare.com/cdn-cgi/trace`, fields `ip` and `loc`; one HTTPS request, redirect refused, persisted cache 6 h | 193.19.109.117, US |
+
+**Latency and jitter are not implemented and have no row above.** ICMP to the
+gateway, over a rolling window, was the intended source and nothing in `Fathom/`
+or `FathomKit/` measures it; there is no `DataSource` case for it. It is kept
+here as intent, not as a source — a row in the table above is a promise that
+the product renders the value.
 
 **Public IP is the only outbound request FATHOM makes.** It must be listed in
 the privacy sheet, be disableable, cache aggressively, and never carry an
@@ -375,9 +396,18 @@ this screen.
 
 ## Menu bar widget
 
-The widget's own cost is a shipped, measured number: **0.2% CPU, energy impact
-2.1** with four items enabled. Re-measure it every release with Activity Monitor
-and Instruments. If it regresses past 0.5% or energy 4.0, the release is blocked.
+The widget measures its own CPU through `proc_pid_rusage` and publishes it with
+the item count it was taken with — see *The app's own cost* above, which is the
+row that number comes from.
+
+**0.2% CPU and energy impact 2.1 with four items are the targets, not a
+reading.** No reference-machine measurement has been taken yet: `RELEASE-GATES.md`
+gate 3 and `REFERENCE-PASS.md` both still hold the blank. This section used to
+call the pair "a shipped, measured number", which is the budget dressed as an
+observation — exactly what non-negotiable 8 forbids the app from displaying, and
+no more true in prose. Past 0.5% or energy 4.0 the release is blocked. Energy
+Impact is a manual Activity Monitor reading and the app does not display it at
+all.
 
 The default steady-state sampling plan is also test-capped at 34 high-level
 reads per minute: 12 CPU, 12 network, 6 capacity and 4 temperature inventory
@@ -440,3 +470,89 @@ Recorded so nobody re-litigates them mid-sprint.
 | Battery health on desktop Macs | There is no battery |
 | Predicted failure date | Wear is non-linear and TBW is unpublished |
 | Registry / "junk" counts as a headline | Count without freeable bytes is theatre |
+
+---
+
+## The source index
+
+Every case of `DataSource`, the exact string it renders as provenance, and the
+section above that explains it. `scripts/check-data-sources.py` reads the enum
+and fails the build if a case is missing from this table, if the string here is
+not the one the enum carries, or if a row names a section that does not exist.
+That is what makes non-negotiable 1 mechanical instead of a promise. Until
+26 August 2026 it was enforced by review, and review had missed three: the IOHID
+temperature event, the `IOBlockStorageDriver` byte counters and the
+`SF_DATALESS` flag were all rendering values with nothing behind them.
+
+The index is not a substitute for the row. It is the lookup from a provenance
+string in a screenshot to the paragraph that justifies it, and the reason a new
+`DataSource` case cannot ship undocumented.
+
+| Case | Provenance string | Documented in |
+|---|---|---|
+| `volumeAvailableCapacityForImportantUsage` | `URLResourceValues.volumeAvailableCapacityForImportantUsage` | Storage and filesystem |
+| `statfsAvailableCapacity` | `statfs(2).f_bavail × f_bsize` | Storage and filesystem |
+| `derivedPurgeableCapacity` | `derived: Finder available − important-usage available` | Storage and filesystem |
+| `fts` | `fts(3)` | Storage and filesystem |
+| `statLogicalSize` | `stat(2).st_size` | Storage and filesystem |
+| `statAllocatedBlocks` | `stat(2).st_blocks × 512` | Storage and filesystem |
+| `statModificationTime` | `stat(2).st_mtimespec` | Storage and filesystem |
+| `statfsAllocationBlockSize` | `fstatfs(2).f_bsize` | Storage and filesystem |
+| `statDatalessFlag` | `stat(2).st_flags & SF_DATALESS` | Storage and filesystem |
+| `getattrlistCloneIdentity` | `fgetattrlist(2).ATTR_CMNEXT_CLONEID/CLONE_REFCNT` | Storage and filesystem |
+| `fcntlPhysicalExtents` | `fcntl(2).F_LOG2PHYS_EXT` | Storage and filesystem |
+| `cloneFamilyAccounting` | `derived: physical extents + inode/link/clone references` | Storage and filesystem |
+| `storageTreeAccounting` | `derived: allocated bytes + clone-family LCA credits` | Storage and filesystem |
+| `physicalReferenceAccounting` | `derived: physical extent reference sets` | Storage and filesystem |
+| `procOpenFileDescriptors` | `libproc: PROC_PIDLISTFDS/PROC_PIDFDVNODEPATHINFO` | Storage and filesystem |
+| `seekDataAndHole` | `lseek(2).SEEK_DATA/SEEK_HOLE` | Storage and filesystem |
+| `snapshotManifestDiff` | `APFS snapshot manifest diff` | Storage and filesystem |
+| `fsSnapshotList` | `fs_snapshot_list(2)` | Storage and filesystem |
+| `nvmeSMARTLogPage` | `IONVMeSMARTInterface.SMARTReadData (NVMe log page 0x02)` | SSD health and endurance |
+| `nvmeSMARTLifetimeDerivation` | `derived: NVMe lifetime totals` | SSD health and endurance |
+| `appleSMCKeyInventory` | `AppleSMC key enumeration` | Sensors and power |
+| `appleSMCReadKey` | `AppleSMC read-only key read` | Sensors and power |
+| `ioReportChannelInventory` | `libIOReport.IOReportCopyAllChannels` | Sensors and power |
+| `ioReportSampleDelta` | `libIOReport.IOReportCreateSamplesDelta` | Sensors and power |
+| `ioReportEnergyDelta` | `derived: IOReport energy delta ÷ elapsed time` | Sensors and power |
+| `ioHIDTemperatureEvent` | `IOHIDEventSystemClient temperature event type 15` | Sensors and power |
+| `hostProcessorLoadInfo` | `host_processor_info(PROCESSOR_CPU_LOAD_INFO) delta` | CPU |
+| `getLoadAverage` | `getloadavg(3)` | CPU |
+| `sysctlPerformanceLogicalCPU` | `sysctl hw.perflevel0.logicalcpu` | CPU |
+| `sysctlEfficiencyLogicalCPU` | `sysctl hw.perflevel1.logicalcpu` | CPU |
+| `hostVMStatistics64` | `host_statistics64(HOST_VM_INFO64)` | Memory |
+| `sysctlPhysicalMemory` | `sysctl hw.memsize` | Machine identity |
+| `sysctlMachineModel` | `sysctl hw.model` | Machine identity |
+| `statusBarThickness` | `NSStatusBar.system.thickness` | The menu bar widget's own geometry |
+| `procPidRusage` | `proc_pid_rusage(RUSAGE_INFO_CURRENT) user + system time` | The app's own cost |
+| `sysctlSwapUsage` | `sysctl vm.swapusage` | Memory |
+| `dispatchMemoryPressure` | `DispatchSource.makeMemoryPressureSource` | Memory |
+| `ioAcceleratorPerformanceStatistics` | `IOAccelerator.PerformanceStatistics` | GPU and Neural Engine |
+| `ioRegistryGPUCoreCount` | `IORegistry gpu-core-count` | GPU and Neural Engine |
+| `cvDisplayLinkCallbackDelta` | `CVDisplayLink output callback delta` | GPU and Neural Engine |
+| `sysctlNetworkInterfaceList` | `sysctl NET_RT_IFLIST2 interface counters` | Network |
+| `getifaddrsNetworkAddresses` | `getifaddrs(3) active IPv4/IPv6 addresses` | Network |
+| `scDynamicStoreNetworkState` | `SCDynamicStore global IPv4 and DNS state` | Network |
+| `coreWLANAssociationState` | `CoreWLAN associated SSID and RSSI` | Network |
+| `ioBlockStorageDriverStatistics` | `IOBlockStorageDriver.Statistics cumulative byte counters` | Storage and filesystem |
+| `cloudflareTracePublicAddress` | `GET cloudflare.com/cdn-cgi/trace: ip + loc` | Network |
+| `ioBluetoothPairedDevices` | `IOBluetoothDevice.pairedDevices` | Bluetooth |
+| `ioBluetoothConnectionStatus` | `IOBluetoothDevice.isConnected` | Bluetooth |
+| `ioBluetoothBatteryPercent` | `IOBluetooth device BatteryPercent property` | Bluetooth |
+| `persistedStorageHistoryDelta` | `derived: two completed persisted FATHOM scans` | Timeline and digest |
+| `applicationInfoPlist` | `Application bundle Info.plist` | Applications |
+| `contentAccessDate` | `URLResourceValues.contentAccessDate` | Applications |
+| `exactBundleIDLeftoverMatch` | `exact bundle identifier path-component match` | Applications |
+| `ubiquitousDownloadingStatus` | `URLResourceValues.ubiquitousItemDownloadingStatus` | iCloud |
+| `ubiquitousAllocatedSize` | `URLResourceValues.fileAllocatedSize` | iCloud |
+| `ubiquitousExcludedFromSync` | `NSURLUbiquitousItemIsExcludedFromSyncKey` | iCloud |
+| `signedBundledChannelMap` | `bundled Ed25519-verified IOReport channel map` | Sensors and power |
+| `fseventsCausalWindow` | `FSEventStreamCreate curated-path causal window` | Timeline and digest |
+| `fullDiskAccessCanary` | `open ~/Library/Application Support/com.apple.TCC/TCC.db` | Permissions and background service |
+| `serviceManagementAgentStatus` | `SMAppService.agent(plistName:).status` | Permissions and background service |
+| `userNotificationCenter` | `UNUserNotificationCenter authorization + pending request` | Permissions and background service |
+| `storageIndexFTS5` | `SQLite FTS5 staged path/component query` | Command palette |
+| `persistedDirectoryGrowthDelta` | `derived: two completed SQLite directory totals within 24 hours` | Storage and filesystem |
+| `reclaimJournalReplay` | `append-only reclaim intent/outcome journal replay` | Storage and filesystem |
+| `volumeIsEncrypted` | `URLResourceValues.volumeIsEncrypted` | Permissions and background service |
+| `persistedSMARTCounterDelta` | `derived: persisted NVMe SMART counter observations` | SSD health and endurance |
