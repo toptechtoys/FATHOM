@@ -372,8 +372,18 @@ shadow black 28% at radius 9, y 3. **Secondary**: white 92% text on a white 8%
 fill, 14% on hover, `.5px` white border at 22%, no shadow. Hover `scale(1.02)`,
 170ms; there is no press transform.
 
-One per section, never two. The circular Scan button is gone with the poster —
-there is nothing to start.
+**One primary action per section.** A secondary control that declines or
+retreats — *Back*, *Scan again*, *Cancel* — is not a second action and does not
+count against this; it is the way out of the first one. Storage, Deep Scan and
+Cloud each carry one, and each needs it.
+
+This read "one per section, never two" until 26 August, and those three sections
+had always contradicted it. The rule was what was wrong, not the sections:
+removing a reader's way out of a dry run to satisfy a sentence would have been
+the worse reading of it. Two *primary* actions side by side remains forbidden —
+that is a section that has not decided what it is asking for.
+
+The circular Scan button is gone with the poster — there is nothing to start.
 
 **The label states the outcome and the cost, in that order.** *Move 101.0 GB to
 Trash.* *Reclaim 132.6 GB.* *Evict 61.2 GB.* Never *Continue*, never *Optimise*,

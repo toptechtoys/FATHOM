@@ -3,7 +3,17 @@ import SwiftUI
 /// The one pill a section may end with.
 ///
 /// The label states the outcome and the cost, in that order — *Move 101.0 GB
-/// to Trash*, not *Continue*. One per section, never two.
+/// to Trash*, not *Continue*.
+///
+/// **One primary action per section.** A secondary control that declines or
+/// retreats — *Back*, *Scan again*, *Cancel* — is not a second action and does
+/// not count against it; it is the way out of the first one, and Storage, Deep
+/// Scan and Cloud each need theirs. This rule read "one per section, never
+/// two" until 26 August, which those three sections had always violated. The
+/// rule was the thing that was wrong: removing their way out to satisfy a
+/// sentence would have been the worse reading. Two *primary* actions side by
+/// side is still forbidden — that is a section that has not decided what it is
+/// asking for.
 struct FathomAction: View {
     let title: String
     /// Shown beside the pill, not inside it: a cost is a fact about the action,

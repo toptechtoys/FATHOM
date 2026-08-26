@@ -425,7 +425,7 @@ html = (
     "<!-- FATHOM — Instrument Panel. The visual spec. Self-contained: fonts and\n"
     "     icons are inlined, nothing is fetched. Materials and text alphas match\n"
     "     FathomSurface in Swift; see FATHOM-DESIGN.md for why they are what they\n"
-    "     are. Numbers simulate a MacBook Air M2; the app reads them for real.\n     Native-feel pass, 25 August 2026: labelled 214px sidebar, card readouts\n     and panels, filled action button — owner-reviewed on screen; see\n     FATHOM-DESIGN.md. Type here is at stated sizes; the app renders them\n     x1.32 (FathomType.scale), to be baked in when the factor settles. -->\n"
+    "     are. Numbers simulate a MacBook Air M2; the app reads them for real.\n     Native-feel pass, 25 August 2026: labelled 214px sidebar, card readouts\n     and panels, filled action button — owner-reviewed on screen; see\n     FATHOM-DESIGN.md. Type here is at stated sizes; the app renders them\n     x1.45 (FathomType.scale), to be baked in when the factor settles. -->\n"
     "<style>\n" + fonts + "\n" + CSS.strip() + "\n</style></head>\n"
     "<body>\n"
     '<div id="win">\n'

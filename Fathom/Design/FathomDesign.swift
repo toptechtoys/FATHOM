@@ -306,7 +306,7 @@ extension Color {
 enum FathomType {
     /// 1.2 was reviewed on screen and still read small; 1.32 is the second
     /// review's ask (another 10%).
-    static let scale: CGFloat = 1.32
+    static let scale: CGFloat = 1.45
 }
 
 extension Font {
