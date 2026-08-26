@@ -37,7 +37,6 @@
 		6CC701C6C4D89F7AAE2912A8 /* JB-400.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 6DE96A8B4B047FD0328C5B8E /* JB-400.woff2 */; };
 		70EF4FB835B04058A9FD97E4 /* FathomApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2C90C6B8600E922850878FE /* FathomApp.swift */; };
 		7346A8557B8ADF960BDCDF77 /* JB-500.woff2 in Resources */ = {isa = PBXBuildFile; fileRef = 449451493A035832EBCE933B /* JB-500.woff2 */; };
-		798ED73E3ECE1FD2E49BAE1E /* FathomBar.app in Resources */ = {isa = PBXBuildFile; fileRef = D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7E354ACCE4D66513004556BC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EF2F32D0634162F1B5FDDBF5 /* Assets.xcassets */; };
 		7F8B6E2991590E7F6AC98D17 /* CommandPaletteModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97FCFDAE0C6C91C52E86ABF /* CommandPaletteModel.swift */; };
 		8212DC930A138E0FDAB03B2E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1ADA735ABF89778889AD712 /* HomeView.swift */; };
@@ -49,6 +48,7 @@
 		8A1AC222772DD85DDA8DAE42 /* NavIcons in Resources */ = {isa = PBXBuildFile; fileRef = FB25755FEEE672AC3A549DB6 /* NavIcons */; };
 		8EB854C3F6F93AC56FF3E7B8 /* FathomBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC84EF52CDA7D3DCC028872A /* FathomBarApp.swift */; };
 		8F4B019527E761D3BC4055B4 /* SensorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 539B24AFD3D55C78D146787E /* SensorsView.swift */; };
+		93B4E4833C5625128F8A72D4 /* FathomBar.app in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = D47DE3BE8B6D864D6EE31AB0 /* FathomBar.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9471BFCE7326695F924F07E0 /* Archivo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 919F6E50B5E88A1F652E49F8 /* Archivo-Bold.ttf */; };
 		96CB042AD988988688D65D4C /* FathomSectionIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAFA57F521CD8D4E02A23EE2 /* FathomSectionIcon.swift */; };
 		9827274436CD35514F03A74A /* CloudAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A188703CB9CC4BFC475BFA /* CloudAppModel.swift */; };
@@ -91,6 +91,20 @@
 			remoteInfo = FathomBar;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1374B8B851C8FD82A72BB203 /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LoginItems;
+			dstSubfolderSpec = 1;
+			files = (
+				93B4E4833C5625128F8A72D4 /* FathomBar.app in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		031FE88C093F3A66F0287C00 /* MenuBarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsView.swift; sourceTree = "<group>"; };
@@ -539,6 +553,7 @@
 				9F450E3B4F9F0A8B25C33317 /* Sources */,
 				55E5048A2075C44C3D598EF8 /* Resources */,
 				DE5DF6C4A732237BB7AE21F0 /* Frameworks */,
+				1374B8B851C8FD82A72BB203 /* Embed Dependencies */,
 				669008E3091FDBCECB6715B5 /* Embed menu bar agent */,
 			);
 			buildRules = (
@@ -602,7 +617,6 @@
 				7346A8557B8ADF960BDCDF77 /* JB-500.woff2 in Resources */,
 				9A6A95A45549DBFCF13D9218 /* LICENSE-Archivo.txt in Resources */,
 				8A1AC222772DD85DDA8DAE42 /* NavIcons in Resources */,
-				798ED73E3ECE1FD2E49BAE1E /* FathomBar.app in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

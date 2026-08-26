@@ -5,7 +5,7 @@
     <key>Label</key>
     <string>com.exhibinaut.fathom.bar</string>
     <key>BundleProgram</key>
-    <string>Contents/Resources/FATHOM Bar.app/Contents/MacOS/FATHOM Bar</string>
+    <string>Contents/Library/LoginItems/FATHOM Bar.app/Contents/MacOS/FATHOM Bar</string>
     <key>RunAtLoad</key>
     <true/>
 </dict>

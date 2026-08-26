@@ -36,7 +36,24 @@ targets:
     dependencies:
       - package: FathomCore
         product: FathomKit
+      # With no `copy:` block XcodeGen renders this as a Copy Bundle Resources
+      # entry, which put the helper at Contents/Resources/FATHOM Bar.app.
+      # codesign treats anything under Resources as data: measured on a
+      # two-level bundle whose inner .app had its signature removed outright,
+      # `codesign --verify --deep --strict --verbose=4` on the outer app still
+      # reported "valid on disk / satisfies its Designated Requirement" and
+      # exited 0. Contents/Library/LoginItems is the documented home for a
+      # ServiceManagement-managed helper app and is a location codesign and
+      # Gatekeeper both recognise as nested code.
+      #
+      # The LaunchAgent plist does NOT move with it. It stays at
+      # Contents/Library/LaunchAgents, where SMAppService.agent(plistName:)
+      # looks for it — see the postBuildScript below. Only the BundleProgram
+      # string inside that plist points at the new location.
       - target: FathomBar
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/LoginItems
     preBuildScripts:
       # The asset-catalog artwork is stored in Git LFS. An unresolved pointer is
       # a readable file, so actool compiles it without complaint and the app
