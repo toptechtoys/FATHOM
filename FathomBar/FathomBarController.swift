@@ -2,6 +2,14 @@ import AppKit
 import Dispatch
 import FathomKit
 
+/// AppKit plumbing only.
+///
+/// Everything this used to decide for itself — what a failed read renders as,
+/// how long a reading may be reused, which memory pressure bit wins, whether a
+/// self-measurement may be published and what the menu says about it — now
+/// lives in FathomKit, where a test can reach it. This target has no test
+/// scheme (`project.yml` declares `testTargets: []` for both), so anything
+/// making a claim from in here is a claim nothing checks.
 @MainActor
 final class FathomBarController: NSObject {
     private let statusItem = NSStatusBar.system.statusItem(
@@ -14,13 +22,22 @@ final class FathomBarController: NSObject {
     private var observers: [NSObjectProtocol] = []
     private var sleeping = false
     private var pressureSource: DispatchSourceMemoryPressure?
-    private var pressureLabel: String?
+    private var pressure: FathomBarMemoryPressure?
     private var latestPresentation: FathomBarPresentation?
+    private var idleCostItem: NSMenuItem?
+    /// The item count the menu bar was drawing when the interval being
+    /// measured began. A cost measured across a configuration change belongs to
+    /// neither count, and `MeasuredIdleCost.publication` withholds it.
+    private var itemCountAtPreviousSample: Int?
 
     override init() {
         super.init()
         statusItem.autosaveName = "com.exhibinaut.fathom.bar"
-        statusItem.button?.title = "FATHOM —"
+        // The not-yet-sampled title is the same not-published state every other
+        // reading has, so it is spelled once, in FathomKit, beside the label
+        // that explains it. That label is not applied until the first draw —
+        // see the note in the handoff; the UI owner has the accessibility pass.
+        statusItem.button?.title = FathomBarPresentation.notYetSampled.title
         statusItem.button?.font = .monospacedDigitSystemFont(
             ofSize: NSFont.systemFontSize,
             weight: .medium
@@ -36,7 +53,13 @@ final class FathomBarController: NSObject {
         let menu = NSMenu()
         menu.addItem(withTitle: "Values are traceable in FATHOM", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Idle cost: not published", action: nil, keyEquivalent: "")
+        let cost = NSMenuItem(
+            title: MeasuredIdleCost.menuTitle(for: MeasuredIdleCost.load()),
+            action: nil,
+            keyEquivalent: ""
+        )
+        menu.addItem(cost)
+        idleCostItem = cost
         menu.addItem(.separator())
         let quit = NSMenuItem(
             title: "Quit FATHOM Bar",
@@ -110,11 +133,13 @@ final class FathomBarController: NSObject {
                 let presentation = await sampler.sample()
                 latestPresentation = presentation
                 updateButton()
-                await publishOwnCost()
+                await publishOwnCost(itemCount: presentation.itemCount)
                 do {
                     try await Task.sleep(
-                        for: .seconds(5),
-                        tolerance: .milliseconds(500)
+                        for: .seconds(FathomBarSamplingPlan.intervalSeconds),
+                        tolerance: .seconds(
+                            FathomBarSamplingPlan.toleranceSeconds
+                        )
                     )
                 } catch {
                     return
@@ -128,21 +153,27 @@ final class FathomBarController: NSObject {
     /// The measurement is taken across the same interval the widget actually
     /// runs on, so it includes the sample, the button update and the sleep —
     /// which is the figure a user cares about, not the cost of the read alone.
-    private func publishOwnCost() async {
-        guard case let .known(percent, _) = await idleSampler.sample() else {
-            return
-        }
-        let defaults = UserDefaults(
-            suiteName: FathomBarConfiguration.suiteName
-        ) ?? .standard
-        defaults.set(percent, forKey: FathomBarConfiguration.measuredIdleCPUKey)
-        defaults.set(
-            Date().timeIntervalSinceReferenceDate,
-            forKey: FathomBarConfiguration.measuredIdleAtKey
+    ///
+    /// The count that travels with it is the count of what was drawn, not the
+    /// count `FathomBarConfiguration.load()` answers at this instant: those are
+    /// the same number until the user changes the configuration, and on that
+    /// tick they are the two ends of the interval being reported.
+    private func publishOwnCost(itemCount: Int) async {
+        let measurement = await idleSampler.sample()
+        let publication = MeasuredIdleCost.publication(
+            cost: measurement,
+            itemCountAtStartOfInterval: itemCountAtPreviousSample ?? itemCount,
+            itemCountNow: itemCount,
+            now: Date()
         )
-        defaults.set(
-            FathomBarConfiguration.load().enabledItemCount,
-            forKey: FathomBarConfiguration.measuredIdleItemCountKey
+        itemCountAtPreviousSample = itemCount
+        guard case let .published(cost) = publication else { return }
+        cost.write(
+            to: UserDefaults(suiteName: FathomBarConfiguration.suiteName)
+                ?? .standard
+        )
+        idleCostItem?.title = MeasuredIdleCost.menuTitle(
+            for: MeasuredIdleCost.load()
         )
     }
 
@@ -153,13 +184,7 @@ final class FathomBarController: NSObject {
         )
         source.setEventHandler { [weak self, weak source] in
             guard let self, let event = source?.data else { return }
-            if event.contains(.critical) {
-                pressureLabel = "MEMORY CRITICAL"
-            } else if event.contains(.warning) {
-                pressureLabel = "MEMORY WARNING"
-            } else {
-                pressureLabel = nil
-            }
+            pressure = FathomBarMemoryPressure.from(events: event)
             updateButton()
         }
         source.resume()
@@ -168,12 +193,11 @@ final class FathomBarController: NSObject {
 
     private func updateButton() {
         guard let button = statusItem.button else { return }
-        let title = latestPresentation?.title ?? "FATHOM —"
-        let accessibility = latestPresentation?.accessibilityLabel
-            ?? "FATHOM measurements not yet published"
-        guard let pressureLabel else {
+        let content = (latestPresentation ?? .notYetSampled)
+            .buttonContent(pressure: pressure)
+        guard let pressureLine = content.pressureLine else {
             button.attributedTitle = NSAttributedString(
-                string: title,
+                string: content.title,
                 attributes: [
                     .font: NSFont.monospacedDigitSystemFont(
                         ofSize: NSFont.systemFontSize,
@@ -181,7 +205,7 @@ final class FathomBarController: NSObject {
                     )
                 ]
             )
-            button.setAccessibilityLabel(accessibility)
+            button.setAccessibilityLabel(content.accessibilityLabel)
             return
         }
         let paragraph = NSMutableParagraphStyle()
@@ -189,7 +213,7 @@ final class FathomBarController: NSObject {
         paragraph.minimumLineHeight = 8
         paragraph.maximumLineHeight = 9
         let attributed = NSMutableAttributedString(
-            string: title + "\n",
+            string: content.title + "\n",
             attributes: [
                 .font: NSFont.monospacedDigitSystemFont(
                     ofSize: 8.5,
@@ -200,7 +224,7 @@ final class FathomBarController: NSObject {
         )
         attributed.append(
             NSAttributedString(
-                string: pressureLabel,
+                string: pressureLine,
                 attributes: [
                     .font: NSFont.systemFont(ofSize: 7, weight: .bold),
                     .foregroundColor: NSColor.labelColor,
@@ -209,8 +233,6 @@ final class FathomBarController: NSObject {
             )
         )
         button.attributedTitle = attributed
-        button.setAccessibilityLabel(
-            accessibility + ", " + pressureLabel.lowercased()
-        )
+        button.setAccessibilityLabel(content.accessibilityLabel)
     }
 }

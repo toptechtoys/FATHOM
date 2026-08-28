@@ -69,7 +69,6 @@
 		C35495DA37820DECDB6566FC /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */; };
 		C61771E8EBF6B54B20C3DF38 /* FathomCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C8BD3CEA7ED45EEDB0211B /* FathomCharts.swift */; };
 		CCBD91DF100B410904841964 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4369E61F30EA5E22B5A40FD2 /* OnboardingView.swift */; };
-		D1E3B8F76C6F117645E1DE04 /* FathomBarSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C5696753C976CE6ED50826 /* FathomBarSampler.swift */; };
 		D29E9019C325B8C87B0887B8 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A927F52F7D48D2D39328DA48 /* AttributionView.swift */; };
 		E08DA37B5FA5E29C9591113A /* WeeklyDigestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8576B6B198461A3F8D5E0B75 /* WeeklyDigestView.swift */; };
 		E27B078D696D1F69D7B39DCB /* GPUView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F927B51C8F9363546595F4 /* GPUView.swift */; };
@@ -129,7 +128,6 @@
 		4F5A1184E63B9E35E804089D /* FathomWorldBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomWorldBackground.swift; sourceTree = "<group>"; };
 		4FFC315CB778A9764E017C2E /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
 		5103585890A75C9E65679720 /* FathomAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomAction.swift; sourceTree = "<group>"; };
-		51C5696753C976CE6ED50826 /* FathomBarSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomBarSampler.swift; sourceTree = "<group>"; };
 		52EED15A282F01428377BDB5 /* ConsequenceAlertScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsequenceAlertScheduler.swift; sourceTree = "<group>"; };
 		539B24AFD3D55C78D146787E /* SensorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorsView.swift; sourceTree = "<group>"; };
 		545DAABC5837C80A39A8A968 /* FathomRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FathomRootView.swift; sourceTree = "<group>"; };
@@ -394,7 +392,6 @@
 			children = (
 				EC84EF52CDA7D3DCC028872A /* FathomBarApp.swift */,
 				F516517F811E44D1E159AAE6 /* FathomBarController.swift */,
-				51C5696753C976CE6ED50826 /* FathomBarSampler.swift */,
 			);
 			path = FathomBar;
 			sourceTree = "<group>";
@@ -671,7 +668,6 @@
 			files = (
 				8EB854C3F6F93AC56FF3E7B8 /* FathomBarApp.swift in Sources */,
 				E9ADB1FFDF48D30FFC3BBD89 /* FathomBarController.swift in Sources */,
-				D1E3B8F76C6F117645E1DE04 /* FathomBarSampler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
