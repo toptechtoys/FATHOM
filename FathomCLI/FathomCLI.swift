@@ -1,3 +1,5 @@
+import CFathomHardware
+import CryptoKit
 import Darwin
 import Foundation
 import FathomKit
@@ -70,6 +72,22 @@ struct FathomCommand {
             try recipe(arguments: Array(arguments.dropFirst()))
         case "dump-channels":
             dumpChannels()
+        case "capture-fixtures":
+            guard arguments.count >= 2 else {
+                throw CLIError.missingPath(command: command)
+            }
+            let options = Array(arguments.dropFirst(2))
+            guard options.allSatisfy({
+                $0 == "--include-unparsed-smc-bytes"
+            }) else {
+                throw CLIError.invalidOptions(command: command)
+            }
+            try await captureFixtures(
+                destinationPath: arguments[1],
+                includeUnparsedSMCBytes: options.contains(
+                    "--include-unparsed-smc-bytes"
+                )
+            )
         case "help", "--help", "-h":
             printUsage()
         default:
@@ -468,6 +486,522 @@ struct FathomCommand {
             : "paths: redacted with stable SHA-256 tokens")
     }
 
+    // MARK: - capture-fixtures
+    //
+    // RELEASE-GATES.md gate 2 is the only one-shot gate in the project: the
+    // reference Mac mini session is the single moment anyone can record what
+    // its hardware actually returns. Until this command existed no layer of
+    // FATHOM could hand anyone a payload — `NVMeSMARTReader.read()` throws away
+    // 495 of the log page's 512 bytes, `SMCReader.readNumericKey` decodes to a
+    // Double and drops the wire bytes, and both IOReport plists and the IOHID
+    // plist were decoded and freed inside their readers without ever touching
+    // disk. `dump-channels` prints a derived TSV, not a payload.
+    //
+    // Exit codes, deliberately only two, and documented in `printUsage()`:
+    //
+    //   0  the capture ran and `capture-manifest.json` was written. A payload
+    //      this Mac does not publish is an *outcome*, not a failure
+    //      (RELEASE-GATES.md), so it does not change the status — the manifest
+    //      and the printed summary say how many gaps there were.
+    //   1  the capture could not run at all: the destination exists, the
+    //      directory could not be created, a file could not be written, or an
+    //      option was not understood. Thrown, and handled by `main()`.
+    //
+    // No third code. `scripts/reference-pass.sh` spends 3 on "missing
+    // prerequisite", and a status that means one thing to the script and
+    // another to the CLI is a status nobody can act on. A caller that wants to
+    // know whether anything was missed reads `summary.notPublished` out of the
+    // manifest, which is the same number this command prints on its last line.
+    private static func captureFixtures(
+        destinationPath: String,
+        includeUnparsedSMCBytes: Bool
+    ) async throws {
+        let destination = URL(fileURLWithPath: destinationPath)
+            .standardizedFileURL
+        guard !FileManager.default.fileExists(atPath: destination.path) else {
+            throw CLIError.destinationExists(destination.path)
+        }
+        try FileManager.default.createDirectory(
+            at: destination,
+            withIntermediateDirectories: false
+        )
+
+        var records: [CaptureRecord] = []
+
+        // The NVMe log page first: it is the payload with the narrowest window
+        // — it needs the read-only IONVMeSMART user client, which is the thing
+        // most likely to be denied — and the one gate 2 names first.
+        records.append(
+            try write(
+                outcome: outcome(of: NVMeSMARTReader().readRawLogPage()),
+                named: "nvme-smart-log-page.bin",
+                in: destination,
+                note: "NVMe SMART / Health Information log page 0x02, \(FATHOM_NVME_SMART_LOG_PAGE_LENGTH) bytes, exactly as the controller returned it. Log page 0x02 is counters; the controller serial number lives in Identify Controller, which FATHOM never reads."
+            )
+        )
+
+        records.append(
+            try write(
+                outcome: encoded(SMCReader().readKeyInventory()),
+                named: "smc-key-inventory.json",
+                in: destination,
+                note: "Every four-character key AppleSMC enumerated on this Mac, in the order it enumerated them."
+            )
+        )
+
+        let smc = captureSMCValues(
+            includeUnparsedBytes: includeUnparsedSMCBytes
+        )
+        records.append(
+            try write(
+                outcome: smc.outcome,
+                named: "smc-key-values.json",
+                in: destination,
+                note: smc.note
+            )
+        )
+
+        records.append(
+            try write(
+                outcome: outcome(
+                    of: IOReportReader().channelInventoryPayload()
+                ),
+                named: "ioreport-channel-inventory.plist",
+                in: destination,
+                note: "The binary property list the C bridge builds from libIOReport's channel enumeration. It is raw down to the bridge's own flattening (Sources/CFathomHardware/FathomHardware.c), not down to libIOReport's dictionaries — a fixture of it tests the Swift decoder against real values and says nothing about the flattening."
+            )
+        )
+
+        let ioReport = captureIOReport(sampleSeconds: ioReportSampleSeconds)
+        records.append(
+            try write(
+                outcome: ioReport.subscribedChannels,
+                named: "ioreport-subscribed-channels.plist",
+                in: destination,
+                note: "The channel set IOReportCreateSubscription actually granted this process, which is what records the channels this Mac agreed to publish. Requested groups: \(ioReportRequestedGroups.joined(separator: ", "))."
+            )
+        )
+        records.append(
+            try write(
+                outcome: ioReport.delta,
+                named: "ioreport-delta-sample.plist",
+                in: destination,
+                note: "A delta over \(String(format: "%.3f", ioReport.elapsedSeconds)) seconds. The interval travels with the payload in this manifest because IOReportSampler.watts() divides by it — a delta fixture without its interval cannot be replayed, only guessed at."
+            )
+        )
+
+        records.append(
+            try write(
+                outcome: captureIOHIDTemperatures(),
+                named: "iohid-temperature-sensors.plist",
+                in: destination,
+                note: "IOHIDEventSystem temperature events (usage page 0xff00, usage 5, event type 15), serialized by the C bridge."
+            )
+        )
+
+        let manifest = CaptureManifest(
+            capturedAt: Date().formatted(.iso8601),
+            commit: ProcessInfo.processInfo
+                .environment["FATHOM_REFERENCE_COMMIT"] ?? "not published — FATHOM_REFERENCE_COMMIT was not set",
+            destinationToken: DiagnosticsRedactor.pathToken(destination.path),
+            machine: captureMachineIdentity(),
+            ioReportRequestedGroups: ioReportRequestedGroups,
+            ioReportSampleElapsedSeconds: ioReport.elapsedSeconds,
+            nvmeLogPageLength: Int(FATHOM_NVME_SMART_LOG_PAGE_LENGTH),
+            smcByteHandling: smc.byteHandling,
+            payloads: records,
+            summary: CaptureSummary(
+                captured: records.filter { $0.state == "captured" }.count,
+                notPublished: records.filter {
+                    $0.state == "not published"
+                }.count,
+                notAttributable: records.filter {
+                    $0.state == "not attributable"
+                }.count
+            )
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try encoder.encode(manifest).write(
+            to: destination.appending(path: "capture-manifest.json"),
+            options: .atomic
+        )
+
+        print("capture-fixtures: \(destination.path)")
+        print(
+            "capture-fixtures: \(manifest.summary.captured) captured, \(manifest.summary.notPublished) not published, \(manifest.summary.notAttributable) not attributable"
+        )
+    }
+
+    /// The interval the IOReport delta is taken over.
+    ///
+    /// One second rather than `IOReportSampler`'s 200 ms default: the energy
+    /// counters are integers, and over 200 ms the small channels can move by
+    /// single digits or not at all, which produces a fixture whose watts
+    /// conversion is dominated by quantisation rather than by the hardware.
+    private static let ioReportSampleSeconds = 1.0
+
+    /// The five groups `fathom_ioreport_sampler_create` subscribes to
+    /// (Sources/CFathomHardware/FathomHardware.c). Recorded beside the
+    /// subscription payload because the payload says what was *granted* and
+    /// only this says what was *asked for*; the difference is the measurement.
+    private static let ioReportRequestedGroups = [
+        "Energy Model",
+        "CPU Stats",
+        "GPU Stats",
+        "AMC Stats",
+        "NVMe"
+    ]
+
+    /// What a capture attempt produced.
+    ///
+    /// One case per `Measurement` state and no fourth. A payload this Mac will
+    /// not publish is written as a reason file and never as an empty or
+    /// substituted fixture: an invented fixture is worse than no fixture,
+    /// because it passes and certifies nothing.
+    private enum CaptureOutcome {
+        case captured(Data, source: String)
+        case notPublished(reason: String)
+        case notAttributable(description: String)
+    }
+
+    private static func outcome(
+        of measurement: FathomKit.Measurement<Data>
+    ) -> CaptureOutcome {
+        switch measurement {
+        case let .known(data, source):
+            return .captured(data, source: source.rawValue)
+        case let .notPublished(reason):
+            return .notPublished(reason: reason)
+        case let .notAttributable(measured, explained):
+            return .notAttributable(
+                description: "measured \(measured.count) bytes, explained \(explained.count) bytes"
+            )
+        }
+    }
+
+    private static func encoded<T: Encodable>(
+        _ measurement: FathomKit.Measurement<T>
+    ) -> CaptureOutcome {
+        switch measurement {
+        case let .known(value, source):
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                return .captured(
+                    try encoder.encode(value),
+                    source: source.rawValue
+                )
+            } catch {
+                return .notPublished(
+                    reason: "the reading could not be encoded: \(error)"
+                )
+            }
+        case let .notPublished(reason):
+            return .notPublished(reason: reason)
+        case .notAttributable:
+            return .notAttributable(
+                description: "the reading is not attributable"
+            )
+        }
+    }
+
+    /// Writes one payload, or the reason there is not one, and returns the row
+    /// the manifest records it under.
+    private static func write(
+        outcome: CaptureOutcome,
+        named name: String,
+        in directory: URL,
+        note: String
+    ) throws -> CaptureRecord {
+        switch outcome {
+        case let .captured(data, source):
+            try data.write(
+                to: directory.appending(path: name),
+                options: .atomic
+            )
+            let digest = SHA256.hash(data: data).map {
+                String(format: "%02x", $0)
+            }.joined()
+            print("captured \(name): \(data.count) bytes")
+            return CaptureRecord(
+                name: name,
+                state: "captured",
+                source: source,
+                reason: nil,
+                byteCount: data.count,
+                sha256: digest,
+                note: note
+            )
+        case let .notPublished(reason):
+            try Data((reason + "\n").utf8).write(
+                to: directory.appending(path: "\(name).notpublished.txt"),
+                options: .atomic
+            )
+            print("not published \(name): \(reason)")
+            return CaptureRecord(
+                name: name,
+                state: "not published",
+                source: nil,
+                reason: reason,
+                byteCount: nil,
+                sha256: nil,
+                note: note
+            )
+        case let .notAttributable(description):
+            try Data((description + "\n").utf8).write(
+                to: directory.appending(path: "\(name).notattributable.txt"),
+                options: .atomic
+            )
+            print("not attributable \(name): \(description)")
+            return CaptureRecord(
+                name: name,
+                state: "not attributable",
+                source: nil,
+                reason: description,
+                byteCount: nil,
+                sha256: nil,
+                note: note
+            )
+        }
+    }
+
+    /// The nine four-character type codes `fathom_smc_decode_numeric`
+    /// understands. Everything else is free-form: AppleSMC publishes character
+    /// arrays and vendor-defined structures whose contents this project has
+    /// never enumerated on a reference machine.
+    private static let decodableSMCTypes: Set<String> = [
+        "ui8 ", "ui16", "ui32",
+        "si8 ", "si16", "si32",
+        "sp78", "fpe2", "flt "
+    ]
+
+    /// Reads every enumerated SMC key's wire bytes for the fixture.
+    ///
+    /// **These fixtures are committed to a public repository, so the default
+    /// withholds any value the shipping decoder cannot read.** The nine types
+    /// above are fixed-width numbers and cannot carry a serial; the rest are
+    /// undocumented byte runs, and AppleSMC is known to publish character-array
+    /// keys. Withholding by default costs the fixture nothing — the replay test
+    /// drives `SMCReader.decodeNumeric`, which refuses every other type anyway
+    /// — and publishing by default would stake a machine's identity on nobody
+    /// having enumerated the key space first. The key, its declared type and
+    /// its declared size are always recorded, so what was withheld is visible
+    /// rather than absent. `--include-unparsed-smc-bytes` opts out, for a
+    /// capture that is not going to be committed.
+    private static func captureSMCValues(
+        includeUnparsedBytes: Bool
+    ) -> (outcome: CaptureOutcome, note: String, byteHandling: String) {
+        let handling = includeUnparsedBytes
+            ? "every enumerated key's bytes, including types the shipping decoder cannot read — --include-unparsed-smc-bytes was given"
+            : "bytes recorded only for the types fathom_smc_decode_numeric reads; every other key keeps its name, type and size and withholds its bytes"
+        // Per-key progress on stderr, not stdout: individual SMC keys are known
+        // to stall, `fathom_smc_read_key` opens and closes a fresh AppleSMC
+        // connection per key, and a silent hang at key 37 of 1,200 is
+        // indistinguishable from a slow machine. stderr so the captured stdout
+        // log stays the record of what was captured.
+        let inventory = SMCReader().readRawInventory { read, total, key in
+            FileHandle.standardError.write(
+                Data("smc key \(read + 1)/\(total): \(key)\n".utf8)
+            )
+        }
+        switch inventory {
+        case let .known(raw, source):
+            var values: [CapturedSMCValue] = []
+            var withheld = 0
+            for value in raw.values {
+                let readable = decodableSMCTypes.contains(value.dataType)
+                if includeUnparsedBytes || readable {
+                    values.append(
+                        CapturedSMCValue(
+                            key: value.key,
+                            dataType: value.dataType,
+                            dataSize: value.dataSize,
+                            bytes: value.bytes.base64EncodedString(),
+                            withheld: nil
+                        )
+                    )
+                } else {
+                    withheld += 1
+                    values.append(
+                        CapturedSMCValue(
+                            key: value.key,
+                            dataType: value.dataType,
+                            dataSize: value.dataSize,
+                            bytes: nil,
+                            withheld: "type \(value.dataType) is not one the shipping decoder reads; bytes withheld from a fixture bound for a public repository"
+                        )
+                    )
+                }
+            }
+            let file = CapturedSMCInventory(
+                byteHandling: handling,
+                values: values.sorted { $0.key < $1.key },
+                refusedKeys: raw.refusedKeys.sorted { $0.key < $1.key },
+                readKeyCount: values.count,
+                withheldByteCount: withheld,
+                refusedKeyCount: raw.refusedKeys.count
+            )
+            let note = "\(values.count) keys read, \(withheld) with bytes withheld, \(raw.refusedKeys.count) refused by AppleSMC. A refused key is kept with its IOReturn rather than dropped: gate 2 asks what this Mac will not publish, and a shorter list with no explanation answers a different question."
+            return (
+                encoded(FathomKit.Measurement.known(file, source: source)),
+                note,
+                handling
+            )
+        case let .notPublished(reason):
+            return (
+                .notPublished(reason: reason),
+                "AppleSMC published no readable key inventory, so no key values could be read.",
+                handling
+            )
+        case .notAttributable:
+            return (
+                .notAttributable(
+                    description: "the AppleSMC key inventory is not attributable"
+                ),
+                "The AppleSMC key inventory is not attributable, so the values below it cannot be either.",
+                handling
+            )
+        }
+    }
+
+    /// Captures the IOReport subscription and one delta from a single sampler.
+    ///
+    /// This drives the C entry points directly rather than `IOReportSampler`,
+    /// because the actor exposes neither its handle nor its payloads — the
+    /// subscription copy has had zero Swift callers since it was written. The
+    /// bytes are produced by the same `fathom_ioreport_sampler_*` functions the
+    /// shipping reader uses, so the fixture is the same payload; what this path
+    /// does not share is the actor's decode, which is precisely the code the
+    /// fixture exists to test. Worth moving into `IOReportSampler` when that
+    /// file is next open.
+    private static func captureIOReport(
+        sampleSeconds: Double
+    ) -> (
+        subscribedChannels: CaptureOutcome,
+        delta: CaptureOutcome,
+        elapsedSeconds: Double
+    ) {
+        var sampler: fathom_ioreport_sampler?
+        var errorCode: Int32 = 0
+        guard fathom_ioreport_sampler_create(
+            &sampler,
+            &errorCode
+        ) == 0, let sampler else {
+            let reason = "IOReport would not open a subscription (bridge error \(errorCode))"
+            return (
+                .notPublished(reason: reason),
+                .notPublished(reason: reason),
+                0
+            )
+        }
+        defer { fathom_ioreport_sampler_destroy(sampler) }
+
+        // The three `source` strings below name the API the bytes came from,
+        // the way `DataSource` does for a rendered value. Two of them are
+        // `DataSource` raw values; the subscription has no case because nothing
+        // renders it, so it is named after the call that produces it.
+        let subscribed = copyIOReportPayload(
+            source: "libIOReport.IOReportCreateSubscription",
+            failureReason: { "IOReport did not publish its granted channel set (bridge error \($0))" }
+        ) { bytes, length, code in
+            fathom_ioreport_sampler_copy_subscribed_channels(
+                sampler,
+                bytes,
+                length,
+                code
+            )
+        }
+
+        guard fathom_ioreport_sampler_prime(sampler, &errorCode) == 0 else {
+            return (
+                subscribed,
+                .notPublished(
+                    reason: "IOReport would not take a baseline sample (bridge error \(errorCode))"
+                ),
+                0
+            )
+        }
+        let clock = ContinuousClock()
+        let start = clock.now
+        // A blocking sleep rather than `Task.sleep`: this is the only work in
+        // flight, and the elapsed figure recorded beside the payload has to be
+        // the interval the counters actually spanned.
+        Thread.sleep(forTimeInterval: sampleSeconds)
+        let delta = copyIOReportPayload(
+            source: DataSource.ioReportSampleDelta.rawValue,
+            failureReason: { "IOReport did not publish a delta (bridge error \($0))" }
+        ) { bytes, length, code in
+            fathom_ioreport_sampler_copy_delta(sampler, bytes, length, code)
+        }
+        let components = start.duration(to: clock.now).components
+        let elapsed = Double(components.seconds) +
+            Double(components.attoseconds) / 1e18
+        return (subscribed, delta, elapsed)
+    }
+
+    private static func captureIOHIDTemperatures() -> CaptureOutcome {
+        copyIOReportPayload(
+            source: DataSource.ioHIDTemperatureEvent.rawValue,
+            failureReason: { "IOHIDEventSystem published no temperature events (bridge error \($0))" }
+        ) { bytes, length, code in
+            fathom_iohid_copy_temperature_sensors(bytes, length, code)
+        }
+    }
+
+    /// Shared shape for the three bridge calls that hand back a malloc'd
+    /// property list: call, guard the range, copy, free.
+    private static func copyIOReportPayload(
+        source: String,
+        failureReason: (Int32) -> String,
+        copy: (
+            UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>,
+            UnsafeMutablePointer<UInt64>,
+            UnsafeMutablePointer<Int32>
+        ) -> Int32
+    ) -> CaptureOutcome {
+        var bytes: UnsafeMutablePointer<UInt8>?
+        var length: UInt64 = 0
+        var errorCode: Int32 = 0
+        guard copy(&bytes, &length, &errorCode) == 0, let bytes else {
+            return .notPublished(reason: failureReason(errorCode))
+        }
+        defer { fathom_hardware_free(bytes) }
+        guard length <= UInt64(Int.max) else {
+            return .notPublished(
+                reason: "the payload exceeds the process range"
+            )
+        }
+        return .captured(
+            Data(bytes: bytes, count: Int(length)),
+            source: source
+        )
+    }
+
+    /// Which Mac this is. Every figure in gate 2 is a figure about one machine,
+    /// and a fixture with no machine beside it is a fixture nobody can check.
+    private static func captureMachineIdentity() -> CaptureMachineIdentity {
+        var name = utsname()
+        let architecture = uname(&name) == 0
+            ? withUnsafeBytes(of: &name.machine) { raw in
+                String(
+                    decoding: raw.prefix { $0 != 0 }.map { UInt8($0) },
+                    as: UTF8.self
+                )
+            }
+            : "not published"
+        return CaptureMachineIdentity(
+            hardwareModel: sysctlString("hw.model"),
+            chipBrand: sysctlString("machdep.cpu.brand_string"),
+            architecture: architecture,
+            appleSilicon: sysctlFlag("hw.optional.arm64"),
+            rosettaTranslated: sysctlFlag("sysctl.proc_translated"),
+            kernelOSVersion: sysctlString("kern.osversion"),
+            operatingSystemVersion: ProcessInfo.processInfo
+                .operatingSystemVersionString
+        )
+    }
+
     private static func recipe(arguments: [String]) throws {
         guard arguments.first == "test", arguments.count >= 2 else {
             throw CLIError.invalidRecipeCommand
@@ -737,6 +1271,22 @@ struct FathomCommand {
         return String(decoding: utf8, as: UTF8.self)
     }
 
+    /// A sysctl that answers yes, no, or nothing at all.
+    ///
+    /// The third case is the common one and the reason this is not a `Bool`:
+    /// `hw.optional.arm64` and `sysctl.proc_translated` are unknown OIDs on an
+    /// Intel Mac, and reading an absent OID as `false` would report a
+    /// non-translated Intel host and an Apple silicon host that Rosetta is not
+    /// translating with the same word.
+    private static func sysctlFlag(_ name: String) -> String {
+        var value: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        guard sysctlbyname(name, &value, &size, nil, 0) == 0 else {
+            return "not published"
+        }
+        return value != 0 ? "yes" : "no"
+    }
+
     private static func printUsage() {
         print(
             """
@@ -747,7 +1297,31 @@ struct FathomCommand {
               fathom doctor
               fathom dump-channels
               fathom export-diagnostics <destination> [--include-paths]
+              fathom capture-fixtures <destination> [--include-unparsed-smc-bytes]
               fathom recipe test <recipe-or-catalog.json> [--home <fixture-root>]
+
+            capture-fixtures records the raw hardware payloads RELEASE-GATES.md
+            gate 2 asks for — the NVMe SMART log page, the SMC key inventory and
+            values, the IOReport subscription and one delta, and the IOHID
+            temperature events — beside capture-manifest.json, which names this
+            machine and states what was captured and what this Mac does not
+            publish. A payload that is not published is written as a
+            <name>.notpublished.txt reason file; it is never written as an empty
+            or substituted fixture.
+
+            SMC bytes are withheld by default for any key whose declared type
+            the shipping decoder cannot read, because these fixtures are
+            committed to a public repository. The key, its type and its size are
+            still recorded. --include-unparsed-smc-bytes opts out.
+
+            Exit codes:
+              0  every subcommand that ran to completion, capture-fixtures
+                 included. A not-published payload is an outcome, not a failure:
+                 read summary.notPublished out of capture-manifest.json, which
+                 is the number printed on the last line.
+              1  the command could not run — an unknown command, an option that
+                 was not understood, a destination that already exists, or a
+                 read or write that failed.
             """
         )
     }
@@ -783,4 +1357,111 @@ private enum CLIError: Error, CustomStringConvertible {
             return "reference gate failed: \(reason)"
         }
     }
+}
+
+// MARK: - capture-fixtures manifest
+//
+// The manifest is the part of the capture that survives being read a year
+// later. It records the machine, what was captured, and — with equal weight —
+// what this Mac did not publish and the reason it gave. Nothing is omitted for
+// being absent: an omitted row and an unattempted row look identical, and gate
+// 2 is the one gate nobody gets to run twice.
+
+private struct CaptureRecord: Encodable {
+    let name: String
+    /// `captured`, `not published`, or `not attributable` — one per
+    /// `Measurement` state, never collapsed into a boolean.
+    let state: String
+    let source: String?
+    let reason: String?
+    let byteCount: Int?
+    let sha256: String?
+    let note: String
+
+    private enum CodingKeys: String, CodingKey {
+        case name, state, source, reason, byteCount, sha256, note
+    }
+
+    // Written out rather than synthesized because the synthesized encoder uses
+    // `encodeIfPresent` and drops a nil field entirely. In a record whose whole
+    // job is to distinguish "captured" from "this Mac does not publish it",
+    // a missing `reason` key and a `reason` of null read the same to anyone
+    // grepping the manifest, and only one of them is true.
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(state, forKey: .state)
+        try container.encode(source, forKey: .source)
+        try container.encode(reason, forKey: .reason)
+        try container.encode(byteCount, forKey: .byteCount)
+        try container.encode(sha256, forKey: .sha256)
+        try container.encode(note, forKey: .note)
+    }
+}
+
+private struct CaptureSummary: Encodable {
+    let captured: Int
+    let notPublished: Int
+    let notAttributable: Int
+}
+
+private struct CaptureMachineIdentity: Encodable {
+    let hardwareModel: String
+    let chipBrand: String
+    let architecture: String
+    /// `yes`, `no` or `not published` — see `sysctlFlag`.
+    let appleSilicon: String
+    let rosettaTranslated: String
+    let kernelOSVersion: String
+    let operatingSystemVersion: String
+}
+
+private struct CaptureManifest: Encodable {
+    let capturedAt: String
+    let commit: String
+    /// The destination as a stable SHA-256 token rather than a path. The
+    /// manifest is committed; a path under someone's home directory carries
+    /// their account name, and `export-diagnostics` already hashes paths by
+    /// default for exactly this reason.
+    let destinationToken: String
+    let machine: CaptureMachineIdentity
+    let ioReportRequestedGroups: [String]
+    let ioReportSampleElapsedSeconds: Double
+    let nvmeLogPageLength: Int
+    let smcByteHandling: String
+    let payloads: [CaptureRecord]
+    let summary: CaptureSummary
+}
+
+private struct CapturedSMCValue: Encodable {
+    let key: String
+    let dataType: String
+    let dataSize: UInt32
+    /// Base64, or null when the bytes were withheld. Withheld is not the same
+    /// as absent, so `withheld` carries the reason and both keys are always
+    /// written — see `CaptureRecord.encode(to:)`.
+    let bytes: String?
+    let withheld: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case key, dataType, dataSize, bytes, withheld
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(key, forKey: .key)
+        try container.encode(dataType, forKey: .dataType)
+        try container.encode(dataSize, forKey: .dataSize)
+        try container.encode(bytes, forKey: .bytes)
+        try container.encode(withheld, forKey: .withheld)
+    }
+}
+
+private struct CapturedSMCInventory: Encodable {
+    let byteHandling: String
+    let values: [CapturedSMCValue]
+    let refusedKeys: [SMCRefusedKey]
+    let readKeyCount: Int
+    let withheldByteCount: Int
+    let refusedKeyCount: Int
 }
