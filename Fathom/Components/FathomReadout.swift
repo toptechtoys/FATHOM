@@ -3,22 +3,17 @@ import SwiftUI
 
 /// The row of readouts at the top of every section.
 ///
-/// `repeat(auto-fit, minmax(190pt, 1fr))` with the cells 1pt apart. The hairline
-/// between them is drawn by the cells, not behind them: each cell strokes its
-/// own boundary, and two adjacent strokes meet in the 1pt gap to make the line.
+/// `repeat(auto-fit, minmax(210pt, 1fr))` with the cells 10pt apart — the
+/// native-feel pass's `.rg`, and the cells are separated cards now rather than
+/// one continuous table sharing a 1pt hairline. Each card draws its whole own
+/// border; nothing shows through the gap, so the ragged last row that the
+/// hairline construction had to work around no longer arises.
 ///
-/// The obvious construction — a hairline-coloured background showing through
-/// the gap — breaks on the last row. When the cell count does not fill the row,
-/// the leftover track shows the background as a pale block beside the final
-/// cell. Rings leave it as plate. This is the same bug, and the same fix, as
-/// the prototype carries.
-///
-/// The 4pt below is the prototype's `margin-bottom`, and it is not decoration.
-/// The first panel opens with its own hairline; without the gap that hairline
-/// lands against the bottom row of cell strokes and the two read as one thick,
-/// slightly uneven line. It belongs to the grid rather than to twenty section
-/// views, for the same reason the labels do — written once beside the thing it
-/// describes, it cannot drift from it.
+/// The 4pt below is the prototype's `margin-bottom`, and it is not decoration:
+/// it keeps the first panel's own card edge from meeting the bottom of the
+/// readout cards as one thick, slightly uneven line. It belongs to the grid
+/// rather than to twenty section views, for the same reason the labels do —
+/// written once beside the thing it describes, it cannot drift from it.
 struct FathomReadoutGrid<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -45,7 +40,24 @@ struct FathomReadoutGrid<Content: View>: View {
 /// The arithmetic is `ReadoutRowLayout` in FathomKit, where it is tested.
 struct FathomReadoutRow: Layout {
     /// The prototype drew `minmax(190px, …)`; the native-feel pass widened it
-    /// with the type it has to hold.
+    /// to 210 for the larger type.
+    ///
+    /// **Deliberately not multiplied by `FathomType.scale`, unlike every other
+    /// container that holds scaled type.** Multiplying is what the arithmetic
+    /// wants and it costs more than it buys. At the default 1,200pt window the
+    /// content column is 930pt, so 210 + a 10pt gap gives four columns of a
+    /// 225pt cell — 185pt of content once the card's 20pt padding is taken off
+    /// each side. Anything from 230 up gives three, and twelve of the twenty
+    /// sections carry exactly four readouts, so widening moves one of them
+    /// onto a row of its own across most of the app. That is an owner
+    /// decision about composition, not a fix.
+    ///
+    /// What it costs, stated rather than hidden: a full byte string —
+    /// "494.38 GB" at fathomDisplay(34) × 1.45 = 49.3pt with tracking −1.02 —
+    /// measures 266.8pt, so `minimumScaleFactor` below squeezes it to 0.694
+    /// and it lands at 34.2pt, which is the size it rendered at before the
+    /// scale existed. The readout headline is the one place in the app where
+    /// ×1.45 currently buys nothing. 280 is the number that fixes it.
     var minimum: CGFloat = 210
     /// The prototype's `gap: 1px` made the cells one continuous table. The
     /// native-feel pass separates them into cards, so the gap is real space
@@ -147,9 +159,13 @@ struct FathomReadoutRow: Layout {
 /// One readout: a tracked label, a large value with an optional unit, and a
 /// note capped at 32 characters.
 ///
-/// No radius, no lift, no shadow. A readout is not a card. Hover deepens the
-/// cell rather than lightening it — on the plate a lighter hover walks the
-/// contrast back toward the field the plate exists to escape.
+/// A card, since the native-feel pass: radius 12, a top-lit gradient border
+/// and a soft shadow, all drawn below. The sentence that used to stand here —
+/// "no radius, no lift, no shadow, a readout is not a card" — described the
+/// construction this replaced and sat directly above the code that replaced
+/// it. Hover deepens the cell rather than lightening it: on the plate a
+/// lighter hover walks the contrast back toward the field the plate exists to
+/// escape.
 struct FathomReadout<Value: View>: View {
     let label: String
     var note: String?
@@ -165,6 +181,11 @@ struct FathomReadout<Value: View>: View {
                 .tracking(1.44)
                 .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
                 .padding(.bottom, 12)
+                // Uppercase is a display choice. `.combine` below would take
+                // the rendered string, and VoiceOver reads an all-caps word
+                // it does not recognise a letter at a time — "F, A, T, H, O,
+                // M, apostrophe, S". Spoken from the written casing instead.
+                .accessibilityLabel(label)
 
             value
 
@@ -225,6 +246,15 @@ struct FathomMeasurementReadout<Value: Sendable>: View {
                 Text("not published")
                     .font(.fathomDisplay(24))
                     .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
+                    // The same guard `valueText` carries, and for the same
+                    // reason. At fathomDisplay(24) × 1.45 = 34.8pt the phrase
+                    // measures 244.9pt against the 185pt a cell offers at the
+                    // default window, so without this it wraps onto two lines
+                    // — which is exactly the regression the comment at the
+                    // head of `FathomReadoutRow` records having ended once.
+                    // 185 / 244.9 = 0.755, comfortably above the 0.6 floor.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             case let .notAttributable(measured, _):
                 valueText(format(measured), unit: unit)
             }

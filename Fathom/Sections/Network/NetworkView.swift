@@ -59,7 +59,13 @@ struct NetworkView: View {
                 FathomPanel(label: "Throughput, last 60 seconds") {
                     FathomSparkline(
                         history: model.networkHistory,
-                        accessibilityValue: "Bytes received per second"
+                        accessibilityValue: "Bytes received per second",
+                        // Bytes per second is what `networkHistory` holds, so
+                        // that is what is spoken — formatted, not the raw
+                        // seven-digit count the shared numeric formatter gave.
+                        spokenFormat: {
+                            "\(ByteString.file(rounding: $0)) per second"
+                        }
                     )
                 }
 

@@ -19,20 +19,26 @@ struct FathomMenuBarPreview: View {
         HStack(spacing: 14) {
             ForEach(items) { item in
                 Text(item.text)
+                    // Not `.fathomSystem`. That helper multiplies by
+                    // FathomType.scale, which took this preview to 16.7pt
+                    // while the widget it is a picture of draws
+                    // NSFont.systemFontSize — a preview of a menu bar item
+                    // that does not exist. `fixedSize:` also opts out of
+                    // Dynamic Type, which is what the cap below asks for and
+                    // now states twice on purpose.
                     .font(
-                        .fathomSystem(
-                            11.5,
-                            weight: item.isEmphasised ? .semibold : .regular
-                        )
+                        .custom("Archivo", fixedSize: 11.5)
+                            .weight(item.isEmphasised ? .semibold : .regular)
                     )
                     .monospacedDigit()
             }
         }
         .padding(.horizontal, 12)
         // Deliberately not scaled, and deliberately capped. macOS gives the
-        // widget 22pt whatever the user's text size, so a preview that grew
-        // would misrepresent the one thing this panel exists to show. The cap
-        // keeps it truthful; the caption beside it says so.
+        // widget 22pt whatever the user's text size *and* whatever the app's
+        // own type scale, so a preview that grew would misrepresent the one
+        // thing this panel exists to show. The cap keeps it truthful; the
+        // caption beside it says so.
         .dynamicTypeSize(...DynamicTypeSize.large)
         .frame(height: 26)
         // Black on light, the one inverted text surface in the app. The
@@ -147,7 +153,14 @@ struct FathomTreemap: View {
     /// The map grows with the text. Tile areas are proportional to data, so a
     /// label cannot be allowed to grow its own tile — that would make the
     /// picture lie. Growing the whole map keeps every proportion intact.
-    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 230
+    ///
+    /// It takes `FathomType.scale` for the same reason, and this is the one
+    /// chart where not taking it clipped rather than crowded: the tiles are
+    /// hard-`.clipped()` below, and two `.lineLimit(1)` labels at 11.5 and 10
+    /// need 53.9pt of tile at ×1.45 against 43.4pt before, inside a map that
+    /// had not moved.
+    @ScaledMetric(relativeTo: .caption)
+    private var height: CGFloat = 230 * FathomType.scale
 
     struct Region: Identifiable {
         let id = UUID()

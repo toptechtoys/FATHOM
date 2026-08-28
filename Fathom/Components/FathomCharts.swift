@@ -13,12 +13,27 @@ import SwiftUI
 struct FathomSparkline: View {
     /// Grows with the text size. A reader who enlarged the type wants the
     /// chart bigger too, not a bigger caption over the same 52pt of line.
-    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 52
+    ///
+    /// The same argument settles `FathomType.scale`, and `@ScaledMetric` does
+    /// not cover it: it tracks the reader's Dynamic Type setting only, so
+    /// every chart in this file sat at its prototype height while the type
+    /// around it grew by 45%. The two multiply, which is intended — the
+    /// reader's setting and the app's scale both make the chart bigger.
+    @ScaledMetric(relativeTo: .caption)
+    private var height: CGFloat = 52 * FathomType.scale
     let history: SampleHistory<Double>
     /// The ceiling. `nil` scales to the window's own peak, for values like
     /// throughput that have no fixed maximum.
     var maximum: Double?
     var accessibilityValue: String
+    /// How one sample is spoken, unit and all.
+    ///
+    /// A sparkline draws no axis and carries no legend, so the unit exists
+    /// nowhere on screen except the panel's own title — and nowhere at all in
+    /// the spoken shape below, which used to read "Now 42, low 31, high 66".
+    /// On Network that was a raw seven-digit byte count. No default value: the
+    /// compiler is the only thing that can guarantee a caller states the unit.
+    let spokenFormat: (Double) -> String
 
     var body: some View {
         Group {
@@ -118,16 +133,27 @@ struct FathomSparkline: View {
         let high = values.max() ?? 0
         let latest = history.latest ?? 0
         let shape = "\(accessibilityValue) over the last minute. "
-            + "Now \(format(latest)), low \(format(low)), high \(format(high))."
+            + "Now \(spokenFormat(latest)), low \(spokenFormat(low)), "
+            + "high \(spokenFormat(high))."
         guard history.gapCount > 0 else { return shape }
         return shape + " \(history.gapCount) second"
             + (history.gapCount == 1 ? "" : "s")
             + " not published, drawn as gaps."
     }
+}
 
-    private func format(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(value < 10 ? 1 : 0)))
-    }
+/// A percentage, spoken with the word.
+///
+/// Written once beside the chart that needs it, for the same reason the labels
+/// live in the shared components: CPU, GPU and Memory all draw a sparkline of
+/// a percent-of-maximum, and three copies of this sentence would be three
+/// chances to say "42" where "42 percent" was meant. The precision matches
+/// what the chart's own figures use — one decimal below ten, none above.
+func percentSpoken(_ value: Double) -> String {
+    let number = value.formatted(
+        .number.precision(.fractionLength(value < 10 ? 1 : 0))
+    )
+    return "\(number) percent"
 }
 
 /// Load per core, one bar each.
@@ -140,7 +166,8 @@ struct FathomSparkline: View {
 /// backwards as the most common bug in Mac monitoring code, and it was in the
 /// prototype once.
 struct FathomCoreBars: View {
-    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 110
+    @ScaledMetric(relativeTo: .caption)
+    private var height: CGFloat = 110 * FathomType.scale
     let cores: FathomKit.Measurement<[CPUCoreLoad]>
     let performanceCount: FathomKit.Measurement<UInt64>
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -240,7 +267,8 @@ struct FathomSegmentBar: View {
         let color: Color
     }
 
-    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 34
+    @ScaledMetric(relativeTo: .caption)
+    private var height: CGFloat = 34 * FathomType.scale
     let segments: [Segment]
     /// The whole the segments are parts of. When the parts fall short, the
     /// difference is drawn and named rather than absorbed.
@@ -439,7 +467,8 @@ struct FathomDayColumns: View {
         }
     }
 
-    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 140
+    @ScaledMetric(relativeTo: .caption)
+    private var height: CGFloat = 140 * FathomType.scale
     let days: [Day]
     let format: (Double) -> String
 

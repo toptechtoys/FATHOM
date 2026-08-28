@@ -72,7 +72,8 @@ struct CPUView: View {
                     FathomSparkline(
                         history: model.cpuHistory,
                         maximum: 100,
-                        accessibilityValue: "Total CPU load"
+                        accessibilityValue: "Total CPU load",
+                        spokenFormat: percentSpoken
                     )
                 }
 

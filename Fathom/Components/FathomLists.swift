@@ -86,7 +86,10 @@ struct FathomTwoNumberTable: View {
                             Text(row.onDisk)
                                 .font(.fathomSystem(13))
                                 .monospacedDigit()
-                                .frame(width: 110, alignment: .trailing)
+                                .frame(
+                                    width: 110 * FathomType.scale,
+                                    alignment: .trailing
+                                )
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(row.freedText)
                                     .font(.fathomSystem(13, weight: .medium))
@@ -102,7 +105,10 @@ struct FathomTwoNumberTable: View {
                                         )
                                 }
                             }
-                            .frame(width: 150, alignment: .trailing)
+                            .frame(
+                                width: 150 * FathomType.scale,
+                                alignment: .trailing
+                            )
                         }
                     }
                 )
@@ -119,12 +125,20 @@ struct FathomTwoNumberTable: View {
         }
     }
 
+    // The prototype's `.rw{grid-template-columns:minmax(0,1fr) 110px 150px}`,
+    // carrying FathomType.scale because the figures in those two columns do.
+    // At 110 the *on disk* column held 112.6pt of "not published" at
+    // fathomSystem(13) x 1.45 = 18.85pt and wrapped it; 159.5 clears it by
+    // 47pt. Header and body must move together or the column heads stop
+    // standing over the figures they name.
     private var header: some View {
         HStack(spacing: 0) {
             Text("ITEM")
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("ON DISK").frame(width: 110, alignment: .trailing)
-            Text("FREED IF DELETED").frame(width: 150, alignment: .trailing)
+            Text("ON DISK")
+                .frame(width: 110 * FathomType.scale, alignment: .trailing)
+            Text("FREED IF DELETED")
+                .frame(width: 150 * FathomType.scale, alignment: .trailing)
         }
         .font(.fathomSystem(9, weight: .semibold))
         .tracking(1.26)
@@ -208,7 +222,14 @@ struct FathomDeviceRows: View {
                                         : 1
                                 )
                             )
-                            .frame(width: 110, alignment: .trailing)
+                            // "does not report" at fathomSystem(11).italic()
+                            // x 1.45 measures 106.7pt upright, in a 110pt
+                            // column, before the synthesised slant pushes its
+                            // last glyph past the edge. 159.5 ends that.
+                            .frame(
+                                width: 110 * FathomType.scale,
+                                alignment: .trailing
+                            )
                         }
                     }
                 )
@@ -229,15 +250,22 @@ struct FathomDeviceRows: View {
                 }
             }
         }
-        .frame(width: 120, height: 6)
+        // Width scales with the type it stands beside; the 6pt bar height is
+        // chrome and the prototype's `.dev .mt{height:6px}` does not move.
+        .frame(width: 120 * FathomType.scale, height: 6)
     }
 
+    /// The meter bar is the only thing on screen that says what the figure
+    /// measures, and a bar says nothing at all in speech — "Magic Mouse, 64
+    /// percent" leaves the listener to guess at battery, signal or volume.
+    /// This component has exactly one caller, paired Bluetooth devices, so
+    /// the word belongs here beside the meter rather than in the section.
     private func label(for device: Device) -> String {
         guard let level = device.level else {
-            return "\(device.name), \(device.unreportedNote)"
+            return "\(device.name), battery level \(device.unreportedNote)"
         }
         let percent = (level * 100).formatted(.number.precision(.fractionLength(0)))
-        return "\(device.name), \(percent)%"
+        return "\(device.name), battery \(percent) percent"
     }
 }
 
@@ -279,7 +307,14 @@ struct FathomFeed: View {
                         Text(finding.value)
                             .font(.fathomData(15, weight: .semibold))
                             .foregroundStyle(value(finding.kind))
-                            .frame(width: 110, alignment: .trailing)
+                            // A finding's figure is a byte string: "1,023.4
+                            // GB" at fathomData(15) x 1.45 = 21.75pt measures
+                            // 112.7pt and "not published" 135.8pt, both over
+                            // the prototype's 110pt column, both wrapping.
+                            .frame(
+                                width: 110 * FathomType.scale,
+                                alignment: .trailing
+                            )
                     },
                     action: { open(finding.subject) }
                 )
@@ -328,7 +363,16 @@ struct FathomChain: View {
 
     var body: some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 150), spacing: 10)],
+            // The track holds a display figure, so it carries the type's
+            // factor. Even so it is the tightest container left: a step card
+            // needs 174.8pt for "123.45 TB" at fathomDisplay(23) x 1.45 =
+            // 33.35pt, plus 30pt of padding and 29pt for the arrow beside it
+            // — 233.8pt against the 217.5 this resolves to. Wide windows are
+            // fine, because `.adaptive` grows the track to fill; a window
+            // near 770pt is where the value wraps.
+            columns: [
+                GridItem(.adaptive(minimum: 150 * FathomType.scale), spacing: 10),
+            ],
             alignment: .leading,
             spacing: 10
         ) {
@@ -391,7 +435,12 @@ struct FathomSectionGrid: View {
 
     var body: some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 178), spacing: 1)],
+            // "1,023.4 GB" at fathomDisplay(21) x 1.45 = 30.45pt measures
+            // 174.1pt and needs 204.1 of track with the 15pt paddings; 178
+            // gave it 148.
+            columns: [
+                GridItem(.adaptive(minimum: 178 * FathomType.scale), spacing: 1),
+            ],
             spacing: 1
         ) {
             ForEach(entries) { entry in

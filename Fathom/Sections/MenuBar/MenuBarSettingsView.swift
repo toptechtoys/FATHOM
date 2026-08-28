@@ -215,6 +215,13 @@ struct MenuBarSettingsView: View {
                 Toggle("", isOn: value)
                     .toggleStyle(.switch)
                     .labelsHidden()
+                    // The name is visible in the leading slot, but the row's
+                    // container carries no label of its own, so the switch and
+                    // the words beside it are unrelated siblings: navigating
+                    // by control reached "off, switch" and nothing said which
+                    // setting it was. The label is composed here, from the
+                    // same `title` the row renders, so it cannot drift.
+                    .accessibilityLabel(title)
             }
         )
         .accessibilityElement(children: .contain)

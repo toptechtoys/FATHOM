@@ -211,6 +211,11 @@ struct WeeklyDigestView: View {
                 Toggle("", isOn: isOn)
                     .toggleStyle(.switch)
                     .labelsHidden()
+                    // Same defect as MenuBarSettingsView: `.labelsHidden()`
+                    // inside an unlabelled container leaves an unnamed switch.
+                    // Worse here, because `.disabled` below then made it a
+                    // dimmed unnamed switch.
+                    .accessibilityLabel(title)
                     .disabled(notifications.isWorking)
             }
         )

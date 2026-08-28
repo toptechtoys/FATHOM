@@ -5,9 +5,15 @@ import SwiftUI
 ///
 /// This began as the prototype's 64pt icon rail — "always icons, never
 /// labels". The owner reviewed the running app on 25 August and asked for
-/// names beside the icons, CleanMyMac-style, so it is now a 200pt labelled
-/// sidebar; FATHOM-DESIGN.md carries the change. Twenty sections in four
-/// groups, still separated by hairlines rather than headings.
+/// names beside the icons, CleanMyMac-style, so it is now a 214pt labelled
+/// sidebar; FATHOM-DESIGN.md carries the change, and the prototype declares
+/// the same 214px. Twenty sections in four groups, still separated by
+/// hairlines rather than headings.
+///
+/// The width is the one container here that is deliberately *not* multiplied
+/// by `FathomType.scale`: 214 is a number the prototype and the design
+/// document both state, and a width that scaled could not be written down in
+/// either. The row absorbs the type instead — see `item(_:)`.
 ///
 /// Two things the prototype draws that this deliberately does not. It paints
 /// three traffic lights, because a web page has to; the real window gets the
@@ -16,6 +22,10 @@ import SwiftUI
 /// reports actually belongs — see `PublicIPPanel`.
 struct FathomRail: View {
     @Binding var selection: AppSection
+    /// The prototype's 34pt row. Scaled rather than fixed because the label
+    /// inside it is, and unlike every other container in the app this one
+    /// cannot buy room by getting wider.
+    @ScaledMetric(relativeTo: .subheadline) private var rowHeight: CGFloat = 34
 
     var body: some View {
         VStack(spacing: 0) {
@@ -93,14 +103,28 @@ struct FathomRail: View {
                     .frame(width: 22)
                 Text(section.rawValue)
                     .font(.fathomSystem(12, weight: isSelected ? .semibold : .medium))
-                    .lineLimit(1)
+                    // Two lines, not one. The sidebar is a fixed 214pt, which
+                    // leaves 142pt for the name once the 10pt outer padding,
+                    // the 10pt inner padding, the 22pt icon and the 10pt gap
+                    // are taken; "Sensors & Power" at 12 x 1.45 = 17.4pt
+                    // measures 138.0pt in Archivo SemiBold. Four points of
+                    // slack at the default text size, and none at the first
+                    // Dynamic Type step above it — at which point one line
+                    // can only truncate the longest section name in the app.
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
                 Spacer(minLength: 0)
             }
             .foregroundStyle(
                 isSelected ? .white : .white.opacity(0.82)
             )
             .padding(.horizontal, 10)
-            .frame(height: 34)
+            // Minimum, not fixed. 34pt is the prototype's `.nb{height:34px}`
+            // and it still is at the default size — one line of 17.4pt
+            // Archivo is 18.9pt tall, so nothing moves. A fixed height had
+            // no room left for a second line, and a rail row that clips its
+            // own section name is unnavigable rather than merely untidy.
+            .frame(minHeight: rowHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 if isSelected {
@@ -129,9 +153,17 @@ struct FathomRail: View {
         }
         .buttonStyle(RailItemButtonStyle())
         .fathomFocusRing(cornerRadius: 8)
-        .help(section.rawValue)
+        // No `.help` here any more. It was written when the rail was 64pt of
+        // icons and the tooltip was the only way to learn a section's name;
+        // the name is visible text now, and SwiftUI publishes `.help` as the
+        // accessibility help, so with VoiceOver hints on the rail announced
+        // every section twice — "Storage, button. Storage."
+        //
+        // `.isButton` is not added either: a real Button already carries it,
+        // and adding it by hand is the tell that an element has been replaced
+        // by a synthetic one that cannot be pressed.
         .accessibilityLabel(section.rawValue)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     /// The app's own idle cost, in the app's own chrome.

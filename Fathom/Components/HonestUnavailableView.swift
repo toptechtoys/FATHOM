@@ -10,6 +10,10 @@ struct HonestUnavailableView: View {
         VStack(spacing: 22) {
             Image(systemName: symbol)
                 .font(.fathomSystem(54, weight: .thin))
+                // Decoration. Inside the `.combine` below an unlabelled SF
+                // Symbol contributes its own auto-derived name, so the
+                // section's whole spoken message opened with the glyph.
+                .accessibilityHidden(true)
             Text(title).font(.fathomDisplay(38))
             Text("not published")
                 .font(.fathomData(18, weight: .semibold))

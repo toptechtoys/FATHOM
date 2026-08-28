@@ -65,7 +65,8 @@ struct MemoryView: View {
                     FathomSparkline(
                         history: model.memoryHistory,
                         maximum: 100,
-                        accessibilityValue: "Memory in use, percent of physical"
+                        accessibilityValue: "Memory in use, percent of physical",
+                        spokenFormat: percentSpoken
                     )
                 }
 

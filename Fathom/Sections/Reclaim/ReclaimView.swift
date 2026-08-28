@@ -192,7 +192,10 @@ struct ReclaimView: View {
                                 )
                             )
                     }
-                    .frame(width: 150, alignment: .trailing)
+                    // "not published on disk" at fathomSystem(10.5) x 1.45
+                    // measures 142.2pt in a 150pt column — 7.8pt of slack on
+                    // the widest of the three states.
+                    .frame(width: 150 * FathomType.scale, alignment: .trailing)
 
                     Button(
                         group.recipe.safetyClass == .reportOnly
@@ -261,13 +264,20 @@ struct ReclaimView: View {
                     HStack {
                         Text(item.path).font(.fathomPath(11))
                         Spacer()
+                        // Two byte counts, back to back, on the one screen
+                        // in the app that moves files. Which column a figure
+                        // sits in is invisible to VoiceOver, and it is the
+                        // difference between what is there and what deleting
+                        // it would return.
                         HardwareMeasurementView(
                             measurement: item.sizeOnDisk,
-                            format: hardwareByteString
+                            format: hardwareByteString,
+                            spokenRole: "on disk"
                         )
                         HardwareMeasurementView(
                             measurement: item.freedIfDeleted,
-                            format: hardwareByteString
+                            format: hardwareByteString,
+                            spokenRole: "freed if deleted"
                         )
                     }
                     if dryRun.manifest.recipe.safetyClass ==
@@ -288,6 +298,14 @@ struct ReclaimView: View {
                             )
                         )
                         .toggleStyle(.checkbox)
+                        // Twenty of these read identically in the rotor, and
+                        // the path they confirm is a sibling Text. A label
+                        // that is correct alone and meaningless in reading
+                        // order is worst on the control that authorises
+                        // moving a specific file.
+                        .accessibilityLabel(
+                            "I reviewed \(item.path) and its stated cost"
+                        )
                     }
                 }
             }
@@ -351,6 +369,7 @@ struct ReclaimView: View {
             let sentence = "\(intents.count) reclaim operation\(intents.count == 1 ? "" : "s") stopped after journaling intent. Completion is not assumed."
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
+                    .accessibilityHidden(true)
                 Text(sentence)
                 .font(.fathomSystem(12, weight: .semibold))
                 .accessibilityLabel("\(sentence) Source \(source.rawValue)")
@@ -378,6 +397,7 @@ struct ReclaimView: View {
             // the one a `default:` used to hide.
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
+                    .accessibilityHidden(true)
                 Text(unattributedSentence(measured: measured, explained: explained))
                     .font(.fathomSystem(12, weight: .semibold))
                 Spacer()

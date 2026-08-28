@@ -18,6 +18,11 @@ struct FathomPanel<Content: View>: View {
                 .tracking(1.44)
                 .foregroundStyle(.white.opacity(FathomSurface.minimumTextOpacity))
                 .padding(.bottom, 14)
+                // The container below is labelled `label` and announces it on
+                // entry. Left in the tree, this visible caps version is then
+                // read again as the group's first child — and read as caps,
+                // which VoiceOver spells out letter by letter.
+                .accessibilityHidden(true)
 
             content
         }

@@ -26,7 +26,7 @@ struct HomeView: View {
                         format: bytes
                     )
                     FathomMeasurementReadout(
-                        label: "Freed if selected",
+                        label: "Freed if deleted",
                         measurement: freedIfDeleted,
                         note: "What deletion would actually return",
                         format: bytes

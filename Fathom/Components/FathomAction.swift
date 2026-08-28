@@ -84,7 +84,12 @@ struct FathomAction: View {
             // Every route to data in this app is a FathomAction, including
             // "Run the first Deep Scan", so that made the whole product
             // plausibly unreachable by screen reader.
-            .accessibilityLabel(cost.map { "\(title). \($0)" } ?? title)
+            //
+            // `isBusy` is spoken as well as dimmed. `.disabled` conveys
+            // "dimmed", which says the button cannot be pressed but not that
+            // the thing it starts is already running — on Deep Scan the
+            // difference is the whole state of the screen.
+            .accessibilityLabel(spokenLabel)
 
             if let cost {
                 Text(cost)
@@ -96,6 +101,11 @@ struct FathomAction: View {
                     .accessibilityHidden(true)
             }
         }
+    }
+
+    private var spokenLabel: String {
+        let base = cost.map { "\(title). \($0)" } ?? title
+        return isBusy ? "\(base). Running." : base
     }
 }
 

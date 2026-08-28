@@ -86,13 +86,19 @@ struct ExploreView: View {
                         ? "FREED IF DELETED"
                         : "ON DISK"
                 )
-                    .frame(width: 150, alignment: .trailing)
+                    .frame(
+                        width: 150 * FathomType.scale,
+                        alignment: .trailing
+                    )
                 Text(
                     modifierKeys.optionHeld
                         ? "ON DISK"
                         : "FREED IF DELETED"
                 )
-                    .frame(width: 180, alignment: .trailing)
+                    .frame(
+                        width: 180 * FathomType.scale,
+                        alignment: .trailing
+                    )
             }
             .font(.fathomSystem(9, weight: .semibold))
             .tracking(1.26)
@@ -226,6 +232,12 @@ private struct ExploreRow: View {
                     Image(systemName: symbol)
                         .frame(width: 19)
                         .foregroundStyle(.white.opacity(0.82))
+                        // Not hidden: nothing else in the row says whether
+                        // this is a folder, a file or a symlink, and a
+                        // symlink's two numbers mean something different
+                        // from a file's. Written beside `symbol` below so
+                        // the glyph and the word cannot drift apart.
+                        .accessibilityLabel(kindName)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(row.name.isEmpty ? "/" : row.name)
                             .font(.fathomSystem(13.5, weight: .medium))
@@ -249,7 +261,11 @@ private struct ExploreRow: View {
                         ? "freed if deleted"
                         : "on disk"
                 )
-                    .frame(width: 150, alignment: .trailing)
+                    // "not attributable" at fathomData(15) x 1.45 = 21.75pt
+                    // measures 147.6pt in a 150pt column. The two columns and
+                    // the two header cells above must all take the factor or
+                    // the Option swap changes the layout under the reader.
+                    .frame(width: 150 * FathomType.scale, alignment: .trailing)
                 MeasurementValueView(
                     measurement: swapsMeasurements
                         ? row.sizeOnDisk
@@ -258,7 +274,7 @@ private struct ExploreRow: View {
                         ? "on disk"
                         : "freed if deleted"
                 )
-                    .frame(width: 180, alignment: .trailing)
+                    .frame(width: 180 * FathomType.scale, alignment: .trailing)
             }
             if let loadFailure {
                 Text(loadFailure)
@@ -284,6 +300,21 @@ private struct ExploreRow: View {
             "link"
         case .other:
             "questionmark.square"
+        }
+    }
+
+    /// What `symbol` draws, in words. The same switch, deliberately adjacent:
+    /// a glyph and its spoken name that live apart drift apart.
+    private var kindName: String {
+        switch row.kind {
+        case .directory:
+            "folder"
+        case .regularFile:
+            "file"
+        case .symbolicLink:
+            "symbolic link"
+        case .other:
+            "item of unknown kind"
         }
     }
 }

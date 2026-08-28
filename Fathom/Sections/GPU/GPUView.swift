@@ -68,7 +68,8 @@ struct GPUView: View {
                     FathomSparkline(
                         history: model.gpuHistory,
                         maximum: 100,
-                        accessibilityValue: "GPU utilisation"
+                        accessibilityValue: "GPU utilisation",
+                        spokenFormat: percentSpoken
                     )
                 }
 

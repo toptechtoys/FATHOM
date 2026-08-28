@@ -47,6 +47,12 @@ struct MeasurementValueView: View {
                 )
                 .font(.fathomSystem(10))
                 .foregroundStyle(.white.opacity(0.82))
+                // 283.6pt of text at 14.5pt rendered, in Explore's 150pt and
+                // 180pt columns. It wrapped to two lines before the type
+                // scale and three after; shortening keeps the row's height
+                // from being set by its narrowest state.
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(

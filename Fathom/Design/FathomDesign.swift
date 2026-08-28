@@ -303,9 +303,21 @@ extension Color {
 /// scale moves together and the factor is one reviewable number. When the
 /// factor settles, it gets baked into the prototype and FATHOM-DESIGN.md as
 /// the recorded sizes.
+///
+/// **The factor multiplies containers too, not only fonts.** A fixed column
+/// width or a chart height that bounds this type is as much a stated size as
+/// the type is, and `@ScaledMetric` does not help: it tracks the reader's
+/// Dynamic Type setting, not this factor. Left alone at ×1.45 they measurably
+/// broke — the feed's 110pt figure column needs 135.8pt for *not published*,
+/// the chain's 150pt track needs 233.8pt for *123.45 TB* — so every container
+/// that holds scaled type is written `N * FathomType.scale`, keeping the
+/// prototype's stated `N` visible beside it exactly as the font helpers do.
+/// Two containers are deliberately outside it and say so where they are
+/// written: `FathomReadoutRow.minimum` and `FathomMenuBarPreview`.
 enum FathomType {
-    /// 1.2 was reviewed on screen and still read small; 1.32 is the second
-    /// review's ask (another 10%).
+    /// 1.2 was reviewed on screen and still read small, 1.32 was the second
+    /// review's ask, and 1.45 is the third. None of the three has been read
+    /// back off a screen at this size — the running build predates it.
     static let scale: CGFloat = 1.45
 }
 

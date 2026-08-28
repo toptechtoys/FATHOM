@@ -76,7 +76,12 @@ struct PublicIPPanel: View {
 
     private var privacySheet: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Privacy").font(.headline)
+            // `.headline` is 13pt system and never sees FathomType.scale, so
+            // this heading rendered smaller than the paragraph under it once
+            // the paragraph reached 12.5 x 1.45 = 18.1pt. It was one of only
+            // two `.font` calls in Fathom/ that did not route through a
+            // helper.
+            Text("Privacy").font(.fathomSystem(13.5, weight: .semibold))
             Text("Public IP and country is FATHOM's only outbound request. When enabled, one request goes to Cloudflare and is cached for six hours. It carries no account, device identifier, cookies, or credentials.")
                 .font(.fathomSystem(12.5))
                 .foregroundStyle(.secondary)
@@ -88,6 +93,10 @@ struct PublicIPPanel: View {
             }
         }
         .padding(20)
-        .frame(width: 330)
+        // 330 left 290pt of measure, which at 18.1pt is about thirty
+        // characters a line — a four-sentence privacy statement set as a
+        // column. This is a popover with nothing else in it, so it can simply
+        // take the room the type now needs.
+        .frame(width: 330 * FathomType.scale)
     }
 }
