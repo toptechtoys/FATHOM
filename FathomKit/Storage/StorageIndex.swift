@@ -1381,7 +1381,7 @@ public actor StorageIndex {
             )
         }
 
-        let nodes = try loadStagedNodeVectors(
+        var nodes = try loadStagedNodeVectors(
             database: database,
             scanID: scanID
         )
@@ -1391,7 +1391,12 @@ public actor StorageIndex {
             )
         }
 
+        // Moved, not copied: see StagedNodeVectors. Three of these five
+        // vectors are never read again once the reduction owns them, and on a
+        // 3.77 million entry volume each redundant copy was tens of megabytes
+        // against a 300 MB budget.
         var exclusive = nodes.directCredits
+        nodes.directCredits = []
         var segmentCount: UInt64 = 0
         try execute(database: database, sql: "BEGIN IMMEDIATE")
         do {
@@ -1403,9 +1408,13 @@ public actor StorageIndex {
                 exclusive: &exclusive
             )
 
+            // `subtree` is a genuine copy: `exclusive` is stored alongside
+            // it further down, so both have to survive the roll-up.
             var subtree = exclusive
             var rawSubtree = nodes.allocatedBytes
+            nodes.allocatedBytes = []
             var incompleteSubtree = nodes.unmappedRegularFiles
+            nodes.unmappedRegularFiles = []
             if subtree.count > 1 {
                 for index in stride(
                     from: subtree.count - 1,
@@ -2659,12 +2668,17 @@ private enum StagedExtentOutcome: Sendable {
     }
 }
 
+/// The vectors are `var` so the reduction can take ownership of one and drop
+/// this struct's reference to it. Swift copies an array on write while two
+/// references exist, so a plain `var mine = nodes.allocatedBytes` followed by a
+/// mutation duplicates the whole vector. Emptying the original first leaves the
+/// new binding uniquely referenced and the mutation happens in place.
 private struct StagedNodeVectors {
-    let parents: [Int64]
-    let depths: [UInt32]
-    let directCredits: [UInt64]
-    let allocatedBytes: [UInt64]
-    let unmappedRegularFiles: [Bool]
+    var parents: [Int64]
+    var depths: [UInt32]
+    var directCredits: [UInt64]
+    var allocatedBytes: [UInt64]
+    var unmappedRegularFiles: [Bool]
 }
 
 private enum StagedReferenceReadiness {
@@ -3876,6 +3890,32 @@ private func appendTraversalIssues(
     }
 }
 
+/// The number of staged nodes, for reserving the vectors that hold them.
+///
+/// A count that does not fit an `Int` cannot be reserved anyway, so it is
+/// clamped rather than trapped: the vectors then grow as they used to, which is
+/// slower but still correct.
+private func stagedNodeCount(
+    database: OpaquePointer,
+    scanID: Int64
+) throws -> Int {
+    let statement = try prepare(
+        database: database,
+        sql: "SELECT COUNT(*) FROM staged_entries WHERE scan_id = ?"
+    )
+    defer { sqlite3_finalize(statement) }
+    try bindInt64(scanID, at: 1, statement: statement)
+    let code = sqlite3_step(statement)
+    guard code == SQLITE_ROW else {
+        throw sqliteError(database: database, code: code)
+    }
+    let count = sqlite3_column_int64(statement, 0)
+    guard count > 0, count <= Int64(Int.max) else {
+        return 0
+    }
+    return Int(count)
+}
+
 private func loadStagedNodeVectors(
     database: OpaquePointer,
     scanID: Int64
@@ -3892,11 +3932,30 @@ private func loadStagedNodeVectors(
     defer { sqlite3_finalize(statement) }
     try bindInt64(scanID, at: 1, statement: statement)
 
+    // Reserve the exact row count before reading a single row.
+    //
+    // These five vectors hold 29 bytes per node between them, and appending to
+    // them unreserved cost 118 — Swift grows an array by doubling, so each one
+    // carried up to twice the capacity it needed and paid a full copy at every
+    // growth, five times over and unsynchronised. On a 3.77 million entry
+    // volume that was the difference between about 110 MB and about 445 MB, and
+    // it is the whole reason the RELEASE-GATES gate 1 run peaked at 483 MB
+    // against a 300 MB budget: RSS sat flat at 50 MB through the traversal and
+    // the extent inspection, then climbed here in a third of a second.
+    //
+    // The count is a covering scan of the `(scan_id, id)` primary key, so it
+    // costs one index range rather than a table read.
+    let nodeCount = try stagedNodeCount(database: database, scanID: scanID)
     var parents: [Int64] = []
     var depths: [UInt32] = []
     var directCredits: [UInt64] = []
     var allocatedBytes: [UInt64] = []
     var unmappedRegularFiles: [Bool] = []
+    parents.reserveCapacity(nodeCount)
+    depths.reserveCapacity(nodeCount)
+    directCredits.reserveCapacity(nodeCount)
+    allocatedBytes.reserveCapacity(nodeCount)
+    unmappedRegularFiles.reserveCapacity(nodeCount)
     while true {
         let code = sqlite3_step(statement)
         if code == SQLITE_DONE {
