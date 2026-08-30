@@ -118,6 +118,27 @@ record them.
    deduplicated by nothing here — the resource fork's extents are simply part of
    the file's allocation, and deleting the file frees them.
 
+   **Peak memory passed for the first time on 30 August 2026, at 274.6 MB
+   against the 300 MB budget.** RSS sampled every 25 ms through a scan showed
+   where the 483 MB had been going: flat at 50 MB for twenty seconds while the
+   index grew to 307 MB, then climbing only in the last second and a half. The
+   streaming design holds everywhere except `reduceStagedAccounting`, which
+   loads five per-node vectors into RAM.
+
+   Neither problem was the design. The vectors were appended without being
+   reserved, so each carried up to twice the capacity it needed and paid a full
+   copy at every growth — 118 bytes per node to hold 29. And three of the five
+   were copied rather than moved, because Swift copies an array on write while
+   two references exist, even when the original is never read again. Reserving
+   the exact row count and emptying each original before mutating took memory
+   from **114.2 to 50.5 bytes per node**.
+
+   That measurement was taken **without Full Disk Access**, so it is not the
+   gate reading. Memory survives that: an earlier no-FDA run peaked within 0.2%
+   of the same commit's FDA run, because blocked paths change what is walked far
+   more than what is held. **Duration and issue count do not survive it** and
+   are not quoted from that run.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of
