@@ -1,0 +1,1 @@
+macOS denied or failed the read-only NVMe SMART user client (IOReturn -536870201)

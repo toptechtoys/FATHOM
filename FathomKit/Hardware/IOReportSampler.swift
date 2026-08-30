@@ -123,19 +123,32 @@ public actor IOReportSampler {
         }
         let elapsed = start.duration(to: clock.now)
         let seconds = Self.seconds(elapsed)
-        guard seconds > 0 else {
+        let data = Data(bytes: bytes, count: Int(length))
+        return try Self.decodeDelta(data, elapsedSeconds: seconds)
+    }
+
+    /// Decodes a live or recorded delta payload.
+    ///
+    /// The interval is a parameter rather than something read back out of the
+    /// payload because `watts(value:unit:elapsedSeconds:)` divides by it. A
+    /// recorded delta replayed against the wrong interval yields a wrong figure
+    /// rather than a failure, so the interval has to travel with the bytes.
+    public static func decodeDelta(
+        _ data: Data,
+        elapsedSeconds: Double
+    ) throws -> IOReportDeltaSnapshot {
+        guard elapsedSeconds > 0 else {
             throw IOReportSamplerError.invalidPayload(
                 reason: "The sample interval is zero"
             )
         }
         do {
-            let data = Data(bytes: bytes, count: Int(length))
             let decoded = try PropertyListDecoder().decode(
                 [IOReportChannelPayload].self,
                 from: data
             )
             return IOReportDeltaSnapshot(
-                elapsedSeconds: seconds,
+                elapsedSeconds: elapsedSeconds,
                 channels: decoded.map(\.sample)
             )
         } catch {
