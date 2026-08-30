@@ -10,3 +10,10 @@ DerivedData/
 # Kept on disk, out of the repo, so the duplicate cannot drift from the originals.
 FATHOM-handoff.zip
 FATHOM-handoff/
+
+# scripts/reference-pass.sh writes one directory per run, and most of it is
+# 570 MB of DerivedData and SwiftPM caches. Untracked, it also made the script
+# stamp its own record "WORKING TREE DIRTY" — the pass reporting that it is not
+# evidence about the commit it just measured. Commit a record worth keeping
+# with `git add -f reference-pass/<run>/REFERENCE-PASS.md`.
+reference-pass/
