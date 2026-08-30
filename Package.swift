@@ -54,7 +54,7 @@ let package = Package(
         ),
         .testTarget(
             name: "FathomKitTests",
-            dependencies: ["CFathomHardware", "FathomKit"],
+            dependencies: ["CFathomHardware", "CFathomStorage", "FathomKit"],
             path: "FathomKitTests",
             // The RELEASE-GATES gate 2 recordings, captured from a real
             // Mac15,9 by `fathom capture-fixtures`. They are declared with

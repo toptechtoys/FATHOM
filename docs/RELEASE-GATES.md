@@ -68,6 +68,36 @@ record them.
    500 GB reference volume with Full Disk Access. The recorded duration must be
    under 30 seconds and peak resident memory under 300 MB.
 
+   **The first real run of this gate failed on every criterion, and it found a
+   bug rather than a slow engine.** On 30 August 2026, on a Mac15,9 M3 Max with
+   Full Disk Access: 341.615 s against a 30 s budget, 588 MB against 300 MB,
+   230,799 inspection issues against zero, and *freed if deleted* unpublished.
+   It walked 5,266,367 entries and measured **574.9 GB on a volume holding
+   about 307 GB**.
+
+   The 1.95× is the diagnosis. macOS firmlinks the data volume's directories
+   into `/`, so `/Users` and `/System/Volumes/Data/Users` are one directory with
+   two names — seven of the data volume's children are reachable both ways —
+   and the walk counted each file twice. Neither obvious guard finds it:
+   `FTS_XDEV` and `st_dev` see a single device, because the sealed system
+   volume and its data volume are deliberately presented as one `st_dev` even
+   though `statfs` reports `/dev/disk3s1s1` and `/dev/disk3s5`, and
+   `ismount` reports false for `/System/Volumes/Data`. Only inode identity
+   separates them, so `fathom_fts_walk` now counts each `(device, inode)`
+   directory once and prunes the second path, publishing the count of subtrees
+   it declined as `aliasedDirectoriesSkipped`. Files are never deduplicated —
+   hard links are a real thing the two-number engine accounts for.
+
+   A confirming run without Full Disk Access — so not a gate measurement, and
+   not comparable on time or entry count — skipped 17 aliased subtrees and
+   closed the measured-versus-explained gap from 265 GB to 18 GB.
+
+   **This gate is unmeasured until it is run again.** Two things to watch when
+   it is. Peak resident memory was still 483 MB in that confirming run, so the
+   300 MB budget may fail for a reason that has nothing to do with the double
+   count. And the duration is unknown: the 341 s figure was walking twice the
+   volume, and the honest position is that no valid timing exists yet.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of

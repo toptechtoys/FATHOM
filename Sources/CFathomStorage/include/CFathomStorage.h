@@ -39,14 +39,46 @@ typedef int32_t (*FathomFTSEntryCallback)(
     void *context
 );
 
+/// A set of `(device, inode)` pairs — the POSIX identity of a file.
+///
+/// The walk uses it to count each directory once. macOS presents a sealed
+/// system volume and its data volume as one `st_dev`, and firmlinks expose the
+/// data volume's directories at two paths, so `/Users` and
+/// `/System/Volumes/Data/Users` are the same inode reached twice. Neither
+/// `FTS_XDEV` nor `statfs` mount points separate them; identity does.
+typedef struct FathomIdentitySet FathomIdentitySet;
+
+FathomIdentitySet *fathom_identity_set_create(void);
+
+void fathom_identity_set_destroy(FathomIdentitySet *set);
+
+/// Returns 1 when the identity was newly inserted, 0 when it was already
+/// present, and -1 when the set could not grow. Inode 0 is not a file, so it
+/// is rejected as -1 rather than stored.
+int32_t fathom_identity_set_insert(
+    FathomIdentitySet *set,
+    uint64_t device,
+    uint64_t inode
+);
+
+uint64_t fathom_identity_set_count(const FathomIdentitySet *set);
+
 /// Walks `root_path` using `fts(3)` without following symbolic links.
 ///
 /// The callback's entry and path are valid only for the duration of the call.
 /// Returning non-zero stops the walk without treating it as a filesystem error.
+///
+/// A directory whose `(device, inode)` has already been walked is pruned and
+/// not reported: it is the same directory reached by a second path, and
+/// counting it twice would double the volume. `aliased_directories_skipped`
+/// receives how many were pruned, because a walk that silently halves itself
+/// is as hard to trust as one that doubles. Files are never deduplicated —
+/// hard links are a real thing the two-number engine accounts for.
 int32_t fathom_fts_walk(
     const char *root_path,
     FathomFTSEntryCallback callback,
     void *context,
+    uint64_t *aliased_directories_skipped,
     int32_t *error_number
 );
 

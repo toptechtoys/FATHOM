@@ -54,6 +54,9 @@ public struct StagedTraversalScan: Sendable, Equatable {
     public let scope: ScanScope
     public let entryCount: UInt64
     public let regularFileCount: UInt64
+    /// Directories reached by a second path and counted once. See
+    /// `StorageScanSummary.aliasedDirectoriesSkipped`.
+    public let aliasedDirectoriesSkipped: UInt64
     public let issues: [StorageScanIssue]
 
     public var isComplete: Bool {
@@ -66,6 +69,7 @@ public struct StagedTraversalScan: Sendable, Equatable {
         scope: ScanScope,
         entryCount: UInt64,
         regularFileCount: UInt64,
+        aliasedDirectoriesSkipped: UInt64 = 0,
         issues: [StorageScanIssue]
     ) {
         self.scanID = scanID
@@ -73,6 +77,7 @@ public struct StagedTraversalScan: Sendable, Equatable {
         self.scope = scope
         self.entryCount = entryCount
         self.regularFileCount = regularFileCount
+        self.aliasedDirectoriesSkipped = aliasedDirectoriesSkipped
         self.issues = issues
     }
 }
@@ -891,6 +896,7 @@ public actor StorageIndex {
                 scope: scope,
                 entryCount: summary.entryCount,
                 regularFileCount: regularFileCount,
+                aliasedDirectoriesSkipped: summary.aliasedDirectoriesSkipped,
                 issues: summary.issues
             )
         } catch {
