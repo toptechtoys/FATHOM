@@ -39,8 +39,15 @@ public struct TemperatureSensorReader: Sendable {
                 reason: "The temperature inventory exceeds the process range"
             )
         }
+        let data = Data(bytes: pointer, count: Int(length))
+        return Self.decodeSensors(data)
+    }
+
+    /// Decodes a live or recorded IOHID temperature payload.
+    public static func decodeSensors(
+        _ data: Data
+    ) -> Measurement<[TemperatureSensorReading]> {
         do {
-            let data = Data(bytes: pointer, count: Int(length))
             let payloads = try PropertyListDecoder().decode(
                 [TemperaturePayload].self,
                 from: data

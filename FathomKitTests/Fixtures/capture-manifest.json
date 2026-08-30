@@ -1,0 +1,94 @@
+{
+  "capturedAt" : "2026-08-30T07:02:12Z",
+  "commit" : "not published — FATHOM_REFERENCE_COMMIT was not set",
+  "destinationToken" : "path-sha256:a3ce5f3bdecaf5590c91d0bcd9edcdc62c1dc1053cfa3c4061a2d80dd2191a66",
+  "ioReportRequestedGroups" : [
+    "Energy Model",
+    "CPU Stats",
+    "GPU Stats",
+    "AMC Stats",
+    "NVMe"
+  ],
+  "ioReportSampleElapsedSeconds" : 1.0147145,
+  "machine" : {
+    "appleSilicon" : "yes",
+    "architecture" : "arm64",
+    "chipBrand" : "Apple M3 Max",
+    "hardwareModel" : "Mac15,9",
+    "kernelOSVersion" : "25G83",
+    "operatingSystemVersion" : "Version 26.6.2 (Build 25G83)",
+    "rosettaTranslated" : "no"
+  },
+  "nvmeLogPageLength" : 512,
+  "payloads" : [
+    {
+      "byteCount" : null,
+      "name" : "nvme-smart-log-page.bin",
+      "note" : "NVMe SMART \/ Health Information log page 0x02, 512 bytes, exactly as the controller returned it. Log page 0x02 is counters; the controller serial number lives in Identify Controller, which FATHOM never reads.",
+      "reason" : "macOS denied or failed the read-only NVMe SMART user client (IOReturn -536870201)",
+      "sha256" : null,
+      "source" : null,
+      "state" : "not published"
+    },
+    {
+      "byteCount" : 27502,
+      "name" : "smc-key-inventory.json",
+      "note" : "Every four-character key AppleSMC enumerated on this Mac, in the order it enumerated them.",
+      "reason" : null,
+      "sha256" : "0707fe643fda07e3fe1736db690ffe86af0a2ad9070bba8a0d4a16e8101c0878",
+      "source" : "AppleSMC key enumeration",
+      "state" : "captured"
+    },
+    {
+      "byteCount" : 408721,
+      "name" : "smc-key-values.json",
+      "note" : "2611 keys read, 405 with bytes withheld, 139 refused by AppleSMC. A refused key is kept with its IOReturn rather than dropped: gate 2 asks what this Mac will not publish, and a shorter list with no explanation answers a different question.",
+      "reason" : null,
+      "sha256" : "1d8f9038cba331ca341ed7b0a46cb41112c9c1751820e90845091da14878e873",
+      "source" : "AppleSMC key enumeration",
+      "state" : "captured"
+    },
+    {
+      "byteCount" : 537672,
+      "name" : "ioreport-channel-inventory.plist",
+      "note" : "The binary property list the C bridge builds from libIOReport's channel enumeration. It is raw down to the bridge's own flattening (Sources\/CFathomHardware\/FathomHardware.c), not down to libIOReport's dictionaries — a fixture of it tests the Swift decoder against real values and says nothing about the flattening.",
+      "reason" : null,
+      "sha256" : "29432a5bc36ad8a291647197e22d17325484b9118a5f9a9e8a3ceb9b3e8e53a3",
+      "source" : "libIOReport.IOReportCopyAllChannels",
+      "state" : "captured"
+    },
+    {
+      "byteCount" : 102708,
+      "name" : "ioreport-subscribed-channels.plist",
+      "note" : "The channel set IOReportCreateSubscription actually granted this process, which is what records the channels this Mac agreed to publish. Requested groups: Energy Model, CPU Stats, GPU Stats, AMC Stats, NVMe.",
+      "reason" : null,
+      "sha256" : "3fc662326fd6d4727177d5889a1208bb2578a383c9e00ebafb9c463a616cc5fc",
+      "source" : "libIOReport.IOReportCreateSubscription",
+      "state" : "captured"
+    },
+    {
+      "byteCount" : 44601,
+      "name" : "ioreport-delta-sample.plist",
+      "note" : "A delta over 1.015 seconds. The interval travels with the payload in this manifest because IOReportSampler.watts() divides by it — a delta fixture without its interval cannot be replayed, only guessed at.",
+      "reason" : null,
+      "sha256" : "ea86a7fe3a7b3ed6eac5e85937a2ca95d2248ff6bbf68075abbc63c7d6de2c6b",
+      "source" : "libIOReport.IOReportCreateSamplesDelta",
+      "state" : "captured"
+    },
+    {
+      "byteCount" : 1521,
+      "name" : "iohid-temperature-sensors.plist",
+      "note" : "IOHIDEventSystem temperature events (usage page 0xff00, usage 5, event type 15), serialized by the C bridge.",
+      "reason" : null,
+      "sha256" : "dd069694166882273caf0da88d04aba6f27ac054d997c2761192436fe343e8f7",
+      "source" : "IOHIDEventSystemClient temperature event type 15",
+      "state" : "captured"
+    }
+  ],
+  "smcByteHandling" : "bytes recorded only for the types fathom_smc_decode_numeric reads; every other key keeps its name, type and size and withholds its bytes",
+  "summary" : {
+    "captured" : 6,
+    "notAttributable" : 0,
+    "notPublished" : 1
+  }
+}

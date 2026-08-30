@@ -55,7 +55,14 @@ let package = Package(
         .testTarget(
             name: "FathomKitTests",
             dependencies: ["CFathomHardware", "FathomKit"],
-            path: "FathomKitTests"
+            path: "FathomKitTests",
+            // The RELEASE-GATES gate 2 recordings, captured from a real
+            // Mac15,9 by `fathom capture-fixtures`. They are declared with
+            // `.copy` rather than `.process` because the IOReport and IOHID
+            // payloads are binary property lists exactly as the C bridge
+            // emitted them: a fixture that the build re-encodes is a fixture
+            // of the build, not of the hardware.
+            resources: [.copy("Fixtures")]
         )
     ]
 )

@@ -86,15 +86,40 @@ record them.
 2. Compare the exact SMART, SMC and IOReport readings with the fixtures in
    `FATHOM-DATA-SOURCES.md`.
 
-   **Capture the raw payloads while you are there.** No test currently replays
-   real hardware bytes — `FathomKitTests` holds no recorded data, so every
-   hardware test asserts behaviour rather than parsing. Dump the raw NVMe SMART
+   **Capture the raw payloads while you are there.** Dump the raw NVMe SMART
    log page, the SMC key inventory and values, and the IOReport channel
    subscription to files, commit them as test resources, and add tests that
-   replay them. This is the only moment anyone can take those recordings, and
-   without them a parser that misreads a real log has nothing standing in its
-   way. A denied entitlement or absent channel remains
+   replay them. Without them a parser that misreads a real log has nothing
+   standing in its way. A denied entitlement or absent channel remains
    *not published*; it is not a reason to substitute another value.
+
+   **Half done, 30 August 2026 — and read which half.** `fathom
+   capture-fixtures` was run on a **MacBook Pro Mac15,9, Apple M3 Max**, not on
+   the Mac mini M4 Pro. Six payloads landed in `FathomKitTests/Fixtures/` and
+   `RecordedSMCReplayTests.swift` and `RecordedIOReportReplayTests.swift` replay
+   them through the shipping decoders: 2,206 real SMC values, a 10,570-channel
+   IOReport inventory, a 664-channel energy delta and 45 IOHID sensors. The
+   claim "no test replays real hardware bytes" is no longer true, and a parser
+   that misreads a real payload now fails a build.
+
+   **What is still open is this gate as written** — the comparison against the
+   *reference machine's* readings. Capture again on the M4 Pro and commit both;
+   the manifest names the Mac, and a test pins it, so two recordings cannot be
+   confused. The recordings are also hash-checked against their own manifest, so
+   a hand-edited fixture fails rather than quietly testing something else.
+
+   **The SMART log page is the one payload that did not record, and that is an
+   answer rather than a gap.** The NVMe SMART user client returns IOReturn
+   -536870201 — `0xe00002c7`, `kIOReturnUnsupported`, not
+   `kIOReturnNotPrivileged` (`0x2c1`) and not `kIOReturnNotPermitted`
+   (`0x2e2`). The controller is `AppleANS3CGv2Controller`, it does not advertise
+   `NVMeSMARTCapable`, and `NVMeSMARTLib.plugin` is present on the system, so
+   the plug-in exists and the controller offers no such user client. **No
+   entitlement changes this**, which settles AGENTS.md M3's instruction to
+   "verify the NVMe entitlement situation on Tahoe": it is not an entitlement
+   situation. Endurance on an Apple-silicon internal SSD needs a different
+   source, or it stays *not published*. Confirm on the M4 Pro before designing
+   around it — one Mac is one Mac.
 3. Run FATHOM Bar with its four default items and read the idle cost off the
    Menu Bar section. **The widget now measures its own CPU** through
    `proc_pid_rusage` and publishes it; the app displays that figure and says
