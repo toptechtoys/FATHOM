@@ -77,18 +77,126 @@ static FathomFTSEntryKind entry_kind(mode_t mode) {
     return FATHOM_FTS_OTHER;
 }
 
+/* Open addressing with linear probing. Keys are (device, inode); an inode of 0
+ * is never a real file, so it marks an empty slot and needs no side table. */
+struct FathomIdentitySet {
+    uint64_t *devices;
+    uint64_t *inodes;
+    uint64_t capacity;
+    uint64_t count;
+};
+
+static uint64_t identity_hash(uint64_t device, uint64_t inode) {
+    /* splitmix64's finalizer. Inode numbers are dense and often sequential, and
+     * a weak hash turns linear probing into a linear scan. */
+    uint64_t value = inode ^ (device * 0x9E3779B97F4A7C15ULL);
+    value ^= value >> 30;
+    value *= 0xBF58476D1CE4E5B9ULL;
+    value ^= value >> 27;
+    value *= 0x94D049BB133111EBULL;
+    value ^= value >> 31;
+    return value;
+}
+
+static bool identity_set_grow(FathomIdentitySet *set, uint64_t capacity) {
+    uint64_t *devices = calloc((size_t)capacity, sizeof(uint64_t));
+    uint64_t *inodes = calloc((size_t)capacity, sizeof(uint64_t));
+    if (devices == NULL || inodes == NULL) {
+        free(devices);
+        free(inodes);
+        return false;
+    }
+    const uint64_t mask = capacity - 1;
+    for (uint64_t slot = 0; slot < set->capacity; slot++) {
+        if (set->inodes[slot] == 0) {
+            continue;
+        }
+        uint64_t probe = identity_hash(set->devices[slot], set->inodes[slot]) &
+            mask;
+        while (inodes[probe] != 0) {
+            probe = (probe + 1) & mask;
+        }
+        devices[probe] = set->devices[slot];
+        inodes[probe] = set->inodes[slot];
+    }
+    free(set->devices);
+    free(set->inodes);
+    set->devices = devices;
+    set->inodes = inodes;
+    set->capacity = capacity;
+    return true;
+}
+
+FathomIdentitySet *fathom_identity_set_create(void) {
+    FathomIdentitySet *set = calloc(1, sizeof(FathomIdentitySet));
+    if (set == NULL) {
+        return NULL;
+    }
+    if (!identity_set_grow(set, 1024)) {
+        free(set);
+        return NULL;
+    }
+    return set;
+}
+
+void fathom_identity_set_destroy(FathomIdentitySet *set) {
+    if (set == NULL) {
+        return;
+    }
+    free(set->devices);
+    free(set->inodes);
+    free(set);
+}
+
+int32_t fathom_identity_set_insert(
+    FathomIdentitySet *set,
+    uint64_t device,
+    uint64_t inode
+) {
+    if (set == NULL || inode == 0) {
+        return -1;
+    }
+    /* Grow at 70% so probe chains stay short. */
+    if ((set->count + 1) * 10 >= set->capacity * 7) {
+        if (set->capacity > UINT64_MAX / 2 ||
+            !identity_set_grow(set, set->capacity * 2)) {
+            return -1;
+        }
+    }
+    const uint64_t mask = set->capacity - 1;
+    uint64_t probe = identity_hash(device, inode) & mask;
+    while (set->inodes[probe] != 0) {
+        if (set->inodes[probe] == inode && set->devices[probe] == device) {
+            return 0;
+        }
+        probe = (probe + 1) & mask;
+    }
+    set->devices[probe] = device;
+    set->inodes[probe] = inode;
+    set->count += 1;
+    return 1;
+}
+
+uint64_t fathom_identity_set_count(const FathomIdentitySet *set) {
+    return set == NULL ? 0 : set->count;
+}
+
 int32_t fathom_fts_walk(
     const char *root_path,
     FathomFTSEntryCallback callback,
     void *context,
+    uint64_t *aliased_directories_skipped,
     int32_t *error_number
 ) {
-    if (root_path == NULL || callback == NULL || error_number == NULL) {
+    if (root_path == NULL || callback == NULL ||
+        aliased_directories_skipped == NULL || error_number == NULL) {
         if (error_number != NULL) {
             *error_number = EINVAL;
         }
         return -1;
     }
+
+    *aliased_directories_skipped = 0;
 
     struct stat root_metadata;
     if (lstat(root_path, &root_metadata) != 0) {
@@ -96,10 +204,17 @@ int32_t fathom_fts_walk(
         return -1;
     }
 
+    FathomIdentitySet *visited = fathom_identity_set_create();
+    if (visited == NULL) {
+        *error_number = ENOMEM;
+        return -1;
+    }
+
     char *paths[] = { (char *)root_path, NULL };
     FTS *stream = fts_open(paths, FTS_PHYSICAL | FTS_NOCHDIR, NULL);
     if (stream == NULL) {
         *error_number = errno;
+        fathom_identity_set_destroy(visited);
         return -1;
     }
 
@@ -108,6 +223,28 @@ int32_t fathom_fts_walk(
     while ((node = fts_read(stream)) != NULL) {
         if (node->fts_info == FTS_DP) {
             continue;
+        }
+
+        /* Count each directory once, whatever path reached it. Only the
+         * pre-order visit is tested, so the subtree can be pruned before it is
+         * walked rather than filtered after. */
+        if (node->fts_info == FTS_D && node->fts_statp != NULL) {
+            const int32_t inserted = fathom_identity_set_insert(
+                visited,
+                (uint64_t)node->fts_statp->st_dev,
+                (uint64_t)node->fts_statp->st_ino
+            );
+            if (inserted == 0) {
+                *aliased_directories_skipped += 1;
+                (void)fts_set(stream, node, FTS_SKIP);
+                continue;
+            }
+            if (inserted < 0) {
+                (void)fts_close(stream);
+                fathom_identity_set_destroy(visited);
+                *error_number = ENOMEM;
+                return -1;
+            }
         }
 
         FathomFTSEntry entry = {
@@ -165,6 +302,7 @@ int32_t fathom_fts_walk(
 
         if (callback(&entry, context) != 0) {
             (void)fts_close(stream);
+            fathom_identity_set_destroy(visited);
             *error_number = 0;
             return 0;
         }
@@ -172,6 +310,7 @@ int32_t fathom_fts_walk(
 
     int read_error = errno;
     int close_result = fts_close(stream);
+    fathom_identity_set_destroy(visited);
     if (read_error != 0) {
         *error_number = read_error;
         return -1;

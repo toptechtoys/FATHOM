@@ -3,10 +3,23 @@ import Foundation
 
 public struct StorageScanSummary: Sendable, Equatable {
     public let entryCount: UInt64
+    /// Directories reached by a second path and counted only once.
+    ///
+    /// On a volume root this is never zero: macOS firmlinks the data volume's
+    /// directories into `/`, so `/Users` and `/System/Volumes/Data/Users` are
+    /// one directory with two names. Counting both doubled a 307 GB volume to
+    /// 575 GB. The figure is carried rather than dropped because a walk that
+    /// halves itself has to be able to say so.
+    public let aliasedDirectoriesSkipped: UInt64
     public let issues: [StorageScanIssue]
 
-    public init(entryCount: UInt64, issues: [StorageScanIssue]) {
+    public init(
+        entryCount: UInt64,
+        aliasedDirectoriesSkipped: UInt64 = 0,
+        issues: [StorageScanIssue]
+    ) {
         self.entryCount = entryCount
+        self.aliasedDirectoriesSkipped = aliasedDirectoriesSkipped
         self.issues = issues
     }
 }
@@ -29,6 +42,7 @@ public struct StorageScanner: Sendable {
         defer { retainedState.release() }
 
         var errorNumber: Int32 = 0
+        var aliasedDirectoriesSkipped: UInt64 = 0
         let result = rootURL.withUnsafeFileSystemRepresentation { rootPath in
             guard let rootPath else {
                 errorNumber = EINVAL
@@ -39,6 +53,7 @@ public struct StorageScanner: Sendable {
                 rootPath,
                 storageEntryCallback,
                 retainedState.toOpaque(),
+                &aliasedDirectoriesSkipped,
                 &errorNumber
             )
         }
@@ -55,6 +70,7 @@ public struct StorageScanner: Sendable {
 
         return StorageScanSummary(
             entryCount: state.entryCount,
+            aliasedDirectoriesSkipped: aliasedDirectoriesSkipped,
             issues: state.issues
         )
     }

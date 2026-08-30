@@ -263,6 +263,12 @@ struct FathomCommand {
         print("path: \(url.path)")
         print("entries: \(traversal.entryCount)")
         print("regular files inspected: \(extentSummary.inspectedFileCount)")
+        // A walk that counts each directory once has to say how many second
+        // paths it declined, or a halved total looks like a lost one.
+        print(
+            "aliased directories skipped: " +
+            "\(traversal.aliasedDirectoriesSkipped)"
+        )
         print("duration: \(format(duration: duration))")
         print(String(format: "entries/second: %.0f", rate))
         print("peak resident bytes: \(residentBytes)")
