@@ -151,3 +151,101 @@ private struct ExtentFixture {
         try? FileManager.default.removeItem(at: root)
     }
 }
+
+// MARK: - Filesystem compression
+
+// macOS ships its own binaries compressed, and a compressed file keeps its
+// bytes in the resource fork while the data fork is empty and `st_size` still
+// reports the uncompressed length. Mapping only the data fork explained zero
+// bytes of a real allocation, so every one of those files came back not
+// attributable: 178,710 of them on one reference volume, which is what kept
+// *freed if deleted* unpublished for the whole volume.
+
+@Test func aCompressedFileReconcilesThroughItsResourceFork() throws {
+    let fixture = try ExtentFixture()
+    defer { fixture.remove() }
+
+    let sourceURL = fixture.root.appending(path: "source.bin")
+    let compressedURL = fixture.root.appending(path: "compressed.bin")
+    // Highly compressible, and large enough that the compressed copy needs a
+    // resource fork rather than fitting inline in the decmpfs xattr.
+    try Data(repeating: 0x41, count: 2_000_000).write(to: sourceURL)
+    guard try makeCompressedCopy(of: sourceURL, at: compressedURL) else {
+        Issue.record("ditto --hfsCompression is unavailable; compression unproven")
+        return
+    }
+
+    let entry = try scannedEntry(at: compressedURL)
+    let allocated = try knownValue(entry.sizeOnDisk)
+    let logical = try knownValue(entry.logicalSize)
+
+    // The shape that broke the engine: the file still reports its uncompressed
+    // length, while what it actually occupies is far smaller.
+    #expect(logical == 2_000_000)
+    #expect(allocated > 0)
+    #expect(allocated < logical)
+
+    let map = try FileExtentReader().inspect(entry)
+
+    // Reconciled, not `.notAttributable`. This is the assertion that fails
+    // without the resource-fork read.
+    let physical = try knownValue(map.physicalExtents)
+    #expect(!physical.isEmpty)
+    #expect(physical.reduce(0) { $0 + $1.length } == allocated)
+
+    // The data fork really is empty; the bytes are all in the resource fork.
+    #expect(try knownValue(map.dataExtents).isEmpty)
+}
+
+@Test func anUncompressedFileIsUnchangedByTheResourceForkRead() throws {
+    let fixture = try ExtentFixture()
+    defer { fixture.remove() }
+
+    // A file with no resource fork answers ENOENT, which is the ordinary case
+    // and must stay silent rather than becoming an inspection failure.
+    let fileURL = fixture.root.appending(path: "plain.bin")
+    try Data(repeating: 0x5A, count: 400_000).write(to: fileURL)
+
+    let entry = try scannedEntry(at: fileURL)
+    let map = try FileExtentReader().inspect(entry)
+
+    let physical = try knownValue(map.physicalExtents)
+    #expect(!physical.isEmpty)
+    #expect(
+        physical.reduce(0) { $0 + $1.length } == (try knownValue(entry.sizeOnDisk))
+    )
+    #expect(!(try knownValue(map.dataExtents)).isEmpty)
+}
+
+/// Asks `ditto` for a filesystem-compressed copy. Nothing in Foundation
+/// creates one, and the condition cannot be synthesised: the compression is
+/// the filesystem's, not the file's.
+private func makeCompressedCopy(of source: URL, at destination: URL) throws -> Bool {
+    let ditto = URL(fileURLWithPath: "/usr/bin/ditto")
+    guard FileManager.default.isExecutableFile(atPath: ditto.path) else {
+        return false
+    }
+    let process = Process()
+    process.executableURL = ditto
+    process.arguments = [
+        "--hfsCompression",
+        source.path,
+        destination.path
+    ]
+    process.standardOutput = FileHandle.nullDevice
+    process.standardError = FileHandle.nullDevice
+    try process.run()
+    process.waitUntilExit()
+    guard process.terminationStatus == 0 else { return false }
+
+    // ditto succeeds whether or not it compressed anything, so confirm the
+    // flag rather than trusting the exit status.
+    let flags = try FileManager.default
+        .attributesOfItem(atPath: destination.path)[.init("NSFileSystemFileFlags")] as? UInt32
+    if let flags {
+        return flags & UInt32(UF_COMPRESSED) != 0
+    }
+    var metadata = stat()
+    guard lstat(destination.path, &metadata) == 0 else { return false }
+    return metadata.st_flags & UInt32(UF_COMPRESSED) != 0
+}
