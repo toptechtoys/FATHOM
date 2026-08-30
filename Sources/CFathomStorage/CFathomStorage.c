@@ -350,6 +350,172 @@ static int32_t emit_extent(
     return callback(&extent, context);
 }
 
+/* Walks one fork's resident ranges with SEEK_DATA / SEEK_HOLE and maps each to
+ * device offsets with F_LOG2PHYS_EXT.
+ *
+ * Returns 0 when the fork was walked, 1 when the callback asked to stop, and
+ * -1 on a filesystem error with `error_number` set. The descriptor is left open
+ * for the caller to close on every path.
+ *
+ * `emit_data_extents` is false for the resource fork: its logical offsets are a
+ * separate address space from the data fork's, and the data extents describe
+ * where the data fork is sparse. Mixing the two would describe neither. */
+static int walk_fork_extents(
+    int descriptor,
+    off_t logical_size,
+    bool emit_data_extents,
+    FathomExtentCallback callback,
+    void *context,
+    int32_t *physical_mapping_error,
+    int32_t *error_number
+) {
+    off_t cursor = 0;
+    while (cursor < logical_size) {
+        errno = 0;
+        off_t data_offset = lseek(descriptor, cursor, SEEK_DATA);
+        if (data_offset < 0) {
+            if (errno == ENXIO) {
+                break;
+            }
+            *error_number = errno;
+            return -1;
+        }
+
+        errno = 0;
+        off_t hole_offset = lseek(descriptor, data_offset, SEEK_HOLE);
+        if (hole_offset < 0) {
+            if (errno == ENXIO) {
+                hole_offset = logical_size;
+            } else {
+                *error_number = errno;
+                return -1;
+            }
+        }
+        if (hole_offset > logical_size) {
+            hole_offset = logical_size;
+        }
+        if (hole_offset <= data_offset) {
+            *error_number = EIO;
+            return -1;
+        }
+
+        if (emit_data_extents &&
+            emit_extent(
+                FATHOM_EXTENT_DATA,
+                data_offset,
+                hole_offset - data_offset,
+                0,
+                callback,
+                context
+            ) != 0) {
+            return 1;
+        }
+
+        if (*physical_mapping_error == 0) {
+            off_t physical_cursor = data_offset;
+            while (physical_cursor < hole_offset) {
+                struct log2phys mapping = {
+                    .l2p_flags = 0,
+                    .l2p_contigbytes = hole_offset - physical_cursor,
+                    .l2p_devoffset = physical_cursor
+                };
+
+                if (fcntl(descriptor, F_LOG2PHYS_EXT, &mapping) != 0) {
+                    *physical_mapping_error = errno;
+                    break;
+                }
+
+                off_t mapped_length = mapping.l2p_contigbytes;
+                off_t remaining_length = hole_offset - physical_cursor;
+                if (mapped_length <= 0 || mapping.l2p_devoffset < 0) {
+                    *physical_mapping_error = EIO;
+                    break;
+                }
+                if (mapped_length > remaining_length) {
+                    mapped_length = remaining_length;
+                }
+
+                if (emit_extent(
+                        FATHOM_EXTENT_PHYSICAL,
+                        physical_cursor,
+                        mapped_length,
+                        mapping.l2p_devoffset,
+                        callback,
+                        context
+                    ) != 0) {
+                    return 1;
+                }
+                physical_cursor += mapped_length;
+            }
+        }
+
+        cursor = hole_offset;
+    }
+    return 0;
+}
+
+/* Maps the resource fork's physical extents, when there is one.
+ *
+ * Returns 0 whether or not a fork existed, and -1 only on an error worth
+ * reporting. A file with no resource fork is the ordinary case: opening
+ * `<path>/..namedfork/rsrc` answers ENOENT and nothing is emitted. */
+static int walk_resource_fork_extents(
+    const char *path,
+    uint64_t expected_device,
+    uint64_t expected_inode,
+    FathomExtentCallback callback,
+    void *context,
+    int32_t *physical_mapping_error,
+    int32_t *error_number
+) {
+    static const char suffix[] = "/..namedfork/rsrc";
+    size_t path_length = strlen(path);
+    if (path_length + sizeof(suffix) > PATH_MAX) {
+        /* Not an error: the data fork was read, and a path this long cannot
+         * name a resource fork. The allocation check reports the shortfall. */
+        return 0;
+    }
+    char fork_path[PATH_MAX];
+    memcpy(fork_path, path, path_length);
+    memcpy(fork_path + path_length, suffix, sizeof(suffix));
+
+    int descriptor = open(fork_path, O_RDONLY | O_SYMLINK);
+    if (descriptor < 0) {
+        if (errno == ENOENT || errno == ENOATTR || errno == ENOTSUP) {
+            return 0;
+        }
+        *physical_mapping_error = errno;
+        return 0;
+    }
+
+    struct stat fork_metadata;
+    if (fstat(descriptor, &fork_metadata) != 0) {
+        *physical_mapping_error = errno;
+        (void)close(descriptor);
+        return 0;
+    }
+
+    /* A resource fork reports its file's own device and inode, so the same
+     * identity check that guards the data fork guards this one. */
+    if (!identity_matches(&fork_metadata, expected_device, expected_inode)) {
+        *error_number = ESTALE;
+        (void)close(descriptor);
+        return -1;
+    }
+
+    int walked = walk_fork_extents(
+        descriptor,
+        fork_metadata.st_size,
+        false,
+        callback,
+        context,
+        physical_mapping_error,
+        error_number
+    );
+    (void)close(descriptor);
+    return walked < 0 ? -1 : 0;
+}
+
 int32_t fathom_file_extents(
     const char *path,
     uint64_t expected_device,
@@ -476,92 +642,42 @@ int32_t fathom_file_extents(
         *clone_metadata_error = errno;
     }
 
-    off_t logical_size = opened_metadata.st_size;
-    off_t cursor = 0;
-    while (cursor < logical_size) {
-        errno = 0;
-        off_t data_offset = lseek(descriptor, cursor, SEEK_DATA);
-        if (data_offset < 0) {
-            if (errno == ENXIO) {
-                break;
-            }
-            *error_number = errno;
-            (void)close(descriptor);
-            return -1;
-        }
+    int walked = walk_fork_extents(
+        descriptor,
+        opened_metadata.st_size,
+        true,
+        callback,
+        context,
+        physical_mapping_error,
+        error_number
+    );
+    if (walked != 0) {
+        (void)close(descriptor);
+        /* A stopped callback is not an error; the caller asked to stop. */
+        return walked > 0 ? 0 : -1;
+    }
 
-        errno = 0;
-        off_t hole_offset = lseek(descriptor, data_offset, SEEK_HOLE);
-        if (hole_offset < 0) {
-            if (errno == ENXIO) {
-                hole_offset = logical_size;
-            } else {
-                *error_number = errno;
-                (void)close(descriptor);
-                return -1;
-            }
-        }
-        if (hole_offset > logical_size) {
-            hole_offset = logical_size;
-        }
-        if (hole_offset <= data_offset) {
-            *error_number = EIO;
-            (void)close(descriptor);
-            return -1;
-        }
-
-        if (emit_extent(
-                FATHOM_EXTENT_DATA,
-                data_offset,
-                hole_offset - data_offset,
-                0,
-                callback,
-                context
-            ) != 0) {
-            (void)close(descriptor);
-            return 0;
-        }
-
-        if (*physical_mapping_error == 0) {
-            off_t physical_cursor = data_offset;
-            while (physical_cursor < hole_offset) {
-                struct log2phys mapping = {
-                    .l2p_flags = 0,
-                    .l2p_contigbytes = hole_offset - physical_cursor,
-                    .l2p_devoffset = physical_cursor
-                };
-
-                if (fcntl(descriptor, F_LOG2PHYS_EXT, &mapping) != 0) {
-                    *physical_mapping_error = errno;
-                    break;
-                }
-
-                off_t mapped_length = mapping.l2p_contigbytes;
-                off_t remaining_length = hole_offset - physical_cursor;
-                if (mapped_length <= 0 || mapping.l2p_devoffset < 0) {
-                    *physical_mapping_error = EIO;
-                    break;
-                }
-                if (mapped_length > remaining_length) {
-                    mapped_length = remaining_length;
-                }
-
-                if (emit_extent(
-                        FATHOM_EXTENT_PHYSICAL,
-                        physical_cursor,
-                        mapped_length,
-                        mapping.l2p_devoffset,
-                        callback,
-                        context
-                    ) != 0) {
-                    (void)close(descriptor);
-                    return 0;
-                }
-                physical_cursor += mapped_length;
-            }
-        }
-
-        cursor = hole_offset;
+    /* The resource fork carries the allocation for anything the filesystem
+     * compressed. macOS ships its own binaries that way — `/usr/bin/tee` has a
+     * 101,040-byte logical size, an empty data fork and 10,736 bytes of
+     * compressed data in the resource fork — so mapping only the data fork
+     * explained zero bytes of a real allocation and the whole file came back
+     * not attributable. That was 178,710 files on one reference volume, which
+     * is what kept *freed if deleted* unpublished for the volume.
+     *
+     * A file without a resource fork answers ENOENT, which is the ordinary
+     * case and not a failure. */
+    if (walk_resource_fork_extents(
+            path,
+            expected_device,
+            expected_inode,
+            callback,
+            context,
+            physical_mapping_error,
+            error_number
+        ) < 0) {
+        (void)close(descriptor);
+        return -1;
     }
 
     if (close(descriptor) != 0) {

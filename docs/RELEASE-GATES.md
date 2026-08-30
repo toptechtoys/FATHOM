@@ -98,6 +98,26 @@ record them.
    count. And the duration is unknown: the 341 s figure was walking twice the
    volume, and the honest position is that no valid timing exists yet.
 
+   **The gate's inspection-issue count was one bug, found 30 August 2026.**
+   A run with Full Disk Access reported 184,853 issues, and they were not
+   permissions: only **276** were traversal errors, out of 3,774,168 entries.
+   **178,710 of them — 96.7% — were the same thing**, *Physical extents do not
+   reconcile with allocated bytes*, and every sampled one was `UF_COMPRESSED`.
+
+   macOS ships its own binaries filesystem-compressed. A compressed file keeps
+   its bytes in the **resource fork**, leaves the data fork empty, and still
+   reports the uncompressed length in `st_size` — `/usr/bin/tee` is 101,040
+   bytes logical, 12,288 allocated, with 10,736 bytes of compressed data in the
+   fork. `fathom_file_extents` mapped only the data fork, explained zero bytes
+   of a real allocation, and returned *not attributable*. That is honest, and it
+   is why *freed if deleted* — the number the product exists to show — was
+   unpublished for the entire volume.
+
+   The reader now maps the resource fork too. On `/usr/bin`: **26 of 883 files
+   inspected with 858 issues, before; 883 with 1 issue, after.** Files are
+   deduplicated by nothing here — the resource fork's extents are simply part of
+   the file's allocation, and deleting the file frees them.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of
