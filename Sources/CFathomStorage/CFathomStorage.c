@@ -698,6 +698,7 @@ int32_t fathom_file_extents(
     uint32_t *clone_reference_count,
     int32_t *clone_metadata_error,
     uint64_t *allocation_block_size,
+    uint64_t *observed_allocated_size,
     int32_t *physical_mapping_error,
     int32_t *error_number
 ) {
@@ -708,6 +709,7 @@ int32_t fathom_file_extents(
         clone_reference_count == NULL ||
         clone_metadata_error == NULL ||
         allocation_block_size == NULL ||
+        observed_allocated_size == NULL ||
         physical_mapping_error == NULL ||
         error_number == NULL) {
         if (error_number != NULL) {
@@ -717,6 +719,7 @@ int32_t fathom_file_extents(
     }
 
     *is_dataless = 0;
+    *observed_allocated_size = 0;
     *clone_id = 0;
     *clone_reference_count = 0;
     *clone_metadata_error = 0;
@@ -756,6 +759,11 @@ int32_t fathom_file_extents(
         (void)close(descriptor);
         return -1;
     }
+    /* What the file occupied at the moment it was opened. The caller compares
+     * it with what the walk recorded: a file being written keeps its inode
+     * while its allocation moves, so identity alone cannot see it. */
+    *observed_allocated_size = allocated_bytes(&opened_metadata);
+
     if (!identity_matches(&opened_metadata, expected_device, expected_inode)) {
         *error_number = ESTALE;
         (void)close(descriptor);

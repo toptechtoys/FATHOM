@@ -746,3 +746,46 @@ private struct IndexFixture {
     #expect(!StorageIndex.isRefusedBySystem(ESTALE))
     #expect(!StorageIndex.isRefusedBySystem(0))
 }
+
+// A file can move under the scan without changing identity. A log, a Spotlight
+// index, this scan's own SQLite file: appended to constantly, same inode
+// throughout. The identity check never sees them, so their extents were of one
+// file and their allocation of another moment, and the reader called that a
+// reconciliation failure.
+
+@Test func aFileWhoseAllocationMovedIsChurnNotFailure() async throws {
+    let fixture = try IndexFixture()
+    defer { fixture.remove() }
+
+    let steady = fixture.scanRoot.appending(path: "steady.bin")
+    let growing = fixture.scanRoot.appending(path: "growing.bin")
+    try Data(repeating: 0x41, count: 8_192).write(to: steady)
+    try Data(repeating: 0x42, count: 8_192).write(to: growing)
+
+    let index = try StorageIndex(url: fixture.databaseURL)
+    let staged = try await index.stageTraversal(
+        at: fixture.scanRoot,
+        scope: .subtree
+    )
+    #expect(staged.regularFileCount == 2)
+
+    // Appended, not replaced: same inode, more blocks. This is what a log does,
+    // and it is the case identity cannot catch.
+    let handle = try FileHandle(forWritingTo: growing)
+    try handle.seekToEnd()
+    try handle.write(contentsOf: Data(repeating: 0x43, count: 256 * 1_024))
+    try handle.close()
+
+    let summary = try await index.inspectStagedExtents(scanID: staged.scanID)
+
+    #expect(summary.inspectedFileCount == 1)
+    #expect(
+        summary.changedDuringScanCount == 1,
+        "a file whose allocation moved was not recognised as changing"
+    )
+    #expect(
+        summary.failedFileCount == 0,
+        "a file whose allocation moved was counted as an inspection failure"
+    )
+    await index.close()
+}
