@@ -685,9 +685,24 @@ widget_cpu_cell="${OPERATOR}"
 widget_items_cell="${OPERATOR}"
 bar_app=""
 build_provenance="unsigned Release build from this run"
+
+# The scheme is named FathomBar and the bundle it produces is "FATHOM Bar.app".
+# Assuming the scheme name here cost every reference pass its gate 3: the build
+# succeeded, the bundle was looked for under the wrong name, and the record said
+# "no FathomBar bundle to measure" as though the widget were the problem. Ask
+# the build system what it produced instead of guessing.
+bar_bundle_name="$(
+  xcodebuild -project "${PROJECT_ROOT}/Fathom.xcodeproj" \
+    -scheme FathomBar -configuration Release -showBuildSettings 2>/dev/null |
+    awk -F' = ' '/ FULL_PRODUCT_NAME = /{print $2; exit}'
+)"
+[[ -n "${bar_bundle_name}" ]] || bar_bundle_name='FATHOM Bar.app'
+printf '%s\n' "${bar_bundle_name}" >"${out}/gate3/bundle-name.txt"
+
 if [[ -n "${signed_app}" ]]; then
   build_provenance="the bundle passed to --signed-app"
-  find "${signed_app}" -name 'FathomBar.app' >"${out}/gate3/bar-candidates.txt" 2>/dev/null || true
+  find "${signed_app}" -name "${bar_bundle_name}" \
+    >"${out}/gate3/bar-candidates.txt" 2>/dev/null || true
   bar_app="$(head -1 "${out}/gate3/bar-candidates.txt")"
 else
   run xcodegen generate --spec "${PROJECT_ROOT}/project.yml"
@@ -696,11 +711,17 @@ else
     -destination 'generic/platform=macOS' \
     -derivedDataPath "${out}/build-dd" \
     CODE_SIGNING_ALLOWED=NO build
-  bar_app="${out}/build-dd/Build/Products/Release/FathomBar.app"
+  bar_app="${out}/build-dd/Build/Products/Release/${bar_bundle_name}"
+
+  # A build that succeeded and then produced nothing to measure is this
+  # script's bug, not a gate outcome. Recording it as an unmeasured gate is
+  # how the wrong name survived several passes.
+  [[ -d "${bar_app}" ]] ||
+    fail "FathomBar built but ${bar_app} is not there; the bundle name this script looks for is wrong" 3
 fi
 
 if [[ -z "${bar_app}" || ! -d "${bar_app}" ]]; then
-  blocking+=("no FathomBar bundle to measure; gate 3 is unmeasured")
+  blocking+=("no ${bar_bundle_name} in the bundle passed to --signed-app; gate 3 is unmeasured")
 else
   defaults read com.exhibinaut.fathom.shared \
     >"${out}/gate3/defaults-before.txt" 2>/dev/null ||
