@@ -791,7 +791,22 @@ else
   # is the Unix epoch of 2001-01-01 plus a second of margin against clock skew.
   now_unix="$(date +%s)"
   started_reference=$((now_unix - 978307201))
+  # Every instance writes its figure to the one shared defaults domain, so a
+  # second one running makes the reading ambiguous: the number recorded could
+  # belong to any of them. Three were once left behind by three passes, each
+  # publishing over the last, and the gate recorded a figure without being able
+  # to say whose it was.
+  widget_pattern='FATHOM Bar.app/Contents/MacOS/FATHOM Bar'
+  existing_widgets="$(pgrep -f "${widget_pattern}" 2>/dev/null || true)"
+  if [[ -n "${existing_widgets}" ]]; then
+    existing_list="$(printf '%s' "${existing_widgets}" | tr '\n' ' ' || true)"
+    fail "FATHOM Bar is already running (pid ${existing_list}); gate 3 reads one shared defaults domain and cannot tell which instance published the figure. Quit it and run again" 3
+  fi
+
   run open "${bar_app}"
+  # This pass launched it, so this pass closes it. Leaving one behind is what
+  # put three in the menu bar.
+  widget_started=1
   waited=0
   measured_at=""
   while [[ "${waited}" -lt "${bar_wait}" ]]; do
@@ -831,6 +846,15 @@ else
     fi
     if [[ "${widget_items}" != "4" ]]; then
       blocking+=("FathomBar published its cost with ${widget_items} items, not 4; the target is stated for four and fewer measures a different thing")
+    fi
+  fi
+
+  if [[ "${widget_started:-0}" == "1" ]]; then
+    launched_widgets="$(pgrep -f "${widget_pattern}" 2>/dev/null || true)"
+    if [[ -n "${launched_widgets}" ]]; then
+      printf '%s\n' "${launched_widgets}" | while read -r widget_pid; do
+        [[ -n "${widget_pid}" ]] && kill "${widget_pid}" 2>/dev/null || true
+      done
     fi
   fi
 fi

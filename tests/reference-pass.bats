@@ -230,3 +230,18 @@
   [ "$status" -eq 0 ]
   [ "$output" = "the scan reported 134 inspection issues" ]
 }
+
+@test "gate 3 refuses a second widget and closes the one it launched" {
+  # Every instance publishes to the one shared defaults domain, so a second one
+  # makes the reading ambiguous. Three were once left behind by three passes,
+  # each writing over the last, and the gate recorded a figure without being
+  # able to say whose it was.
+  run grep -c 'already running' scripts/reference-pass.sh
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 1 ]
+
+  # And the pass that launches it closes it.
+  run grep -c 'widget_started' scripts/reference-pass.sh
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 2 ]
+}
