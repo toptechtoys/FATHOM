@@ -249,3 +249,102 @@ private func makeCompressedCopy(of source: URL, at destination: URL) throws -> B
     guard lstat(destination.path, &metadata) == 0 else { return false }
     return metadata.st_flags & UInt32(UF_COMPRESSED) != 0
 }
+
+// MARK: - The final partial block
+
+// `F_LOG2PHYS_EXT` reports runs of whole allocation blocks. A range shorter
+// than one block has no run length to report, so it answers with a valid
+// device address and a contiguous length of zero — and the mapping loop used
+// to read that as EIO and abandon the file.
+//
+// It cost 13,475 files on a reference volume, 97% of them under
+// `/System/Volumes/Preboot`, and it is why *freed if deleted* stayed
+// unpublished for the whole volume. Two of the sampled files were smaller than
+// a single block, so the very first call returned zero: "no progress yet" is
+// not a safe way to tell the failure from the ordinary case. What separates
+// them is whether the remainder fits inside one block.
+//
+// **A freshly written file will not reproduce it.** Every temp file tried
+// mapped its whole length in one call and returned an exact byte count; the
+// zero-length answer turned up only on the sealed system volume and on
+// Preboot. So the test looks for a real instance rather than building one, and
+// records an issue rather than passing quietly when it cannot find one.
+
+@Test func aFileEndingMidBlockStillPublishesItsPhysicalExtents() throws {
+    let reader = FileExtentReader()
+    var checked = 0
+    var unpublished: [String] = []
+
+    for url in sealedSystemFilesEndingMidBlock(limit: 200) {
+        let entry = try scannedEntry(at: url)
+        let allocated = try knownValue(entry.sizeOnDisk)
+        let logical = try knownValue(entry.logicalSize)
+        guard allocated > 0, logical > 0 else { continue }
+
+        let map = try reader.inspect(entry)
+        guard case let .known(extents, _) = map.physicalExtents else {
+            unpublished.append(url.path)
+            continue
+        }
+        // Reconciled: the block-rounded extents account for every allocated
+        // byte, including the partial block at the end.
+        #expect(
+            extents.reduce(0) { $0 + $1.length } == allocated,
+            "\(url.path) published extents that do not sum to its allocation"
+        )
+        checked += 1
+    }
+
+    guard checked + unpublished.count > 0 else {
+        Issue.record(
+            "No sealed-system file ending mid-block was found; the partial-block path is unexercised here"
+        )
+        return
+    }
+    // Compared by count, not by `isEmpty`: the expectation macro expands the
+    // expression it is given, and this list runs to hundreds of paths when the
+    // guard regresses.
+    let failures = unpublished.count
+    #expect(
+        failures == 0,
+        "\(failures) of \(checked + failures) sealed-system files did not publish physical extents; first: \(unpublished.prefix(2).joined(separator: ", "))"
+    )
+}
+
+/// Regular files on the read-only system volume whose last allocation block is
+/// only partly used — the shape that produces a zero-length run.
+private func sealedSystemFilesEndingMidBlock(limit: Int) -> [URL] {
+    let manager = FileManager.default
+    var found: [URL] = []
+    // Two roots, because a future macOS may drop either. Anything under the
+    // sealed volume behaves the same way.
+    // Hidden directories are deliberately not skipped: the instances live
+    // inside `.asset/.AssetData/`, and skipping them was the difference
+    // between this test failing without the fix and passing either way.
+    for root in [
+        "/System/Volumes/Preboot/Cryptexes",
+        "/System/Library/AssetsV2"
+    ] {
+        guard found.count < limit,
+              let walker = manager.enumerator(
+                  at: URL(fileURLWithPath: root),
+                  includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
+                  options: []
+              )
+        else { continue }
+        for case let url as URL in walker {
+            if found.count >= limit { break }
+            guard
+                let values = try? url.resourceValues(
+                    forKeys: [.isRegularFileKey, .fileSizeKey]
+                ),
+                values.isRegularFile == true,
+                let size = values.fileSize,
+                size > 0,
+                size % 4096 != 0
+            else { continue }
+            found.append(url)
+        }
+    }
+    return found
+}
