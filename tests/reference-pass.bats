@@ -189,3 +189,19 @@
   run grep -c "under 30 s" docs/REFERENCE-PASS.md
   [ "$output" -eq 0 ]
 }
+
+@test "the benchmark label reader survives a slash in the label" {
+  # `entries/second: ` contains sed's own substitute delimiter, so
+  # `s/^LABEL//p` is malformed and took the whole pass down at the first rate
+  # reading. Both readers go through one helper that matches literally.
+  run grep -c 'value_after_label' scripts/reference-pass.sh
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 3 ]
+
+  # And prove the reader itself handles a label containing a slash.
+  log="$BATS_TEST_TMPDIR/benchmark.log"
+  printf 'entries: 42\nentries/second: 21002\nduration: 1.5 seconds\n' > "$log"
+  run awk -v label='entries/second: ' 'index($0,label)==1 { print substr($0,length(label)+1); exit }' "$log"
+  [ "$status" -eq 0 ]
+  [ "$output" = "21002" ]
+}
