@@ -204,6 +204,37 @@ record them.
    **The duration is the first one that measures the right thing** — 178 s is
    still 5.9x the budget, but it is an honest 5.9x.
 
+   **The 30 s budget is not reachable on this volume by any implementation,
+   and that is a measurement rather than an excuse.** `find -xdev /` — which
+   walks and stats and does nothing else, no extent map, no SQLite, no clone
+   detection — takes **126.1 seconds** here, 72 of them in the kernel. That is
+   **4.2x the entire budget** for strictly less work than this engine has to do.
+   FATHOM's whole-volume scan is 154.8 s, only **1.23x a bare `find`**, while
+   additionally opening and extent-mapping 2.36 million files and writing 3.11
+   million rows.
+
+   The budget belongs to a different volume than the one being measured. M1
+   states it as "walks a 500 GB volume in under 30 seconds"; this volume holds
+   315 GB but **3.1 million entries**, and enumeration cost scales with entries,
+   not bytes. Either the reference Mac mini's volume has to be the one this is
+   judged on, or the budget needs restating in terms of entries — 30 s at the
+   measured 20,075 entries/second is about 600,000 entries.
+
+   **What was available was taken: 178.0 s to 154.8 s, 13%.** Two changes, and
+   the second only worked once the first was understood. Concurrent metadata
+   reads contend inside the filesystem, so the useful read width is small and
+   flat rather than proportional to cores — four readers took 11.3 s on
+   `/System/Library`, eight took 9.4 s, sixteen took 14.8 s, and running the
+   same work on libdispatch, whose pool grows freely, was slower still. And the
+   SQLite write is a fifth of the extent phase and touches no file, so it now
+   runs against the next page's syscalls instead of stalling behind them.
+
+   The two interact, which is the part worth remembering: **pipelining puts two
+   pages in flight, so the effective width is double the configured one.** With
+   both changes at width eight the gain was zero, because eight had become
+   sixteen. At width four — an effective eight — `/System/Library` went from
+   19.1–20.2 s to 15.6–17.8 s.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of
