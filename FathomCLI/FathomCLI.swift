@@ -257,8 +257,14 @@ struct FathomCommand {
             ? Double(traversal.entryCount) / seconds
             : 0
         let residentBytes = peakResidentBytes()
+        // Two different things, kept apart. A file the scan could not inspect
+        // is a failure. A file that was replaced while the scan ran is the
+        // machine moving underneath it, which no engine can drive to zero: one
+        // run recorded 64 of these and the next 2,035, with no code between
+        // them.
         let issueCount = traversal.issues.count +
             Int(extentSummary.failedFileCount)
+        let changedDuringScan = Int(extentSummary.changedDuringScanCount)
 
         print("path: \(url.path)")
         print("entries: \(traversal.entryCount)")
@@ -279,6 +285,7 @@ struct FathomCommand {
         print(String(format: "entries/second: %.0f", rate))
         print("peak resident bytes: \(residentBytes)")
         print("issues: \(issueCount)")
+        print("changed during the scan: \(changedDuringScan)")
         print("accounted on disk: \(render(accounting.sizeOnDisk))")
         print("freed if deleted: \(render(freeable))")
         print("index: \(indexURL.path)")

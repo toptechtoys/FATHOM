@@ -645,3 +645,44 @@ private struct IndexFixture {
         try? FileManager.default.removeItem(at: root)
     }
 }
+
+// A file replaced between the walk and the extent read is the machine moving
+// under the scan, not a failure of the scan. A whole-volume pass takes about
+// 160 seconds and a Mac in use writes throughout: two consecutive runs of the
+// same commit recorded 64 of these and then 2,035, with no code between them.
+// Counting that against a zero-issue gate asks the volume to hold still.
+
+@Test func aFileReplacedMidScanIsCountedAsChurnNotFailure() async throws {
+    let fixture = try IndexFixture()
+    defer { fixture.remove() }
+
+    let steady = fixture.scanRoot.appending(path: "steady.bin")
+    let replaced = fixture.scanRoot.appending(path: "replaced.bin")
+    try Data(repeating: 0x41, count: 8_192).write(to: steady)
+    try Data(repeating: 0x42, count: 8_192).write(to: replaced)
+
+    let index = try StorageIndex(url: fixture.databaseURL)
+    let staged = try await index.stageTraversal(
+        at: fixture.scanRoot,
+        scope: .subtree
+    )
+    #expect(staged.regularFileCount == 2)
+
+    // Replaced, not edited: a new inode at the same path is what the identity
+    // check catches, and it is what an atomic save does.
+    try FileManager.default.removeItem(at: replaced)
+    try Data(repeating: 0x43, count: 4_096).write(to: replaced)
+
+    let summary = try await index.inspectStagedExtents(scanID: staged.scanID)
+
+    #expect(summary.inspectedFileCount == 1)
+    #expect(
+        summary.changedDuringScanCount == 1,
+        "a replaced file was not recognised as changing under the scan"
+    )
+    #expect(
+        summary.failedFileCount == 0,
+        "a replaced file was counted as an inspection failure"
+    )
+    await index.close()
+}

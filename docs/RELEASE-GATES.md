@@ -309,6 +309,38 @@ record them.
    This is the third time allocation turned out to be somewhere the mapper was
    not looking: the data fork, then the resource fork, now past the end.
 
+   **The zero-issue condition counted two different things, and one of them a
+   live Mac cannot give.** A file the scan could not inspect is a failure — a
+   read denied, extents that would not reconcile, a filesystem publishing no
+   addresses. A file *replaced while the scan was running* is the machine moving
+   underneath it. The gate now asks for zero of the first and merely records the
+   second.
+
+   The evidence for splitting them is two consecutive runs of the same commit,
+   with no code between them:
+
+   | | 18:47 | earlier |
+   |---|---|---|
+   | Files changed during the scan | **2,035** | 64 |
+   | Could not inspect — permission | 193 | 116 |
+   | FTS could not read this entry | 275 | 275 |
+   | Physical extents do not reconcile | 52 | 1,123 |
+   | No extent addresses published | 59 | 51 |
+
+   A whole-volume scan takes about 160 seconds, and a Mac in use writes
+   throughout: Spotlight, log rotation, databases. Thirty-two times the churn in
+   one run over the next says nothing about the engine, and a gate that counts
+   it is asking the volume to hold still for two and a half minutes.
+
+   What is left after the split is stable and real: **roughly 580** — about 470
+   the scan could not read, 52 that would not reconcile, 59 with no addresses
+   published. That is the number worth driving to zero, and it is down from
+   230,799.
+
+   Both figures are recorded. The CLI prints them on separate lines, and
+   `REFERENCE-PASS.md` has a row for each, because a scan that quietly dropped
+   the churn would be hiding how much the machine moved while it measured.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of
