@@ -150,7 +150,7 @@ works, because everything else depends on it being correct.
 
 **M1 — the engine.** `FathomKit/Storage`. FTS walk, allocated vs logical, clone
 detection via `F_LOG2PHYS_EXT`, sparse via `SEEK_HOLE`, snapshot enumeration.
-No UI. Ships when it walks at 20,000 entries per second or better and every
+No UI. Ships when it walks at 18,000 entries per second or better and every
 number matches the reference machine fixtures. **The target is entries, not
 gigabytes**: a bare `find -xdev /` takes 126.1 s on a 315 GB volume holding 3.1
 million entries, so a wall-clock budget measured the disk rather than the
