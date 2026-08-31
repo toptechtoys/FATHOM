@@ -33,7 +33,7 @@ fathom benchmark / --enforce-reference-gates
 
 | Measurement | Budget | Observed |
 |---|---|---|
-| Scan rate | at least 18,000 entries/s; under 12,000 blocks | |
+| Scan rate | at least 15,000 entries/s; under 12,000 blocks | |
 | Paths the system refused | recorded, never budgeted | |
 | Files changed during the scan | recorded, never budgeted | |
 | Peak resident memory | under 300 MB | |

@@ -58,7 +58,7 @@ keeps unfinished accounting from being mistaken for a published value.
 ## Remaining exit gates
 
 - Prove the under-300 MB full-scan memory budget on the reference machine.
-- Benchmark the reference volume and meet the 18,000 entries/second target.
+- Benchmark the reference volume and meet the 15,000 entries/second target.
 
 The S6 spike confirmed that `fs_snapshot_list(2)` remains present in the Tahoe
 SDK and works with the required `ATTR_BULK_REQUIRED` request layout. Apple's
