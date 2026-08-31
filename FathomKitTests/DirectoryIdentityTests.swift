@@ -166,3 +166,106 @@ private func makeTemporaryTree() throws -> URL {
     try Data("two".utf8).write(to: nested.appendingPathComponent("two.txt"))
     return root
 }
+
+// MARK: - The container boundary
+
+// A scan of `/` is a question about one startup disk. The walk used to descend
+// into everything mounted under it, so one external 2 TB drive at `/Volumes`
+// added **1,028.9 GB and 1.24 million files** to a 318 GB answer — and inflated
+// the duration and the peak memory that RELEASE-GATES gate 1 measures.
+//
+// `st_dev` alone is the wrong boundary in the other direction: APFS puts
+// several volumes in one container and they share its free space, so `/`, the
+// data volume, Preboot, VM and Update are all disk3 and all count toward the
+// same pool. The rule is the container, checked through `statfs` at a device
+// boundary only.
+
+@Test func aMountFromAnotherContainerIsNotCountedAsPartOfThisOne() throws {
+    guard let image = try MountedTestImage(megabytes: 20) else {
+        Issue.record("hdiutil is unavailable; the container boundary is unproven")
+        return
+    }
+    defer { image.detach() }
+
+    // 8 MB on the mounted image, 2 MB on the volume being scanned.
+    try Data(repeating: 0xAB, count: 8 * 1_048_576)
+        .write(to: image.mountPoint.appending(path: "inside.bin"))
+    try Data(repeating: 0xCD, count: 2 * 1_048_576)
+        .write(to: image.root.appending(path: "outside.bin"))
+
+    // The image really is a different device, or this proves nothing.
+    let rootDevice = try #require(
+        try FileManager.default.attributesOfItem(atPath: image.root.path)[.systemNumber] as? UInt64
+    )
+    let mountDevice = try #require(
+        try FileManager.default.attributesOfItem(atPath: image.mountPoint.path)[.systemNumber] as? UInt64
+    )
+    #expect(rootDevice != mountDevice)
+
+    var names: [String] = []
+    let summary = try StorageScanner().walk(at: image.root) { entry in
+        names.append((entry.path as NSString).lastPathComponent)
+    }
+
+    #expect(summary.otherContainerMountsSkipped == 1)
+    #expect(summary.aliasedDirectoriesSkipped == 0)
+    #expect(names.contains("outside.bin"))
+    #expect(
+        !names.contains("inside.bin"),
+        "a file on another container was counted as part of this one"
+    )
+}
+
+/// A disk image attached at a path inside a temporary directory: a second APFS
+/// container, created without root, which is the only way to exercise the
+/// boundary without borrowing whatever happens to be plugged in.
+private struct MountedTestImage {
+    let root: URL
+    let mountPoint: URL
+    private let imageURL: URL
+
+    init?(megabytes: Int) throws {
+        let manager = FileManager.default
+        let base = manager.temporaryDirectory
+            .appending(path: "FathomContainerTests-\(UUID().uuidString)")
+        root = base.appending(path: "root")
+        mountPoint = root.appending(path: "attached")
+        imageURL = base.appending(path: "image.dmg")
+        try manager.createDirectory(at: mountPoint, withIntermediateDirectories: true)
+
+        guard MountedTestImage.hdiutil([
+            "create", "-size", "\(megabytes)m", "-fs", "APFS",
+            "-volname", "FathomTestVol", "-quiet", imageURL.path
+        ]) else {
+            try? manager.removeItem(at: base)
+            return nil
+        }
+        guard MountedTestImage.hdiutil([
+            "attach", imageURL.path,
+            "-mountpoint", mountPoint.path, "-nobrowse", "-quiet"
+        ]) else {
+            try? manager.removeItem(at: base)
+            return nil
+        }
+    }
+
+    func detach() {
+        _ = MountedTestImage.hdiutil(["detach", mountPoint.path, "-quiet"])
+        try? FileManager.default.removeItem(at: root.deletingLastPathComponent())
+    }
+
+    private static func hdiutil(_ arguments: [String]) -> Bool {
+        let tool = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        guard FileManager.default.isExecutableFile(atPath: tool.path) else {
+            return false
+        }
+        let process = Process()
+        process.executableURL = tool
+        process.arguments = arguments
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do { try process.run() } catch { return false }
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    }
+}

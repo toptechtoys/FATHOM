@@ -57,6 +57,9 @@ public struct StagedTraversalScan: Sendable, Equatable {
     /// Directories reached by a second path and counted once. See
     /// `StorageScanSummary.aliasedDirectoriesSkipped`.
     public let aliasedDirectoriesSkipped: UInt64
+    /// Mounts declined for belonging to another APFS container. See
+    /// `StorageScanSummary.otherContainerMountsSkipped`.
+    public let otherContainerMountsSkipped: UInt64
     public let issues: [StorageScanIssue]
 
     public var isComplete: Bool {
@@ -70,6 +73,7 @@ public struct StagedTraversalScan: Sendable, Equatable {
         entryCount: UInt64,
         regularFileCount: UInt64,
         aliasedDirectoriesSkipped: UInt64 = 0,
+        otherContainerMountsSkipped: UInt64 = 0,
         issues: [StorageScanIssue]
     ) {
         self.scanID = scanID
@@ -78,6 +82,7 @@ public struct StagedTraversalScan: Sendable, Equatable {
         self.entryCount = entryCount
         self.regularFileCount = regularFileCount
         self.aliasedDirectoriesSkipped = aliasedDirectoriesSkipped
+        self.otherContainerMountsSkipped = otherContainerMountsSkipped
         self.issues = issues
     }
 }
@@ -897,6 +902,7 @@ public actor StorageIndex {
                 entryCount: summary.entryCount,
                 regularFileCount: regularFileCount,
                 aliasedDirectoriesSkipped: summary.aliasedDirectoriesSkipped,
+                otherContainerMountsSkipped: summary.otherContainerMountsSkipped,
                 issues: summary.issues
             )
         } catch {

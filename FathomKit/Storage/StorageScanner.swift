@@ -11,15 +11,24 @@ public struct StorageScanSummary: Sendable, Equatable {
     /// 575 GB. The figure is carried rather than dropped because a walk that
     /// halves itself has to be able to say so.
     public let aliasedDirectoriesSkipped: UInt64
+    /// Mounts declined because they belong to another APFS container.
+    ///
+    /// A scan of `/` is a question about one startup disk. An attached drive is
+    /// a different disk, and counting it added 1,028.9 GB to a 318 GB answer.
+    /// Volumes sharing the root's container — the data volume, Preboot, VM,
+    /// Update — are not counted here because they are not declined.
+    public let otherContainerMountsSkipped: UInt64
     public let issues: [StorageScanIssue]
 
     public init(
         entryCount: UInt64,
         aliasedDirectoriesSkipped: UInt64 = 0,
+        otherContainerMountsSkipped: UInt64 = 0,
         issues: [StorageScanIssue]
     ) {
         self.entryCount = entryCount
         self.aliasedDirectoriesSkipped = aliasedDirectoriesSkipped
+        self.otherContainerMountsSkipped = otherContainerMountsSkipped
         self.issues = issues
     }
 }
@@ -43,6 +52,7 @@ public struct StorageScanner: Sendable {
 
         var errorNumber: Int32 = 0
         var aliasedDirectoriesSkipped: UInt64 = 0
+        var otherContainerMountsSkipped: UInt64 = 0
         let result = rootURL.withUnsafeFileSystemRepresentation { rootPath in
             guard let rootPath else {
                 errorNumber = EINVAL
@@ -54,6 +64,7 @@ public struct StorageScanner: Sendable {
                 storageEntryCallback,
                 retainedState.toOpaque(),
                 &aliasedDirectoriesSkipped,
+                &otherContainerMountsSkipped,
                 &errorNumber
             )
         }
@@ -71,6 +82,7 @@ public struct StorageScanner: Sendable {
         return StorageScanSummary(
             entryCount: state.entryCount,
             aliasedDirectoriesSkipped: aliasedDirectoriesSkipped,
+            otherContainerMountsSkipped: otherContainerMountsSkipped,
             issues: state.issues
         )
     }

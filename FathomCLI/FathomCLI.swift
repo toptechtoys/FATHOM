@@ -269,6 +269,12 @@ struct FathomCommand {
             "aliased directories skipped: " +
             "\(traversal.aliasedDirectoriesSkipped)"
         )
+        // Another disk's bytes are not on this one, and a walk that declines
+        // to count them has to say how many it declined.
+        print(
+            "other-container mounts skipped: " +
+            "\(traversal.otherContainerMountsSkipped)"
+        )
         print("duration: \(format(duration: duration))")
         print(String(format: "entries/second: %.0f", rate))
         print("peak resident bytes: \(residentBytes)")
