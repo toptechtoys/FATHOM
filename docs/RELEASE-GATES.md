@@ -64,9 +64,32 @@ record them.
 ## Reference Mac mini M4 Pro
 
 1. Build the Release CLI and run
-   `fathom benchmark / --enforce-reference-gates` against the approximately
-   500 GB reference volume with Full Disk Access. The recorded duration must be
-   under 30 seconds and peak resident memory under 300 MB.
+   `fathom benchmark / --enforce-reference-gates` against the reference volume
+   with Full Disk Access. The recorded scan rate must be **at least 20,000
+   entries per second — below 12,000 blocks a release** — and peak resident
+   memory under 300 MB.
+
+   **The budget is a rate because enumeration cost scales with entries, not
+   with gigabytes.** It used to read "under 30 seconds against an approximately
+   500 GB volume", and that measured whichever disk the gate happened to run
+   on: `find -xdev /` — walk and stat, no extent map, no SQLite, no clone
+   detection — needs **126.1 s** on a 315 GB volume holding 3.1 million entries,
+   4.2x the whole of the old budget for strictly less work. Thirty seconds at
+   20,000 entries per second is 600,000 entries, which is what that budget
+   actually bought.
+
+   20,000 is what the engine measures (3,108,160 entries in 154.8 s, 31 August
+   2026, M3 Max). A bare `find` over the same tree runs at 24,648 entries per
+   second, so the engine holds **81% of the walk-and-stat floor** while also
+   opening and extent-mapping every regular file. The 12,000 blocking threshold
+   leaves 40% for slower hardware before it stops a release, rather than failing
+   the first machine that is not this one.
+
+   **Measured against the restated budget on 31 August 2026: 20,113 entries per
+   second over 3,109,075 entries, and 254 MB peak.** Both pass. What gate 1 now
+   fails on is its third condition — 1,911 inspection issues against zero — and
+   roughly a third of those are files that changed while the scan ran, which a
+   live Mac may never bring to zero. That condition is the one left to settle.
 
    **The first real run of this gate failed on every criterion, and it found a
    bug rather than a slow engine.** On 30 August 2026, on a Mac15,9 M3 Max with

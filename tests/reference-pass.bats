@@ -175,3 +175,17 @@
   if [ -z "$name" ]; then skip "the project could not be queried"; fi
   [ "$name" = "FATHOM Bar.app" ]
 }
+
+@test "the duration budget is stated as a rate, not a wall clock" {
+  # Enumeration cost scales with entries, not gigabytes: a bare `find -xdev /`
+  # needs 126.1 s on a 315 GB volume of 3.1 million entries, so a wall-clock
+  # budget measured whichever disk the gate ran on.
+  run grep -c "under 30 s" scripts/reference-pass.sh
+  [ "$output" -eq 0 ]
+
+  run grep -c "entries/s" scripts/reference-pass.sh
+  [ "$output" -ge 1 ]
+
+  run grep -c "under 30 s" docs/REFERENCE-PASS.md
+  [ "$output" -eq 0 ]
+}
