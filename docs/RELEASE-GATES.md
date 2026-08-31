@@ -172,6 +172,38 @@ record them.
    **That last group may never reach zero on a running Mac**, which is a question
    about this gate's zero-issue condition rather than about the engine.
 
+   **The walk measured every disk attached to the Mac, not the one it was
+   asked about.** On 31 August 2026 a run with Full Disk Access reported
+   **1,407.8 GB on a volume holding 318 GB** and 5,338,545 entries. One external
+   2 TB drive mounted at `/Volumes` accounted for **1,028.9 GB and 1.24 million
+   files** of that, and it inflated the duration and the peak memory this gate
+   measures — the 362 MB "failure" was measuring a different, larger job.
+
+   `st_dev` alone is the wrong boundary, in both directions. APFS puts several
+   volumes in one container and they share its free space: `/`, the data volume,
+   Preboot, VM and Update are all `disk3` and all count toward the same pool,
+   while an external drive is its own whole disk and does not. A plain
+   cross-device check would have dropped Preboot's 29.7 GB along with the
+   external drive. The walk now compares the whole-disk number from `statfs`,
+   consulted only at a device boundary, and publishes what it declined as
+   `otherContainerMountsSkipped`.
+
+   It also stops double counting the mounted iOS simulator runtime, whose
+   backing image is a file on the boot volume and is already counted where it
+   actually lives.
+
+   | | Before | After |
+   |---|---|---|
+   | Entries | 5,338,545 | 3,085,533 |
+   | Measured on disk | 1,407.8 GB | 354.8 GB |
+   | Explained | 1,375.3 GB | 324.4 GB |
+   | Duration | 382.6 s | 178.0 s |
+   | Peak memory | 362.0 MB | 252.4 MB |
+
+   The volume holds 315 GB, so the explained figure is now within 3% of it.
+   **The duration is the first one that measures the right thing** — 178 s is
+   still 5.9x the budget, but it is an honest 5.9x.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of

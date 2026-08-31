@@ -181,15 +181,60 @@ uint64_t fathom_identity_set_count(const FathomIdentitySet *set) {
     return set == NULL ? 0 : set->count;
 }
 
+/* The whole-disk number in a device node like "/dev/disk3s5", or 0 when the
+ * name is not one — a network share, an autofs map, devfs.
+ *
+ * APFS puts several volumes in one container and they share its free space, so
+ * `/`, `/System/Volumes/Data`, Preboot, VM and Update are all disk3 and all
+ * count toward the same pool. An external drive is its own whole disk and does
+ * not. Comparing `st_dev` alone would answer the first question wrong. */
+static unsigned long whole_disk_number(const char *device_node) {
+    static const char prefix[] = "/dev/disk";
+    if (device_node == NULL) {
+        return 0;
+    }
+    size_t prefix_length = sizeof(prefix) - 1;
+    if (strncmp(device_node, prefix, prefix_length) != 0) {
+        return 0;
+    }
+    const char *digits = device_node + prefix_length;
+    if (*digits < '0' || *digits > '9') {
+        return 0;
+    }
+    return strtoul(digits, NULL, 10);
+}
+
+/* True when `path` belongs to the same container the walk was asked about.
+ *
+ * Only consulted at a device boundary, which is rare, so the extra statfs
+ * costs one call per mount rather than one per entry. */
+static bool shares_root_container(
+    const char *path,
+    unsigned long root_disk
+) {
+    if (root_disk == 0) {
+        /* The root is not on a local disk, so "same container" has no meaning
+         * and the device comparison already made the decision. */
+        return false;
+    }
+    struct statfs metadata;
+    if (statfs(path, &metadata) != 0) {
+        return false;
+    }
+    return whole_disk_number(metadata.f_mntfromname) == root_disk;
+}
+
 int32_t fathom_fts_walk(
     const char *root_path,
     FathomFTSEntryCallback callback,
     void *context,
     uint64_t *aliased_directories_skipped,
+    uint64_t *other_container_mounts_skipped,
     int32_t *error_number
 ) {
     if (root_path == NULL || callback == NULL ||
-        aliased_directories_skipped == NULL || error_number == NULL) {
+        aliased_directories_skipped == NULL ||
+        other_container_mounts_skipped == NULL || error_number == NULL) {
         if (error_number != NULL) {
             *error_number = EINVAL;
         }
@@ -197,12 +242,19 @@ int32_t fathom_fts_walk(
     }
 
     *aliased_directories_skipped = 0;
+    *other_container_mounts_skipped = 0;
 
     struct stat root_metadata;
     if (lstat(root_path, &root_metadata) != 0) {
         *error_number = errno;
         return -1;
     }
+
+    struct statfs root_filesystem;
+    unsigned long root_disk = statfs(root_path, &root_filesystem) == 0
+        ? whole_disk_number(root_filesystem.f_mntfromname)
+        : 0;
+    const uint64_t root_device = (uint64_t)root_metadata.st_dev;
 
     FathomIdentitySet *visited = fathom_identity_set_create();
     if (visited == NULL) {
@@ -229,6 +281,18 @@ int32_t fathom_fts_walk(
          * pre-order visit is tested, so the subtree can be pruned before it is
          * walked rather than filtered after. */
         if (node->fts_info == FTS_D && node->fts_statp != NULL) {
+            /* Stop at the edge of the container. A scan of `/` is a question
+             * about one Mac's startup disk, and an attached drive is a
+             * different disk whose bytes are not on it. One external 2 TB
+             * volume mounted at /Volumes added 1,028.9 GB and 1.24 million
+             * files to a 318 GB answer. */
+            if ((uint64_t)node->fts_statp->st_dev != root_device &&
+                !shares_root_container(node->fts_path, root_disk)) {
+                *other_container_mounts_skipped += 1;
+                (void)fts_set(stream, node, FTS_SKIP);
+                continue;
+            }
+
             const int32_t inserted = fathom_identity_set_insert(
                 visited,
                 (uint64_t)node->fts_statp->st_dev,

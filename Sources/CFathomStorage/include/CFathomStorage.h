@@ -74,11 +74,19 @@ uint64_t fathom_identity_set_count(const FathomIdentitySet *set);
 /// receives how many were pruned, because a walk that silently halves itself
 /// is as hard to trust as one that doubles. Files are never deduplicated —
 /// hard links are a real thing the two-number engine accounts for.
+///
+/// The walk also stops at the edge of the root's APFS container, and
+/// `other_container_mounts_skipped` counts the mounts it declined. Several
+/// volumes share one container and its free space — `/`, the data volume,
+/// Preboot, VM and Update are all the same disk — so `st_dev` alone is the
+/// wrong boundary. An attached drive is a different disk and its bytes are not
+/// on the one being measured.
 int32_t fathom_fts_walk(
     const char *root_path,
     FathomFTSEntryCallback callback,
     void *context,
     uint64_t *aliased_directories_skipped,
+    uint64_t *other_container_mounts_skipped,
     int32_t *error_number
 );
 
