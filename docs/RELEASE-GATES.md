@@ -341,6 +341,37 @@ record them.
    `REFERENCE-PASS.md` has a row for each, because a scan that quietly dropped
    the churn would be hiding how much the machine moved while it measured.
 
+   **A path the system refuses is not a failure of the scan, and 80% of what
+   was left were those.** On the 31 August reference volume, 465 inspection
+   failures broke down as:
+
+   | | Count | |
+   |---|---|---|
+   | FTS could not read this entry | 275 | `EACCES` 220, `EPERM` 55 |
+   | Could not inspect — permission | 96 | |
+   | The filesystem publishes no extent addresses | 53 | |
+   | Physical extents do not reconcile | 41 | |
+
+   **371 of 465 are macOS declining to open a path at all** — `/usr/sbin/
+   authserver`, `/Library/Application Support/Apple/AssetCache/Data`,
+   `/Library/Caches/com.apple.amsengagementd.classicdatavault`. Root-owned or
+   behind SIP. **Full Disk Access does not reach them**: the traversal recorded
+   exactly 275 with the permission granted and exactly 275 without it, the same
+   number both times. Only running as root would, and non-negotiable 8 forbids
+   this product taking root to report on itself.
+
+   So a zero-failure gate was asking FATHOM to become root. Refusals are now
+   counted and recorded on their own row, never budgeted, and `EACCES` and
+   `EPERM` are the only two errors that qualify — anything else stays a failure,
+   which `onlyAccessRefusalsCountAsRefusedNotEveryError` holds. The rule is
+   named once, in `StorageIndex.isRefusedBySystem`, so the traversal and the
+   extent stage cannot drift apart on it.
+
+   **What the gate now asks for zero of is 94 files**: 53 that publish no extent
+   addresses and 41 whose extents do not reconcile. Down from 230,799 on 29
+   August. That is the whole of the remaining engine work, and it is a number
+   somebody could finish.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of

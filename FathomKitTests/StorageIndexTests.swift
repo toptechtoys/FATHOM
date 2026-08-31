@@ -686,3 +686,63 @@ private struct IndexFixture {
     )
     await index.close()
 }
+
+// A path the system will not open is not a failure of the scan. `EACCES` and
+// `EPERM` are macOS declining — a root-owned file, or one behind SIP — and Full
+// Disk Access does not reach them. On one reference volume 371 of 465
+// "failures" were these, so a zero-failure gate asked this product to become
+// root, which non-negotiable 8 forbids.
+
+@Test func aPathTheSystemRefusesIsNotAnInspectionFailure() async throws {
+    let fixture = try IndexFixture()
+    defer { fixture.remove() }
+
+    let readable = fixture.scanRoot.appending(path: "readable.bin")
+    let refused = fixture.scanRoot.appending(path: "refused.bin")
+    try Data(repeating: 0x41, count: 8_192).write(to: readable)
+    try Data(repeating: 0x42, count: 8_192).write(to: refused)
+
+    let index = try StorageIndex(url: fixture.databaseURL)
+    let staged = try await index.stageTraversal(
+        at: fixture.scanRoot,
+        scope: .subtree
+    )
+    #expect(staged.regularFileCount == 2)
+
+    // Unreadable after the walk recorded it, so the refusal lands in the
+    // extent stage where the file is actually opened.
+    try FileManager.default.setAttributes(
+        [.posixPermissions: 0o000],
+        ofItemAtPath: refused.path
+    )
+    defer {
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o644],
+            ofItemAtPath: refused.path
+        )
+    }
+
+    let summary = try await index.inspectStagedExtents(scanID: staged.scanID)
+
+    #expect(summary.inspectedFileCount == 1)
+    #expect(
+        summary.refusedBySystemCount == 1,
+        "a path the system refused was not recognised as a refusal"
+    )
+    #expect(
+        summary.failedFileCount == 0,
+        "a path the system refused was counted as an inspection failure"
+    )
+    await index.close()
+}
+
+@Test func onlyAccessRefusalsCountAsRefusedNotEveryError() {
+    // Named in one place so the traversal and the extent stage cannot drift.
+    #expect(StorageIndex.isRefusedBySystem(EACCES))
+    #expect(StorageIndex.isRefusedBySystem(EPERM))
+    // Anything else is a real failure and has to stay one.
+    #expect(!StorageIndex.isRefusedBySystem(EIO))
+    #expect(!StorageIndex.isRefusedBySystem(ENOENT))
+    #expect(!StorageIndex.isRefusedBySystem(ESTALE))
+    #expect(!StorageIndex.isRefusedBySystem(0))
+}

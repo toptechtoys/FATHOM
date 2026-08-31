@@ -262,8 +262,19 @@ struct FathomCommand {
         // machine moving underneath it, which no engine can drive to zero: one
         // run recorded 64 of these and the next 2,035, with no code between
         // them.
-        let issueCount = traversal.issues.count +
+        // Three columns, because they are three different facts.
+        //
+        // A refusal is macOS declining to open a path at all — root-owned or
+        // behind SIP, and Full Disk Access does not reach them. 371 of 465 on
+        // one reference volume were these, so a zero-failure gate was asking
+        // this product to become root, which non-negotiable 8 forbids.
+        let refusedTraversal = traversal.issues.filter {
+            StorageIndex.isRefusedBySystem($0.errorNumber)
+        }.count
+        let issueCount = (traversal.issues.count - refusedTraversal) +
             Int(extentSummary.failedFileCount)
+        let refusedBySystem = refusedTraversal +
+            Int(extentSummary.refusedBySystemCount)
         let changedDuringScan = Int(extentSummary.changedDuringScanCount)
 
         print("path: \(url.path)")
@@ -285,6 +296,7 @@ struct FathomCommand {
         print(String(format: "entries/second: %.0f", rate))
         print("peak resident bytes: \(residentBytes)")
         print("issues: \(issueCount)")
+        print("refused by the system: \(refusedBySystem)")
         print("changed during the scan: \(changedDuringScan)")
         print("accounted on disk: \(render(accounting.sizeOnDisk))")
         print("freed if deleted: \(render(freeable))")

@@ -93,6 +93,13 @@ public struct StagedExtentInspectionSummary: Sendable, Equatable {
     /// denied: a read that failed, extents that would not reconcile, a
     /// filesystem that publishes no addresses.
     public let failedFileCount: UInt64
+    /// Files the system would not open at all.
+    ///
+    /// `EACCES` and `EPERM` only: a path root owns, or one behind SIP. Full
+    /// Disk Access does not reach them and only running as root would, which
+    /// non-negotiable 8 forbids. Counting them as inspection failures asked
+    /// this product to become root before its gate could pass.
+    public let refusedBySystemCount: UInt64
     /// Files that were replaced while the scan was running.
     ///
     /// Kept apart from the failures because it measures the machine rather
@@ -104,10 +111,12 @@ public struct StagedExtentInspectionSummary: Sendable, Equatable {
     public init(
         inspectedFileCount: UInt64,
         failedFileCount: UInt64,
+        refusedBySystemCount: UInt64 = 0,
         changedDuringScanCount: UInt64 = 0
     ) {
         self.inspectedFileCount = inspectedFileCount
         self.failedFileCount = failedFileCount
+        self.refusedBySystemCount = refusedBySystemCount
         self.changedDuringScanCount = changedDuringScanCount
     }
 }
@@ -1309,16 +1318,21 @@ public actor StorageIndex {
                     } catch {
                         // Classified by type, not by reading the message back
                         // out of a string.
-                        let changed: Bool
+                        var changed = false
+                        var refused = false
                         if case FileExtentError.identityChanged = error {
                             changed = true
-                        } else {
-                            changed = false
+                        } else if case let FileExtentError.cannotInspect(
+                            _,
+                            errorNumber
+                        ) = error {
+                            refused = StorageIndex.isRefusedBySystem(errorNumber)
                         }
                         return .failed(
                             record: record,
                             reason: String(describing: error),
-                            changedDuringScan: changed
+                            changedDuringScan: changed,
+                            refusedBySystem: refused
                         )
                     }
                 }
@@ -1337,6 +1351,14 @@ public actor StorageIndex {
         }
     }
 
+    /// Whether the system refused the read outright.
+    ///
+    /// Named in one place so the traversal and the extent stage cannot drift
+    /// apart on what counts as a refusal.
+    public static func isRefusedBySystem(_ errorNumber: Int32) -> Bool {
+        errorNumber == EACCES || errorNumber == EPERM
+    }
+
     public func inspectStagedExtents(
         scanID: Int64,
         maximumConcurrentReads: Int = StorageIndex.defaultConcurrentReads
@@ -1353,6 +1375,7 @@ public actor StorageIndex {
         var inspectedCount: UInt64 = 0
         var failedCount: UInt64 = 0
         var changedCount: UInt64 = 0
+        var refusedCount: UInt64 = 0
         var nextIssueOrdinal = try nextStagedIssueOrdinal(
             database: database,
             scanID: scanID
@@ -1411,7 +1434,12 @@ public actor StorageIndex {
                         } else {
                             failedCount += 1
                         }
-                    case let .failed(record, reason, changedDuringScan):
+                    case let .failed(
+                        record,
+                        reason,
+                        changedDuringScan,
+                        refusedBySystem
+                    ):
                         try markStagedExtentFailure(
                             database: database,
                             scanID: scanID,
@@ -1421,6 +1449,8 @@ public actor StorageIndex {
                         )
                         if changedDuringScan {
                             changedCount += 1
+                        } else if refusedBySystem {
+                            refusedCount += 1
                         } else {
                             failedCount += 1
                         }
@@ -1439,6 +1469,7 @@ public actor StorageIndex {
         return StagedExtentInspectionSummary(
             inspectedFileCount: inspectedCount,
             failedFileCount: failedCount,
+            refusedBySystemCount: refusedCount,
             changedDuringScanCount: changedCount
         )
     }
@@ -2745,12 +2776,13 @@ private enum StagedExtentOutcome: Sendable {
     case failed(
         record: StagedRegularFileRecord,
         reason: String,
-        changedDuringScan: Bool
+        changedDuringScan: Bool,
+        refusedBySystem: Bool
     )
 
     var entryID: Int64 {
         switch self {
-        case let .inspected(record, _), let .failed(record, _, _):
+        case let .inspected(record, _), let .failed(record, _, _, _):
             return record.id
         }
     }
