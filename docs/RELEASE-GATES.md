@@ -65,7 +65,7 @@ record them.
 
 1. Build the Release CLI and run
    `fathom benchmark / --enforce-reference-gates` against the reference volume
-   with Full Disk Access. The recorded scan rate must be **at least 18,000
+   with Full Disk Access. The recorded scan rate must be **at least 15,000
    entries per second — below 12,000 blocks a release** — and peak resident
    memory under 300 MB.
 
@@ -78,13 +78,27 @@ record them.
    20,000 entries per second is 600,000 entries, which is what that budget
    actually bought.
 
-   **18,000 is what the engine measures under this gate's own conditions**:
-   19,169 entries per second over 3,158,365 entries, with Full Disk Access
-   granted, 31 August 2026 on an M3 Max. The figure first written here was
-   20,000, taken from runs *without* Full Disk Access — where less of the volume
-   is reachable and the rate reads about 5% higher. A target the reference
-   machine misses on a good day is a badly set target, so it is stated from the
-   measurement the gate actually takes.
+   **15,000 is set from the range, not from a run.** Five whole-volume passes
+   with Full Disk Access on the same Mac:
+
+   | | entries/s |
+   |---|---|
+   | slowest | **17,708** |
+   | | 18,621 |
+   | | 19,169 |
+   | | 19,914 |
+   | fastest | **21,002** |
+
+   **A 19% spread on machine load alone.** The slow runs are the busy ones: the
+   17,708 pass recorded 1,067 files changing underneath it, the 21,002 pass
+   recorded 28. Nothing about the engine differed between them.
+
+   This figure has been wrong twice, both times for the same reason — set from a
+   single sample of something that varies. It was 20,000, taken from runs
+   *without* Full Disk Access, where less of the volume is reachable and the
+   rate reads about 5% high. Then 18,000, taken from one run with it, which the
+   very next pass missed. **A target has to sit below the slowest honest run**,
+   and 15,000 does, with the 12,000 blocking threshold a third below that.
 
    A bare `find` over the same volume runs at 24,648 entries per second, so the
    engine holds **78% of the walk-and-stat floor** while also opening and
