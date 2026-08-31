@@ -348,3 +348,94 @@ private func sealedSystemFilesEndingMidBlock(limit: Int) -> [URL] {
     }
     return found
 }
+
+// MARK: - Allocation past the last byte
+
+// A file can hold blocks beyond EOF. A SQLite database does not return space
+// when rows are deleted, and `st_blocks` counts what it kept. A walk over
+// logical offsets never reaches those blocks, because `SEEK_DATA` answers ENXIO
+// past the end — so the extents explained the logical size exactly, the
+// allocation did not match, and the file came back not attributable.
+//
+// One volume held **1,123 files like that**, 69% of everything still standing
+// between gate 1 and a zero issue count, and every one of them kept *freed if
+// deleted* unpublished. The blocks are real: deleting the file frees them.
+//
+// `F_LOG2PHYS_EXT` maps them when asked directly, and the filesystem says where
+// they stop — the first block past the allocation answers EFBIG.
+
+@Test func blocksHeldPastTheLastByteAreCounted() throws {
+    let fixture = try ExtentFixture()
+    defer { fixture.remove() }
+
+    let url = fixture.root.appending(path: "preallocated.bin")
+    guard try preallocate(url, bytes: 262_144, thenWrite: 8_192) else {
+        Issue.record("F_PREALLOCATE is unavailable; allocation past EOF unproven")
+        return
+    }
+
+    let entry = try scannedEntry(at: url)
+    let logical = try knownValue(entry.logicalSize)
+    let allocated = try knownValue(entry.sizeOnDisk)
+
+    // The shape: far more allocated than the file's contents occupy.
+    #expect(logical == 8_192)
+    #expect(allocated == 262_144)
+
+    let map = try FileExtentReader().inspect(entry)
+
+    // Reconciled. Without the past-EOF walk the extents stop at 8,192 and this
+    // is `.notAttributable`.
+    let physical = try knownValue(map.physicalExtents)
+    #expect(physical.reduce(0) { $0 + $1.length } == allocated)
+}
+
+@Test func aFileEndingMidBlockDoesNotCountThatBlockTwice() throws {
+    let fixture = try ExtentFixture()
+    defer { fixture.remove() }
+
+    // Five bytes in one 4 KiB block. The past-EOF walk starts at the block
+    // boundary at or after the last byte; starting at the byte itself would
+    // re-map the block the logical walk already covered and double it.
+    let url = fixture.root.appending(path: "tiny.bin")
+    try Data("hello".utf8).write(to: url)
+
+    let entry = try scannedEntry(at: url)
+    let allocated = try knownValue(entry.sizeOnDisk)
+    #expect(try knownValue(entry.logicalSize) == 5)
+
+    let map = try FileExtentReader().inspect(entry)
+    let physical = try knownValue(map.physicalExtents)
+    #expect(
+        physical.reduce(0) { $0 + $1.length } == allocated,
+        "a mid-block file counted its final block more than once"
+    )
+}
+
+/// Allocates `bytes` past the end, then writes `thenWrite` of contents, leaving
+/// the rest allocated but beyond EOF. Nothing in Foundation does this; the
+/// condition belongs to the filesystem.
+private func preallocate(_ url: URL, bytes: Int64, thenWrite: Int) throws -> Bool {
+    let descriptor = open(url.path, O_CREAT | O_RDWR | O_TRUNC, 0o644)
+    guard descriptor >= 0 else { return false }
+    defer { close(descriptor) }
+
+    var request = fstore_t(
+        fst_flags: UInt32(F_ALLOCATEALL),
+        fst_posmode: Int32(F_PEOFPOSMODE),
+        fst_offset: 0,
+        fst_length: bytes,
+        fst_bytesalloc: 0
+    )
+    guard fcntl(descriptor, F_PREALLOCATE, &request) == 0 else { return false }
+
+    let payload = [UInt8](repeating: 0x78, count: thenWrite)
+    guard write(descriptor, payload, payload.count) == payload.count,
+          fsync(descriptor) == 0
+    else { return false }
+
+    // The filesystem is free to decline; only assert on a real gap.
+    var metadata = stat()
+    guard fstat(descriptor, &metadata) == 0 else { return false }
+    return metadata.st_blocks * 512 > metadata.st_size
+}
