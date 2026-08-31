@@ -111,7 +111,7 @@ row_keys() {
     '| **Date of pass** |' \
     '| **Commit under test** |' \
     '| **git-lfs objects present** |' \
-    '| Duration | under 30 s |' \
+    '| Scan rate | at least 20,000 entries/s; under 12,000 blocks |' \
     '| Peak resident memory | under 300 MB |' \
     '| Peak index size on disk | no budget; **record it** |' \
     '| Free space before the run | — |' \
@@ -664,8 +664,14 @@ else
     BENCHMARK_VALUE="$(sed -n "s/^$1//p" "${out}/gate1/benchmark.log" | head -1)"
     [[ -n "${BENCHMARK_VALUE}" ]] || BENCHMARK_VALUE="${OPERATOR}"
   }
+  # The gate is a rate now, but the duration and the entry count are what a
+  # human reads it against, so the cell carries all three.
+  benchmark_value 'entries/second: '
+  rate_value="${BENCHMARK_VALUE}"
+  benchmark_value 'entries: '
+  entries_value="${BENCHMARK_VALUE}"
   benchmark_value 'duration: '
-  duration_cell="${BENCHMARK_VALUE}"
+  duration_cell="${rate_value} entries/s (${entries_value} entries in ${BENCHMARK_VALUE})"
   benchmark_value 'peak resident bytes: '
   resident_cell="${BENCHMARK_VALUE}"
   gates_line="$(grep -c '^reference gates: PASS$' "${out}/gate1/benchmark.log" || true)"
@@ -675,7 +681,7 @@ else
   df -k "${volume}" >"${out}/gate1/free-space-after.txt"
 fi
 
-add_fill '| Duration | under 30 s |' "${duration_cell}"
+add_fill '| Scan rate | at least 20,000 entries/s; under 12,000 blocks |' "${duration_cell}"
 add_fill '| Peak resident memory | under 300 MB |' "${resident_cell}"
 add_fill '| Peak index size on disk | no budget; **record it** |' "${index_peak_cell}"
 

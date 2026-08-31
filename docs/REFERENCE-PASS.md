@@ -33,7 +33,7 @@ fathom benchmark / --enforce-reference-gates
 
 | Measurement | Budget | Observed |
 |---|---|---|
-| Duration | under 30 s | |
+| Scan rate | at least 20,000 entries/s; under 12,000 blocks | |
 | Peak resident memory | under 300 MB | |
 | Peak index size on disk | no budget; **record it** | |
 | Free space before the run | — | |

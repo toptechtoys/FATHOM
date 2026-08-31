@@ -150,8 +150,11 @@ works, because everything else depends on it being correct.
 
 **M1 — the engine.** `FathomKit/Storage`. FTS walk, allocated vs logical, clone
 detection via `F_LOG2PHYS_EXT`, sparse via `SEEK_HOLE`, snapshot enumeration.
-No UI. Ships when it walks a 500 GB volume in under 30 seconds and every number
-matches the reference machine fixtures.
+No UI. Ships when it walks at 20,000 entries per second or better and every
+number matches the reference machine fixtures. **The target is entries, not
+gigabytes**: a bare `find -xdev /` takes 126.1 s on a 315 GB volume holding 3.1
+million entries, so a wall-clock budget measured the disk rather than the
+engine. See `RELEASE-GATES.md` gate 1.
 
 **M2 — Explore and Storage.** The two screens that show the engine. First point
 where a human can see the product's whole argument.
