@@ -143,3 +143,35 @@
   [ ! -e "$BATS_TEST_TMPDIR/out" ]
   [[ "$output" == *"| Peak index size on disk | no budget; **record it** |"* ]]
 }
+
+@test "reference-pass asks the build system for the widget bundle name" {
+  # The scheme is FathomBar and the bundle is "FATHOM Bar.app". Assuming the
+  # scheme name cost every reference pass its gate 3: the build succeeded, the
+  # bundle was looked for under the wrong name, and the record blamed the
+  # widget. Nothing here may hardcode the scheme name as a bundle.
+  run grep -n "Release/FathomBar.app" scripts/reference-pass.sh
+  [ "$status" -ne 0 ]
+
+  run grep -c "FULL_PRODUCT_NAME" scripts/reference-pass.sh
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 1 ]
+}
+
+@test "reference-pass treats a built-but-missing widget bundle as its own bug" {
+  # Recording it as an unmeasured gate is how the wrong name survived several
+  # passes: the gate looked like the thing that failed.
+  run grep -n "built but" scripts/reference-pass.sh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"bundle name this script looks for is wrong"* ]]
+}
+
+@test "the widget bundle name the build system reports really is on disk" {
+  # Skips rather than fails where Xcode cannot answer, so the suite still runs
+  # on a machine with only the command line tools.
+  if ! command -v xcodebuild >/dev/null 2>&1; then skip "xcodebuild unavailable"; fi
+  name="$(xcodebuild -project Fathom.xcodeproj -scheme FathomBar \
+    -configuration Release -showBuildSettings 2>/dev/null |
+    awk -F' = ' '/ FULL_PRODUCT_NAME = /{print $2; exit}')"
+  if [ -z "$name" ]; then skip "the project could not be queried"; fi
+  [ "$name" = "FATHOM Bar.app" ]
+}

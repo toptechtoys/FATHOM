@@ -256,7 +256,24 @@ record them.
    situation. Endurance on an Apple-silicon internal SSD needs a different
    source, or it stays *not published*. Confirm on the M4 Pro before designing
    around it — one Mac is one Mac.
-3. Run FATHOM Bar with its four default items and read the idle cost off the
+3. **Gate 3 passed on 31 August 2026, the first time it was ever measured:
+   0.00844% idle CPU with four items — 24x under the 0.2% target and 59x under
+   the 0.5% blocking threshold.** The widget measured itself through
+   `proc_pid_rusage` and published the figure with the item count it was taken
+   with, so this was a reading rather than a stopwatch exercise.
+
+   **It had never run because `reference-pass.sh` looked for the wrong file.**
+   The scheme is named `FathomBar` and the bundle it produces is
+   `FATHOM Bar.app`; the script assumed the scheme name. The build succeeded
+   every time, the bundle was looked for under a name that does not exist, and
+   the record read *"no FathomBar bundle to measure; gate 3 is unmeasured"* — as
+   though the widget were the thing at fault. The script now asks the build
+   system for `FULL_PRODUCT_NAME`, and a build that succeeds and then produces
+   nothing to measure is a hard failure rather than an unmeasured gate, because
+   recording it as a gate outcome is exactly how the wrong name survived several
+   passes.
+
+   Run FATHOM Bar with its four default items and read the idle cost off the
    Menu Bar section. **The widget now measures its own CPU** through
    `proc_pid_rusage` and publishes it; the app displays that figure and says
    which item count it was taken with, so this step is a reading rather than a
