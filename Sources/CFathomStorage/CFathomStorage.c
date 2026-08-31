@@ -559,6 +559,75 @@ static int walk_fork_extents(
  * Returns 0 whether or not a fork existed, and -1 only on an error worth
  * reporting. A file with no resource fork is the ordinary case: opening
  * `<path>/..namedfork/rsrc` answers ENOENT and nothing is emitted. */
+/* Maps the blocks a file holds past its last byte.
+ *
+ * A file can keep allocation beyond EOF — a SQLite database does not return
+ * space when rows are deleted — and a walk over logical offsets never reaches
+ * it, because SEEK_DATA answers ENXIO there. The blocks are real: `st_blocks`
+ * counts them and deleting the file frees them, so the product's whole claim
+ * depends on counting them too. `/Library/Application Support/Adobe/caps/
+ * hdpim.db` held three such blocks; one volume held 1,123 files like it, and
+ * every one came back not attributable.
+ *
+ * The filesystem says where the allocation ends: the first block past it
+ * answers EFBIG. That is the answer rather than a failure, so the loop stops
+ * without recording anything. `allocated_cap` bounds it a second way, because a
+ * mapper that trusted only an error to stop could run a long way on a bad day.
+ *
+ * The start rounds up to a block boundary. A file whose last byte falls mid
+ * block would otherwise re-map the block the logical walk already covered, and
+ * count it twice. */
+static int walk_past_eof_extents(
+    int descriptor,
+    off_t logical_size,
+    uint64_t allocation_block_size,
+    uint64_t allocated_cap,
+    FathomExtentCallback callback,
+    void *context,
+    int32_t *physical_mapping_error
+) {
+    if (allocation_block_size == 0 ||
+        *physical_mapping_error != 0 ||
+        logical_size < 0) {
+        return 0;
+    }
+    uint64_t start = ((uint64_t)logical_size + allocation_block_size - 1) /
+        allocation_block_size * allocation_block_size;
+    uint64_t cursor = start;
+    while (cursor < allocated_cap) {
+        struct log2phys mapping = {
+            .l2p_flags = 0,
+            .l2p_contigbytes = (off_t)(allocated_cap - cursor),
+            .l2p_devoffset = (off_t)cursor
+        };
+        if (fcntl(descriptor, F_LOG2PHYS_EXT, &mapping) != 0) {
+            break;
+        }
+        if (mapping.l2p_devoffset < 0) {
+            break;
+        }
+        off_t mapped_length = mapping.l2p_contigbytes;
+        if (mapped_length <= 0) {
+            mapped_length = (off_t)allocation_block_size;
+        }
+        if ((uint64_t)mapped_length > allocated_cap - cursor) {
+            mapped_length = (off_t)(allocated_cap - cursor);
+        }
+        if (emit_extent(
+                FATHOM_EXTENT_PHYSICAL,
+                (off_t)cursor,
+                mapped_length,
+                mapping.l2p_devoffset,
+                callback,
+                context
+            ) != 0) {
+            return 1;
+        }
+        cursor += (uint64_t)mapped_length;
+    }
+    return 0;
+}
+
 static int walk_resource_fork_extents(
     const char *path,
     uint64_t expected_device,
@@ -770,6 +839,19 @@ int32_t fathom_file_extents(
      *
      * A file without a resource fork answers ENOENT, which is the ordinary
      * case and not a failure. */
+    if (walk_past_eof_extents(
+            descriptor,
+            opened_metadata.st_size,
+            *allocation_block_size,
+            allocated_bytes(&opened_metadata),
+            callback,
+            context,
+            physical_mapping_error
+        ) < 0) {
+        (void)close(descriptor);
+        return -1;
+    }
+
     if (walk_resource_fork_extents(
             path,
             expected_device,

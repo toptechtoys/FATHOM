@@ -278,6 +278,37 @@ record them.
    sixteen. At width four — an effective eight — `/System/Library` went from
    19.1–20.2 s to 15.6–17.8 s.
 
+   **A file can hold blocks past its last byte, and they were not being
+   counted.** That was 1,123 of the 1,629 issues left on 31 August 2026 — 69% of
+   everything standing between gate 1 and a zero count, and every one of them
+   kept *freed if deleted* unpublished.
+
+   `/Library/Application Support/Adobe/UPI/Configuration/DB/UPISys.db` is the
+   shape: 167,936 bytes logical, exactly 41 blocks, and 225,280 allocated. The
+   extent map explained 167,936 — **every byte of the file's contents, correctly
+   mapped** — leaving 14 whole blocks unaccounted, with no extended attributes
+   and no resource fork. A SQLite database does not return space when rows are
+   deleted, and `SEEK_DATA` answers ENXIO past the end, so a walk over logical
+   offsets can never reach what it kept. The blocks are real: `st_blocks` counts
+   them and deleting the file frees them.
+
+   `F_LOG2PHYS_EXT` maps them when asked directly, and **the filesystem says
+   where they stop** — the first block past the allocation answers `EFBIG`.
+   `st_blocks` bounds the loop a second way, because a mapper that trusted only
+   an error to halt is thin.
+
+   The start rounds up to a block boundary. A file whose last byte falls mid
+   block would otherwise re-map the block the logical walk already covered and
+   double it — a five-byte file would have read 8,192 bytes on disk instead of
+   4,096.
+
+   | Reason | Before | After |
+   |---|---|---|
+   | Physical extents do not reconcile with allocated bytes | **1,123** | **41** |
+
+   This is the third time allocation turned out to be somewhere the mapper was
+   not looking: the data fork, then the resource fork, now past the end.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of
