@@ -556,9 +556,24 @@ add_fill '| SMC key inventory |' "${smc_inventory_payload}" "${NOT_COMMITTED}"
 add_fill '| SMC key values read |' "${smc_values_payload}" "${NOT_COMMITTED}"
 add_fill '| IOReport channel subscription |' "${ioreport_subscription_payload}" "${NOT_COMMITTED}"
 
+# Reads the value printed after a label, matching the label literally.
+#
+# Not `sed -n "s/^$1//p"`: a label containing a slash makes that malformed,
+# because a slash is sed's own substitute delimiter. `entries/second: ` did
+# exactly that and took the whole pass down at the first rate reading. No
+# doctor label contains one today, but the next one might.
+value_after_label() {
+  awk -v label="$2" '
+    index($0, label) == 1 {
+      print substr($0, length(label) + 1)
+      exit
+    }
+  ' "$1"
+}
+
 # Gate 2's comparison rows, keyed on the exact strings FathomCLI prints.
 doctor_value() {
-  DOCTOR_VALUE="$(sed -n "s/^$1//p" "${out}/fixtures/doctor.txt" | head -1)"
+  DOCTOR_VALUE="$(value_after_label "${out}/fixtures/doctor.txt" "$1")"
   [[ -n "${DOCTOR_VALUE}" ]] || DOCTOR_VALUE="${OPERATOR}"
 }
 
@@ -666,8 +681,14 @@ else
     index_peak_cell="${index_peak_bytes} bytes peak (index + -wal + -shm, sampled every 0.5 s)"
   fi
 
+  # Reads the value after a label. The label is matched literally rather than
+  # substituted, because `entries/second: ` contains a slash and sed's own
+  # delimiter is a slash: `s/^entries/second: //p` is malformed, and it took the
+  # whole pass down at the first rate reading.
   benchmark_value() {
-    BENCHMARK_VALUE="$(sed -n "s/^$1//p" "${out}/gate1/benchmark.log" | head -1)"
+    BENCHMARK_VALUE="$(
+      value_after_label "${out}/gate1/benchmark.log" "$1"
+    )"
     [[ -n "${BENCHMARK_VALUE}" ]] || BENCHMARK_VALUE="${OPERATOR}"
   }
   # The gate is a rate now, but the duration and the entry count are what a

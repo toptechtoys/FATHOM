@@ -403,6 +403,11 @@ record them.
    machine. It is not engine work; it is the cost of measuring a system while it
    runs, and it belongs beside the 275 the system refuses outright.
 
+   **Measured 31 August 2026 with Full Disk Access, on commit 36d3454:
+   21,002 entries per second, 257.3 MB peak, 60 inspection failures**, with 418
+   paths the system refused and 28 files changed under the scan. The rate and
+   the memory both pass, and the failures are down from 230,799 on 29 August.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of
