@@ -205,3 +205,28 @@
   [ "$status" -eq 0 ]
   [ "$output" = "21002" ]
 }
+
+@test "the gate verdict is its own row, not a note on the scan rate" {
+  # Gate 1 has five conditions and usually only one fails. Hanging "did not
+  # pass" off the scan rate made 21,083 entries/s against a 15,000 target read
+  # as the failure.
+  run grep -c "the CLI did not print" scripts/reference-pass.sh
+  [ "$output" -eq 0 ]
+
+  run grep -c 'Gate 1 verdict' scripts/reference-pass.sh
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 2 ]
+
+  run grep -c 'Gate 1 verdict' docs/REFERENCE-PASS.md
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 1 ]
+}
+
+@test "the verdict carries the CLI's own reason" {
+  log="$BATS_TEST_TMPDIR/benchmark.log"
+  printf 'fathom: reference gate failed: the scan reported 134 inspection issues\nentries/second: 21083\n' > "$log"
+  run awk -v label='fathom: reference gate failed: ' \
+    'index($0,label)==1 { print substr($0,length(label)+1); exit }' "$log"
+  [ "$status" -eq 0 ]
+  [ "$output" = "the scan reported 134 inspection issues" ]
+}

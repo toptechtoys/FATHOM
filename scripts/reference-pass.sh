@@ -111,6 +111,7 @@ row_keys() {
     '| **Date of pass** |' \
     '| **Commit under test** |' \
     '| **git-lfs objects present** |' \
+    '| Gate 1 verdict | the CLI'"'"'s own line |' \
     '| Scan rate | at least 15,000 entries/s; under 12,000 blocks |' \
     '| Paths the system refused | recorded, never budgeted |' \
     '| Files changed during the scan | recorded, never budgeted |' \
@@ -607,12 +608,14 @@ add_fill '| IOReport | Power channels published |' 'CPU, GPU, ANE, RAM, PCI and 
 duration_cell="${OPERATOR}"
 churn_cell="${OPERATOR}"
 refused_cell="${OPERATOR}"
+verdict_cell="${OPERATOR}"
 resident_cell="${OPERATOR}"
 index_peak_cell="${OPERATOR}"
 if [[ "${skip_benchmark}" == true ]]; then
   duration_cell='_skipped — --skip-benchmark_'
   churn_cell="${duration_cell}"
   refused_cell="${duration_cell}"
+  verdict_cell="${duration_cell}"
   resident_cell="${duration_cell}"
   index_peak_cell="${duration_cell}"
 else
@@ -705,13 +708,27 @@ else
   churn_cell="${BENCHMARK_VALUE}"
   benchmark_value 'peak resident bytes: '
   resident_cell="${BENCHMARK_VALUE}"
-  gates_line="$(grep -c '^reference gates: PASS$' "${out}/gate1/benchmark.log" || true)"
-  if [[ "${gates_line}" == "0" ]]; then
-    duration_cell="${duration_cell} — the CLI did not print 'reference gates: PASS'"
+  # The verdict gets its own row rather than being appended to whichever
+  # measurement cell happens to be first. Gate 1 has five conditions and only
+  # one of them usually fails; hanging "did not pass" off the scan rate made a
+  # rate of 21,083 against a 15,000 target read as the failure.
+  if grep -q '^reference gates: PASS$' "${out}/gate1/benchmark.log"; then
+    verdict_cell='PASS — every condition met'
+  else
+    verdict_cell="$(
+      value_after_label "${out}/gate1/benchmark.log" \
+        'fathom: reference gate failed: '
+    )"
+    if [[ -n "${verdict_cell}" && "${verdict_cell}" != "${OPERATOR}" ]]; then
+      verdict_cell="FAILED — ${verdict_cell}"
+    else
+      verdict_cell='FAILED — the CLI gave no reason'
+    fi
   fi
   df -k "${volume}" >"${out}/gate1/free-space-after.txt"
 fi
 
+add_fill '| Gate 1 verdict | the CLI'"'"'s own line |' "${verdict_cell}"
 add_fill '| Scan rate | at least 15,000 entries/s; under 12,000 blocks |' "${duration_cell}"
 add_fill '| Paths the system refused | recorded, never budgeted |' "${refused_cell}"
 add_fill '| Files changed during the scan | recorded, never budgeted |' "${churn_cell}"
