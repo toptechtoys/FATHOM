@@ -65,7 +65,7 @@ record them.
 
 1. Build the Release CLI and run
    `fathom benchmark / --enforce-reference-gates` against the reference volume
-   with Full Disk Access. The recorded scan rate must be **at least 20,000
+   with Full Disk Access. The recorded scan rate must be **at least 18,000
    entries per second — below 12,000 blocks a release** — and peak resident
    memory under 300 MB.
 
@@ -78,18 +78,38 @@ record them.
    20,000 entries per second is 600,000 entries, which is what that budget
    actually bought.
 
-   20,000 is what the engine measures (3,108,160 entries in 154.8 s, 31 August
-   2026, M3 Max). A bare `find` over the same tree runs at 24,648 entries per
-   second, so the engine holds **81% of the walk-and-stat floor** while also
-   opening and extent-mapping every regular file. The 12,000 blocking threshold
-   leaves 40% for slower hardware before it stops a release, rather than failing
-   the first machine that is not this one.
+   **18,000 is what the engine measures under this gate's own conditions**:
+   19,169 entries per second over 3,158,365 entries, with Full Disk Access
+   granted, 31 August 2026 on an M3 Max. The figure first written here was
+   20,000, taken from runs *without* Full Disk Access — where less of the volume
+   is reachable and the rate reads about 5% higher. A target the reference
+   machine misses on a good day is a badly set target, so it is stated from the
+   measurement the gate actually takes.
 
-   **Measured against the restated budget on 31 August 2026: 20,113 entries per
-   second over 3,109,075 entries, and 254 MB peak.** Both pass. What gate 1 now
-   fails on is its third condition — 1,911 inspection issues against zero — and
-   roughly a third of those are files that changed while the scan ran, which a
-   live Mac may never bring to zero. That condition is the one left to settle.
+   A bare `find` over the same volume runs at 24,648 entries per second, so the
+   engine holds **78% of the walk-and-stat floor** while also opening and
+   extent-mapping every regular file. The 12,000 blocking threshold leaves a
+   third for slower hardware before it stops a release, rather than failing the
+   first machine that is not this one.
+
+   **Measured with Full Disk Access on 31 August 2026: 19,169 entries per second
+   over 3,158,365 entries, and 254.8 MB peak.** Both pass. What gate 1 fails on
+   is its third condition — **1,629 inspection issues against zero** — and the
+   shape of those matters:
+
+   | | Count |
+   |---|---|
+   | Physical extents do not reconcile with allocated bytes | **1,123** |
+   | FTS could not read this entry | 275 |
+   | Could not inspect — permission | ~116 |
+   | File changed while the scan ran | **64** |
+   | The filesystem publishes no extent addresses | 51 |
+
+   **Only 64 are the live-machine churn** that a running Mac may never bring to
+   zero — 4%, not the third it was first assumed to be. Sixty-nine per cent is a
+   single cause, the same reason string the compressed-file fix took from
+   178,710 down to this. That is engine work, not a question about what the gate
+   should ask.
 
    **The first real run of this gate failed on every criterion, and it found a
    bug rather than a slow engine.** On 30 August 2026, on a Mac15,9 M3 Max with

@@ -295,11 +295,12 @@ struct FathomCommand {
             // 126.1 s on a 315 GB volume holding 3.1 million of them, which is
             // 4.2x the 30 s this gate used to ask for, doing strictly less
             // work. A wall-clock budget measured the volume it happened to run
-            // on. 20,000 entries/s is what this engine does; below 12,000 it
+            // on. 18,000 entries/s is what this engine does under gate
+            // conditions; below 12,000 it
             // has regressed rather than met a bigger disk.
             guard rate >= 12_000 else {
                 throw CLIError.referenceGateFailed(
-                    "scan rate was \(String(format: "%.0f", rate)) entries/second over \(traversal.entryCount) entries; 12000 blocks, 20000 is the target"
+                    "scan rate was \(String(format: "%.0f", rate)) entries/second over \(traversal.entryCount) entries; 12000 blocks, 18000 is the target"
                 )
             }
             guard residentBytes < 300_000_000 else {

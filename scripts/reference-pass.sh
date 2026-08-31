@@ -111,7 +111,7 @@ row_keys() {
     '| **Date of pass** |' \
     '| **Commit under test** |' \
     '| **git-lfs objects present** |' \
-    '| Scan rate | at least 20,000 entries/s; under 12,000 blocks |' \
+    '| Scan rate | at least 18,000 entries/s; under 12,000 blocks |' \
     '| Peak resident memory | under 300 MB |' \
     '| Peak index size on disk | no budget; **record it** |' \
     '| Free space before the run | — |' \
@@ -681,7 +681,7 @@ else
   df -k "${volume}" >"${out}/gate1/free-space-after.txt"
 fi
 
-add_fill '| Scan rate | at least 20,000 entries/s; under 12,000 blocks |' "${duration_cell}"
+add_fill '| Scan rate | at least 18,000 entries/s; under 12,000 blocks |' "${duration_cell}"
 add_fill '| Peak resident memory | under 300 MB |' "${resident_cell}"
 add_fill '| Peak index size on disk | no budget; **record it** |' "${index_peak_cell}"
 
