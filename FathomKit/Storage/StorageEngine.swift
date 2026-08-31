@@ -427,6 +427,13 @@ private func extentIssue(
             errorNumber: errorNumber,
             reason: "Extent inspection failed"
         )
+    case .allocationChanged:
+        return StorageEngineIssue(
+            path: path,
+            stage: .extentInspection,
+            errorNumber: ESTALE,
+            reason: "The entry's allocation changed during the scan"
+        )
     case .identityChanged:
         return StorageEngineIssue(
             path: path,

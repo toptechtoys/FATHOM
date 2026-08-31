@@ -123,6 +123,7 @@ int32_t fathom_file_extents(
     uint32_t *clone_reference_count,
     int32_t *clone_metadata_error,
     uint64_t *allocation_block_size,
+    uint64_t *observed_allocated_size,
     int32_t *physical_mapping_error,
     int32_t *error_number
 );

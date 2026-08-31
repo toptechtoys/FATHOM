@@ -372,6 +372,37 @@ record them.
    August. That is the whole of the remaining engine work, and it is a number
    somebody could finish.
 
+   **A file can move under the scan without changing identity, and the last 94
+   failures were mostly that.** A log, a Spotlight index, this scan's own SQLite
+   file: appended to constantly, same inode throughout. The identity check never
+   sees them, so their extents were of one file and their allocation of another
+   moment, and the reader called that a reconciliation failure.
+
+   Of the 91 in the two remaining categories, **44 were Spotlight index files**,
+   four the unified log store, three `systemstats`, one `launchd.log` — and
+   **three were `fathom-benchmark.sqlite` itself**, the index being written by
+   the very scan reading it.
+
+   The extent reader now compares the allocation the walk recorded with what it
+   sees on opening, and a difference is the same fact as a changed identity.
+
+   | | Before | After |
+   |---|---|---|
+   | Physical extents do not reconcile | 39 | **22** |
+   | The filesystem publishes no extent addresses | 52 | 51 |
+   | Changed: allocation | — | 35 |
+
+   **No path is excluded, including the scan's own index.** A file that changed
+   is recorded as changed; a list of paths to quietly skip is exactly the kind
+   of hiding this product exists to avoid.
+
+   **What is left is 73, and it is the same floor by another name.** The 51 that
+   publish no extent addresses are mostly Spotlight indexes, written throughout
+   the scan. Closing that would mean detecting change *during* the extent read
+   rather than around it — a race that narrows but never shuts on a running
+   machine. It is not engine work; it is the cost of measuring a system while it
+   runs, and it belongs beside the 275 the system refuses outright.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of

@@ -5,6 +5,11 @@ public enum FileExtentError: Error, Sendable, Equatable {
     case notARegularFile(path: String)
     case cannotInspect(path: String, errorNumber: Int32)
     case identityChanged(path: String)
+    /// The file occupied a different number of blocks by the time it was
+    /// opened. Its inode is unchanged, so the identity check cannot see it —
+    /// a log or an index being appended to keeps the same file and moves its
+    /// allocation underneath the scan.
+    case allocationChanged(path: String)
 }
 
 /// Reads allocation metadata only. It never reads file contents.
@@ -38,6 +43,7 @@ public struct FileExtentReader: Sendable {
         var cloneReferenceCount: UInt32 = 0
         var cloneMetadataError: Int32 = 0
         var allocationBlockSize: UInt64 = 0
+        var observedAllocatedSize: UInt64 = 0
         var physicalMappingError: Int32 = 0
         var errorNumber: Int32 = 0
         let result = entry.path.withCString { path in
@@ -52,6 +58,7 @@ public struct FileExtentReader: Sendable {
                 &cloneReferenceCount,
                 &cloneMetadataError,
                 &allocationBlockSize,
+                &observedAllocatedSize,
                 &physicalMappingError,
                 &errorNumber
             )
@@ -87,6 +94,17 @@ public struct FileExtentReader: Sendable {
                 path: entry.path,
                 errorNumber: errorNumber
             )
+        }
+
+        // A file that grew or shrank between the walk and this read cannot
+        // reconcile, and it is not a failure of the reader: the extents are of
+        // one file and the allocation is of another moment. Spotlight indexes,
+        // the unified log store and this scan's own SQLite index all move this
+        // way while keeping their inode, so the identity check above never
+        // sees them.
+        if case let .known(recorded, _) = entry.sizeOnDisk,
+           observedAllocatedSize != recorded {
+            throw FileExtentError.allocationChanged(path: entry.path)
         }
 
         let physicalExtents: Measurement<[PhysicalFileExtent]>

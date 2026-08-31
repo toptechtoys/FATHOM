@@ -1322,6 +1322,11 @@ public actor StorageIndex {
                         var refused = false
                         if case FileExtentError.identityChanged = error {
                             changed = true
+                        } else if case FileExtentError.allocationChanged = error {
+                            // Same fact as a changed identity: the file moved
+                            // under the scan. It kept its inode, so only the
+                            // allocation shows it.
+                            changed = true
                         } else if case let FileExtentError.cannotInspect(
                             _,
                             errorNumber
