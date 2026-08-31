@@ -497,6 +497,15 @@ record them.
    which item count it was taken with, so this step is a reading rather than a
    stopwatch exercise. At most 0.2% CPU; 0.5% blocks release.
 
+   **One instance, and the pass closes it.** Every widget publishes its figure to
+   the same `com.exhibinaut.fathom.shared` domain, so a second one running makes
+   the reading ambiguous — the number recorded could belong to any of them.
+   Three were once left behind by three consecutive passes, each writing over
+   the last, and the gate recorded a figure without being able to say whose it
+   was. `reference-pass.sh` refuses to start gate 3 when a widget is already
+   running, names the pids, and quits the one it launched. It declines to kill
+   what it did not open: a widget already in the menu bar may be the operator's.
+
    **Energy Impact is still a manual reading.** Activity Monitor's composite
    comes from `powermetrics`, which requires root, so FATHOM does not take it.
    Read it from Activity Monitor: at most 2.1, and 4.0 blocks release.
