@@ -139,6 +139,39 @@ record them.
    more than what is held. **Duration and issue count do not survive it** and
    are not quoted from that run.
 
+   **The inspection-issue count fell 99.1% across four fixes, and the last of
+   them is worth recording because the failure looked like a filesystem
+   limitation and was not.** `F_LOG2PHYS_EXT` reports runs of whole allocation
+   blocks. A range shorter than one block has no run length to report, so it
+   answers with a valid device address and a contiguous length of **zero** — and
+   the mapping loop read that as `EIO` and abandoned the whole file. It cost
+   **13,475 files**, 97% of them under `/System/Volumes/Preboot`, and it is
+   pre-existing behaviour in the data-fork loop rather than anything the
+   resource-fork work introduced: 95% of the affected files have no resource
+   fork at all.
+
+   A zero-length run is now accepted only when the remainder fits inside one
+   allocation block **and** the cursor is block-aligned, so it cannot straddle a
+   boundary and is contiguous by construction. Both conditions are checked
+   rather than assumed, because a zero-length run anywhere else is a real
+   failure. Two of the sampled files were smaller than a single block, so the
+   very first call returned zero — "no progress yet" does not separate the
+   failure from the ordinary case, and only the block arithmetic does.
+
+   Issue counts on a whole volume, in order of the four fixes:
+
+   | | Issues |
+   |---|---|
+   | Before any fix | 230,799 |
+   | After the firmlink fix | 184,853 |
+   | After compressed-file extents | 15,170 |
+   | After the partial block | **2,058** |
+
+   What remains is 987 extent reconciliations, 441 unreadable entries, three
+   unpublished addresses, and roughly 627 files that changed while the scan ran.
+   **That last group may never reach zero on a running Mac**, which is a question
+   about this gate's zero-issue condition rather than about the engine.
+
    **Provide disk headroom, and record what the index actually used.** The
    under-300 MB budget is a *memory* budget. The staged pipeline meets it by
    writing FTS records and extent results to SQLite in bounded pages instead of

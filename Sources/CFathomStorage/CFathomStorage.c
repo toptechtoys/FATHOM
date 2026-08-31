@@ -363,6 +363,7 @@ static int32_t emit_extent(
 static int walk_fork_extents(
     int descriptor,
     off_t logical_size,
+    uint64_t allocation_block_size,
     bool emit_data_extents,
     FathomExtentCallback callback,
     void *context,
@@ -427,7 +428,42 @@ static int walk_fork_extents(
 
                 off_t mapped_length = mapping.l2p_contigbytes;
                 off_t remaining_length = hole_offset - physical_cursor;
-                if (mapped_length <= 0 || mapping.l2p_devoffset < 0) {
+                if (mapping.l2p_devoffset < 0) {
+                    *physical_mapping_error = EIO;
+                    break;
+                }
+                if (mapped_length <= 0) {
+                    /* The final partial block. F_LOG2PHYS_EXT reports runs of
+                     * whole allocation blocks, so a range shorter than one
+                     * block has no run length to report even though the
+                     * address it returns is valid. Every preceding hop
+                     * advanced by a whole number of blocks and SEEK_DATA lands
+                     * on a block boundary, so a remainder shorter than a block
+                     * cannot straddle one: it is contiguous by construction
+                     * and the address is all that is missing.
+                     *
+                     * Treating that as EIO cost 13,475 files on a reference
+                     * volume, which is what kept *freed if deleted*
+                     * unpublished. Both halves of the guard are checked rather
+                     * than assumed, because a zero-length run anywhere else is
+                     * a real failure and has to stay loud. */
+                    if (remaining_length > 0 &&
+                        allocation_block_size > 0 &&
+                        (uint64_t)remaining_length <= allocation_block_size &&
+                        (uint64_t)physical_cursor % allocation_block_size == 0) {
+                        if (emit_extent(
+                                FATHOM_EXTENT_PHYSICAL,
+                                physical_cursor,
+                                remaining_length,
+                                mapping.l2p_devoffset,
+                                callback,
+                                context
+                            ) != 0) {
+                            return 1;
+                        }
+                        physical_cursor = hole_offset;
+                        continue;
+                    }
                     *physical_mapping_error = EIO;
                     break;
                 }
@@ -463,6 +499,7 @@ static int walk_resource_fork_extents(
     const char *path,
     uint64_t expected_device,
     uint64_t expected_inode,
+    uint64_t allocation_block_size,
     FathomExtentCallback callback,
     void *context,
     int32_t *physical_mapping_error,
@@ -506,6 +543,7 @@ static int walk_resource_fork_extents(
     int walked = walk_fork_extents(
         descriptor,
         fork_metadata.st_size,
+        allocation_block_size,
         false,
         callback,
         context,
@@ -645,6 +683,7 @@ int32_t fathom_file_extents(
     int walked = walk_fork_extents(
         descriptor,
         opened_metadata.st_size,
+        *allocation_block_size,
         true,
         callback,
         context,
@@ -671,6 +710,7 @@ int32_t fathom_file_extents(
             path,
             expected_device,
             expected_inode,
+            *allocation_block_size,
             callback,
             context,
             physical_mapping_error,
