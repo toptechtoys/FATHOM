@@ -89,14 +89,26 @@ public struct StagedTraversalScan: Sendable, Equatable {
 
 public struct StagedExtentInspectionSummary: Sendable, Equatable {
     public let inspectedFileCount: UInt64
+    /// Files the scan could not inspect. Something is wrong, or something is
+    /// denied: a read that failed, extents that would not reconcile, a
+    /// filesystem that publishes no addresses.
     public let failedFileCount: UInt64
+    /// Files that were replaced while the scan was running.
+    ///
+    /// Kept apart from the failures because it measures the machine rather
+    /// than the engine. A whole-volume scan takes minutes, and a Mac in use
+    /// writes throughout: one run saw 64 of these, the next 2,035, with no
+    /// code between them. Nothing was wrong either time.
+    public let changedDuringScanCount: UInt64
 
     public init(
         inspectedFileCount: UInt64,
-        failedFileCount: UInt64
+        failedFileCount: UInt64,
+        changedDuringScanCount: UInt64 = 0
     ) {
         self.inspectedFileCount = inspectedFileCount
         self.failedFileCount = failedFileCount
+        self.changedDuringScanCount = changedDuringScanCount
     }
 }
 
@@ -1295,9 +1307,18 @@ public actor StorageIndex {
                             map: try FileExtentReader().inspect(record.entry)
                         )
                     } catch {
+                        // Classified by type, not by reading the message back
+                        // out of a string.
+                        let changed: Bool
+                        if case FileExtentError.identityChanged = error {
+                            changed = true
+                        } else {
+                            changed = false
+                        }
                         return .failed(
                             record: record,
-                            reason: String(describing: error)
+                            reason: String(describing: error),
+                            changedDuringScan: changed
                         )
                     }
                 }
@@ -1331,6 +1352,7 @@ public actor StorageIndex {
         var lastEntryID: Int64 = -1
         var inspectedCount: UInt64 = 0
         var failedCount: UInt64 = 0
+        var changedCount: UInt64 = 0
         var nextIssueOrdinal = try nextStagedIssueOrdinal(
             database: database,
             scanID: scanID
@@ -1389,7 +1411,7 @@ public actor StorageIndex {
                         } else {
                             failedCount += 1
                         }
-                    case let .failed(record, reason):
+                    case let .failed(record, reason, changedDuringScan):
                         try markStagedExtentFailure(
                             database: database,
                             scanID: scanID,
@@ -1397,7 +1419,11 @@ public actor StorageIndex {
                             reason: reason,
                             issueOrdinal: &nextIssueOrdinal
                         )
-                        failedCount += 1
+                        if changedDuringScan {
+                            changedCount += 1
+                        } else {
+                            failedCount += 1
+                        }
                     }
                 }
                 try execute(database: database, sql: "COMMIT")
@@ -1412,7 +1438,8 @@ public actor StorageIndex {
 
         return StagedExtentInspectionSummary(
             inspectedFileCount: inspectedCount,
-            failedFileCount: failedCount
+            failedFileCount: failedCount,
+            changedDuringScanCount: changedCount
         )
     }
 
@@ -2715,11 +2742,15 @@ private enum StagedExtentOutcome: Sendable {
         record: StagedRegularFileRecord,
         map: FileExtentMap
     )
-    case failed(record: StagedRegularFileRecord, reason: String)
+    case failed(
+        record: StagedRegularFileRecord,
+        reason: String,
+        changedDuringScan: Bool
+    )
 
     var entryID: Int64 {
         switch self {
-        case let .inspected(record, _), let .failed(record, _):
+        case let .inspected(record, _), let .failed(record, _, _):
             return record.id
         }
     }

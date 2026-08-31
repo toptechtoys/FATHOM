@@ -112,6 +112,7 @@ row_keys() {
     '| **Commit under test** |' \
     '| **git-lfs objects present** |' \
     '| Scan rate | at least 18,000 entries/s; under 12,000 blocks |' \
+    '| Files changed during the scan | recorded, never budgeted |' \
     '| Peak resident memory | under 300 MB |' \
     '| Peak index size on disk | no budget; **record it** |' \
     '| Free space before the run | — |' \
@@ -588,10 +589,12 @@ add_fill '| IOReport | Power channels published |' 'CPU, GPU, ANE, RAM, PCI and 
 # ------------------------------------------------------------- GATE 1 -------
 
 duration_cell="${OPERATOR}"
+churn_cell="${OPERATOR}"
 resident_cell="${OPERATOR}"
 index_peak_cell="${OPERATOR}"
 if [[ "${skip_benchmark}" == true ]]; then
   duration_cell='_skipped — --skip-benchmark_'
+  churn_cell="${duration_cell}"
   resident_cell="${duration_cell}"
   index_peak_cell="${duration_cell}"
 else
@@ -672,6 +675,8 @@ else
   entries_value="${BENCHMARK_VALUE}"
   benchmark_value 'duration: '
   duration_cell="${rate_value} entries/s (${entries_value} entries in ${BENCHMARK_VALUE})"
+  benchmark_value 'changed during the scan: '
+  churn_cell="${BENCHMARK_VALUE}"
   benchmark_value 'peak resident bytes: '
   resident_cell="${BENCHMARK_VALUE}"
   gates_line="$(grep -c '^reference gates: PASS$' "${out}/gate1/benchmark.log" || true)"
@@ -682,6 +687,7 @@ else
 fi
 
 add_fill '| Scan rate | at least 18,000 entries/s; under 12,000 blocks |' "${duration_cell}"
+add_fill '| Files changed during the scan | recorded, never budgeted |' "${churn_cell}"
 add_fill '| Peak resident memory | under 300 MB |' "${resident_cell}"
 add_fill '| Peak index size on disk | no budget; **record it** |' "${index_peak_cell}"
 
