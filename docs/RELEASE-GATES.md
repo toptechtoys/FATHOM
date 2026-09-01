@@ -127,9 +127,42 @@ That the scan's own writes caused these particular overflows is not measured and
 is not claimed. What is traced here is narrower: the filter that would prevent
 it sits on a branch the trigger never takes.
 
-Deciding this needs a product call rather than a patch, because a floor changes
-what the app promises about freshness: it would have to say *the shown data is
-from the scan at 14:32* instead of rebuilding. Recorded rather than fixed.
+**Fixed on 1 September 2026.** The product call was made: a floor, with the app
+saying plainly what it is showing while the floor is down.
+
+`ContinuityRescanGovernor` in FathomKit holds the decision, and holds it as a
+value type so it can be tested — the app target has no test target, so anything
+left in `StorageAppModel` would have shipped unproven. The floor is thirty
+minutes, three times the ten minutes a scan took end to end. A floor shorter
+than a scan is not a floor: the next trigger would land before the last scan
+finished, which is the loop itself.
+
+The floor runs from the moment a scan *ends*, not the moment it starts, so a
+ten-minute scan does not spend its own quiet period. Any finished scan clears
+whatever was owed, including one the owner started by hand.
+
+A trigger that arrives inside the floor is held, not dropped. One rescan runs
+when the floor lifts, however many triggers arrived — the rate limit caps the
+cost without abandoning the promise that untrusted evidence gets rebuilt.
+Dropping them would have let the app serve stale data forever if no further
+trigger ever came.
+
+While a rescan is held, `changeMonitoring` says so on the Storage screen:
+*Showing the last completed scan; rebuild held until 15:02, at most one every
+30 minutes.* That is the weaker promise the floor forces, stated rather than
+implied.
+
+Two defects were fixed alongside it. `continuityRescanPending` was never cleared
+on the `.failed` path, so a scan that threw left the flag set with nothing
+between the next trigger and another full scan. And the queued rescan that ran
+on scan completion called `scanSelectedVolume()` directly, which would have
+walked straight past the new floor; it goes through `requestContinuityRescan`
+now.
+
+Seven tests cover the governor. What is **not** covered by a test is the wiring
+in `StorageAppModel`, because the app target has no test target and adding one
+was outside this change. That wiring was verified by building both app schemes,
+not by a test.
 
 **Two things that are not defects, checked and cleared.** The progress message
 updates correctly through all six phases — a screenshot showing "Walking
