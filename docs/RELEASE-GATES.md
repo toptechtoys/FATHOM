@@ -144,6 +144,49 @@ showing the majority in Core Animation — `CA::Transaction`, `CA::Context::comm
 layer collection and shaders — rather than in the engine. No budget exists to
 compare that against.
 
+**An incremental refresh re-derives the whole scan, and costs a core to do it.**
+Measured 1 September 2026 on the M3 Max, immediately after a Deep Scan completed:
+372.72 GB reported, 22.1 minutes, index at 2.8 GB, the result sitting on the Deep
+Scan screen with nothing running. `ps -M` showed **one thread pinned at 100.0%,
+state R**, and `top` read the process at 76.6–102.8%. Before any scan had run,
+the same app idled at 7–14%.
+
+`sample` names it without ambiguity:
+
+```
+StorageAppModel.performIncrementalRefresh(presentation:roots:)   StorageAppModel.swift:428
+  StorageIndex.refreshStagedSubtrees(scanID:roots:)              StorageIndex.swift:1144
+    clearStagedDerivedAccounting(database:scanID:)               StorageIndex.swift:3714
+      sqlite3_step → sqlite3BtreeDelete → balance → pagerStress → guarded_pwrite_np
+```
+
+The reason is in the SQL rather than in the volume of changes.
+`clearStagedDerivedAccounting` deletes by `scan_id`, not by subtree:
+
+```sql
+DELETE FROM staged_blocked_entries WHERE scan_id = ?
+DELETE FROM staged_open_identities WHERE scan_id = ?
+DELETE FROM staged_segment_owners  WHERE scan_id = ?
+DELETE FROM staged_segments        WHERE scan_id = ?
+DELETE FROM staged_node_totals     WHERE scan_id = ?
+```
+
+`performIncrementalRefresh` then calls `inspectStagedExtents` and
+`reduceStagedAccounting` for the whole scan behind it. So **one changed file in
+any watched root throws away the derived accounting for all 3.2 million entries
+and 2.5 million extents, and rebuilds it.** The watched roots include
+`~/Library/Caches` and `~/Library/Application Support`, which are never quiet on
+a working Mac. The name says subtrees; the work is the whole scan.
+
+This is the same code path whose failure raises a continuity rescan, and its
+write traffic lands in a directory FSEvents is watching — so it is worth reading
+next to the rescan finding above rather than on its own.
+
+What is measured is the 100% thread, its stack, and the two idle figures either
+side of a scan. What is **not** measured is how long a single refresh takes end
+to end, or how much of the app's total cost this accounts for. Neither is
+claimed here.
+
 ---
 
 ## Reference Mac mini M4 Pro
