@@ -36,8 +36,14 @@ struct MemoryView: View {
                 FathomReadoutGrid {
                     FathomMeasurementReadout(
                         label: "Used",
-                        measurement: usedBytes(memory),
-                        note: "Physical total minus free",
+                        measurement: memory.usedBytes,
+                        note: "Active, wired and compressed",
+                        format: bytes
+                    )
+                    FathomMeasurementReadout(
+                        label: "Cached",
+                        measurement: memory.cachedBytes,
+                        note: "Released the moment anything needs it",
                         format: bytes
                     )
                     FathomMeasurementReadout(
@@ -172,14 +178,6 @@ struct MemoryView: View {
                 annotation: "\(bytes(explained)) explained, the rest is not",
                 isEmphasised: true
             )
-        }
-    }
-
-    private func usedBytes(
-        _ memory: MemorySnapshot
-    ) -> FathomKit.Measurement<UInt64> {
-        memory.totalBytes.combined(with: memory.freeBytes) { total, free in
-            total - min(free, total)
         }
     }
 

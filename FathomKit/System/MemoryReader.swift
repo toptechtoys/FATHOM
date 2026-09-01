@@ -14,6 +14,43 @@ public struct MemorySnapshot: Sendable, Equatable {
     public let swapUsedBytes: Measurement<UInt64>
     public let swapTotalBytes: Measurement<UInt64>
 
+    /// What the machine is actually using: active, wired and compressed.
+    ///
+    /// **Not physical total minus free**, which is what this used to be and
+    /// what made a healthy Mac look full. macOS keeps every page it can as file
+    /// cache, because empty RAM is wasted RAM, and hands it back the instant
+    /// anything asks. On a 68.72 GB machine with 35.81 GB of real demand,
+    /// total-minus-free read 66.63 GB — 97% — while swap was zero and the
+    /// system reported 91% of memory free.
+    ///
+    /// This is the figure Activity Monitor calls Memory Used, and it is the
+    /// only one of the two a person can act on.
+    public var usedBytes: Measurement<UInt64> {
+        activeBytes
+            .combined(with: wiredBytes) { active, wired in
+                active + wired
+            }
+            .combined(with: compressedBytes) { subtotal, compressed in
+                subtotal + compressed
+            }
+    }
+
+    /// Pages macOS is holding as cache and will release on demand: inactive,
+    /// speculative and purgeable.
+    ///
+    /// Published beside `usedBytes` rather than folded into it, because a
+    /// reader who sees only "used" and "free" will read the difference as
+    /// missing memory. It is not missing; it is being useful.
+    public var cachedBytes: Measurement<UInt64> {
+        inactiveBytes
+            .combined(with: speculativeBytes) { inactive, speculative in
+                inactive + speculative
+            }
+            .combined(with: purgeableBytes) { subtotal, purgeable in
+                subtotal + purgeable
+            }
+    }
+
     public init(
         totalBytes: Measurement<UInt64>,
         freeBytes: Measurement<UInt64>,
