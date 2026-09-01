@@ -81,8 +81,51 @@ index. One scan finished and a second began 155 seconds later without anyone
 touching the app.
 
 **That rescan is itself filesystem churn**, on a volume where churn is what
-breaks continuity. Nothing in the code prevents that from repeating, though a
-loop was not observed and is not claimed here.
+breaks continuity. An earlier draft of this section said a loop "was not
+observed and is not claimed". That was true when it was written. It is no longer
+true.
+
+The app was left running untouched from 12:18:51 to 14:57:59 on 1 September
+2026 — two hours and thirty-nine minutes, at close to 100% CPU. It started three
+Deep Scans in eleven minutes:
+
+| Scan | Started  | Traversal |
+|------|----------|-----------|
+| 1    | 13:43:57 | 255 s     |
+| 2    | 13:50:48 | 82 s      |
+| 3    | 13:54:18 | 315 s     |
+
+Completed scans over the whole session: zero. The staging index reached 8.2 GB
+holding no finished work. The process window is corroborated by the unified log
+for PID 39044; the scan times and the index size were read from the app and from
+disk. A scan takes about ten minutes end to end, so a trigger arrives well
+before one finishes.
+
+Two code paths explain why nothing stopped it.
+
+The first is why a scan may start again immediately. `scanSelectedVolume`
+returns early while `.scanning`, so a second scan can only begin once the first
+has left that state. With nothing completing, each one ended in the `catch` that
+sets `.failed`, and that path never clears `continuityRescanPending` — the only
+place the flag is drained is the success path. The next trigger then finds a
+state that is not `.scanning` and calls `scanSelectedVolume()` at once. There is
+no interval and no count between one full scan and the next.
+
+The second is why the trigger keeps arriving. `recommendedStoragePaths` watches
+`~/Library/Application Support`, and the staging index is written inside it, at
+`~/Library/Application Support/FATHOM`. `isFathomPrivatePath` exists to keep the
+app's own writes out of its own evidence, but it is applied only in the `.known`
+branch of `receiveStorageChanges`, where it filters individual event paths. The
+continuity breaks arrive on the `.notPublished` and `.notAttributable` branches,
+which call `requestContinuityRescan` without consulting that filter at all. And
+`kFSEventStreamEventFlagUserDropped` and `kFSEventStreamEventFlagKernelDropped`
+are buffer-overflow flags: they answer event volume, not event paths, so writing
+gigabytes into a watched directory can raise them whatever the path filter would
+later have made of the individual events.
+
+That the scan's own writes caused these particular overflows is not measured and
+is not claimed. What is traced here is narrower: the filter that would prevent
+it sits on a branch the trigger never takes.
 
 Deciding this needs a product call rather than a patch, because a floor changes
 what the app promises about freshness: it would have to say *the shown data is
