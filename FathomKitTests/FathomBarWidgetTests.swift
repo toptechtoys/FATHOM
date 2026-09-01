@@ -555,8 +555,59 @@ private func store(_ name: String) -> UserDefaults {
     let title = MeasuredIdleCost.menuTitle(
         for: .known(readBack, source: .procPidRusage)
     )
-    #expect(title.contains("0.30"))
-    #expect(!title.contains("0.20"))
+    // The measured figure, never the budget. Written as "0.3" rather than
+    // "0.30" since the title moved to significant digits, so that a cost of
+    // 0.00671% can state itself instead of rounding to a shared "0.01%".
+    #expect(title.contains("0.3"))
+    #expect(!title.contains("0.2"))
+}
+
+// The widget's own cost is a shipped number — non-negotiable 8 — and two
+// decimal places could not show it. Every reading taken on the reference Mac —
+// 0.00919, 0.00671, 0.00761, 0.00590, 0.01060, 0.00810 — rendered as the same
+// "0.01%", and anything under 0.005 rendered as "0.00% CPU": a claim of no cost
+// from a product whose first rule is never to render a number it cannot
+// justify.
+
+@Test func theIdleCostShowsTheFigureItActuallyMeasured() {
+    let measured = [0.00919, 0.00671, 0.00761, 0.00590, 0.01060, 0.00810]
+    let titles = Set(
+        measured.map { value in
+            MeasuredIdleCost.menuTitle(
+                for: .known(
+                    MeasuredIdleCost(
+                        cpuPercent: value,
+                        measuredAt: Date(timeIntervalSinceReferenceDate: 0),
+                        itemCount: 4
+                    ),
+                    source: .procPidRusage
+                )
+            )
+        }
+    )
+    #expect(
+        titles.count == measured.count,
+        "\(measured.count) different costs collapsed to \(titles.count) titles"
+    )
+}
+
+@Test func aCostBelowAHundredthIsNotShownAsZero() {
+    let title = MeasuredIdleCost.menuTitle(
+        for: .known(
+            MeasuredIdleCost(
+                cpuPercent: 0.0049,
+                measuredAt: Date(timeIntervalSinceReferenceDate: 0),
+                itemCount: 4
+            ),
+            source: .procPidRusage
+        )
+    )
+    // "0.00% CPU" would say the widget is free. It is not.
+    #expect(
+        !title.contains("0.00%"),
+        "a real cost was rendered as zero: \(title)"
+    )
+    #expect(title.contains("0.0049"))
 }
 
 @Test func theWidgetMenuStopsSayingNotPublishedOnceItHasAFigure() {

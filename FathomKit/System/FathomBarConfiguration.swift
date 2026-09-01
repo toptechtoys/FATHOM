@@ -275,8 +275,19 @@ public struct MeasuredIdleCost: Sendable, Equatable {
     ) -> String {
         switch measurement {
         case let .known(cost, _):
-            let percent = cost.cpuPercent
-                .formatted(.number.precision(.fractionLength(2)))
+            // Enough places to show the figure this widget actually costs.
+            //
+            // Two decimals could not: every reading taken on the reference Mac
+            // — 0.00919, 0.00671, 0.00761, 0.00590, 0.01060, 0.00810 — rendered
+            // as the same "0.01%", and anything under 0.005 rendered as
+            // "0.00% CPU", which is a claim of no cost from a product whose
+            // first rule is never to render a number it cannot justify.
+            //
+            // Three significant digits keeps 0.00671% legible and still reads
+            // sensibly if a future build costs 0.5%.
+            let percent = cost.cpuPercent.formatted(
+                .number.precision(.significantDigits(1...3))
+            )
             let items = cost.itemCount == 1 ? "1 item" : "\(cost.itemCount) items"
             return "Idle cost: \(percent)% CPU with \(items)"
         case .notPublished:
