@@ -35,6 +35,8 @@ final class StorageAppModel: ObservableObject {
             reason: "The index has not been measured yet"
         )
     private var continuityRescanPending = false
+    private var rescanGovernor = ContinuityRescanGovernor()
+    private var rescanReleaseTask: Task<Void, Never>?
     private let changeRecorder = FSEventRecorder()
     private var pendingChangePaths: Set<String> = []
     private var changeCoalescingTask: Task<Void, Never>?
@@ -80,6 +82,8 @@ final class StorageAppModel: ObservableObject {
         if case .scanning = state {
             return
         }
+        rescanReleaseTask?.cancel()
+        rescanReleaseTask = nil
         stopChangeMonitoring()
         childrenByParent = [:]
         expandedDirectoryIDs = []
@@ -127,13 +131,11 @@ final class StorageAppModel: ObservableObject {
                     _ = await ConsequenceAlertScheduler
                         .evaluateDirectoryGrowth(presentation: presentation)
                 }
-                if continuityRescanPending {
-                    continuityRescanPending = false
-                    scanSelectedVolume()
-                }
+                recordScanEnded()
             } catch {
                 stopChangeMonitoring()
                 state = .failed(String(describing: error))
+                recordScanEnded()
             }
         }
     }
@@ -148,13 +150,73 @@ final class StorageAppModel: ObservableObject {
         state = .idle
     }
 
+    /// Answers a break in the change feed, at most once every
+    /// `ContinuityRescanGovernor.defaultFloor`.
+    ///
+    /// Rebuilding is still the honest answer to evidence that cannot be
+    /// trusted. What changed is that rebuilding is no longer free: a Deep Scan
+    /// writes gigabytes into a directory FSEvents is watching, which is itself
+    /// the kind of churn that breaks continuity, so an unlimited rescan cannot
+    /// converge. Three scans in eleven minutes and no completions, on
+    /// 1 September 2026, is what that looks like from outside.
     func requestContinuityRescan(reason: String) {
         if case .scanning = state {
             continuityRescanPending = true
             return
         }
-        scanProgressMessage = reason
+        switch rescanGovernor.request(now: Date()) {
+        case .rescanNow:
+            scanProgressMessage = reason
+            scanSelectedVolume()
+        case let .held(until):
+            holdContinuityRescan(until: until, reason: reason)
+        }
+    }
+
+    /// Says out loud what the screens are showing while the floor is down.
+    /// A held rescan means the data is a snapshot with a time on it, not a
+    /// live figure, and the app has to promise the weaker of the two.
+    private func holdContinuityRescan(until: Date, reason: String) {
+        let minutes = Int(ContinuityRescanGovernor.defaultFloor / 60)
+        let clock = until.formatted(date: .omitted, time: .shortened)
+        changeMonitoring = .notPublished(
+            reason: reason
+                + ". Showing the last completed scan; rebuild held until "
+                + "\(clock), at most one every \(minutes) minutes"
+        )
+        guard rescanReleaseTask == nil else { return }
+        rescanReleaseTask = Task { [weak self] in
+            let delay = until.timeIntervalSinceNow
+            if delay > 0 {
+                try? await Task.sleep(for: .seconds(delay))
+            }
+            guard !Task.isCancelled else { return }
+            self?.releaseHeldContinuityRescan()
+        }
+    }
+
+    private func releaseHeldContinuityRescan() {
+        rescanReleaseTask = nil
+        guard rescanGovernor.releaseIfDue(now: Date()) == .rescanNow else {
+            return
+        }
+        scanProgressMessage =
+            "Rebuilding after a break in the change feed"
         scanSelectedVolume()
+    }
+
+    /// Starts the floor from the moment a scan ends rather than the moment it
+    /// starts, so a ten-minute scan does not spend its own quiet period. This
+    /// runs on the failed path too: a scan that threw still cost the volume
+    /// everything a scan costs, and the old code left `continuityRescanPending`
+    /// set there forever, with nothing between the next trigger and a new scan.
+    private func recordScanEnded() {
+        rescanGovernor.recordRescanEnded(at: Date())
+        guard continuityRescanPending else { return }
+        continuityRescanPending = false
+        requestContinuityRescan(
+            reason: "FSEvents continuity broke while the scan was running"
+        )
     }
 
     private func setScanProgress(_ message: String) {
