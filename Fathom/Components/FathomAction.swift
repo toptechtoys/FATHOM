@@ -1,3 +1,4 @@
+import FathomKit
 import SwiftUI
 
 /// The one pill a section may end with.
@@ -130,6 +131,10 @@ struct FathomEmptySection: View {
     /// beside the busy state — a long walk that prints no numbers yet can
     /// still always say how long it has been walking.
     var busySince: Date?
+    /// What the walk is reading right now. The elapsed clock above proves the
+    /// app is alive; this proves it is getting somewhere, which is the part a
+    /// person watching a five-minute phase actually wants.
+    var liveProgress: LiveScanProgress?
     var action: (() -> Void)?
 
     var body: some View {
@@ -170,6 +175,26 @@ struct FathomEmptySection: View {
                                 .white.opacity(FathomSurface.minimumTextOpacity)
                             )
                             .padding(.top, 12)
+                    }
+
+                    if isBusy, let liveProgress {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(
+                                liveProgress.entryCount.formatted()
+                                    + " entries · "
+                                    + ByteString.file(liveProgress.bytesOnDisk)
+                            )
+                            .monospacedDigit()
+                            Text(liveProgress.currentDirectory)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        .font(.fathomSystem(11.5))
+                        .foregroundStyle(
+                            .white.opacity(FathomSurface.minimumTextOpacity)
+                        )
+                        .padding(.top, 6)
+                        .frame(maxWidth: 520, alignment: .leading)
                     }
 
                     Spacer(minLength: 96)

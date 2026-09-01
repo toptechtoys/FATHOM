@@ -34,6 +34,10 @@ final class StorageAppModel: ObservableObject {
         FathomKit.Measurement<UInt64> = .notPublished(
             reason: "The index has not been measured yet"
         )
+    /// What the walk is reading right now. The traversal is the longest
+    /// phase and used to say nothing at all between its opening message and
+    /// its closing one, which reads as a hang rather than as work.
+    @Published private(set) var liveScanProgress: LiveScanProgress?
     private var continuityRescanPending = false
     private var rescanGovernor = ContinuityRescanGovernor()
     private var rescanReleaseTask: Task<Void, Never>?
@@ -90,14 +94,22 @@ final class StorageAppModel: ObservableObject {
         loadingDirectoryIDs = []
         childLoadFailures = [:]
         scanProgressMessage = "Walking directory entries and recording allocated sizes…"
+        liveScanProgress = nil
         scanStartedAt = Date()
         state = .scanning
         startChangeMonitoring(allowDuringScan: true)
         Task {
             do {
-                let presentation = try await Self.performScan { [weak self] message in
-                    await self?.setScanProgress(message)
-                }
+                let presentation = try await Self.performScan(
+                    progress: { [weak self] message in
+                        await self?.setScanProgress(message)
+                    },
+                    live: { [weak self] update in
+                        Task { @MainActor in
+                            self?.liveScanProgress = update
+                        }
+                    }
+                )
                 let historyIndex = try StorageIndex(
                     url: presentation.indexURL
                 )
@@ -121,6 +133,7 @@ final class StorageAppModel: ObservableObject {
                     throw error
                 }
                 state = .result(presentation)
+                liveScanProgress = nil
                 indexFootprint = StorageIndexReclaim.footprintBytes(
                     indexURL: presentation.indexURL
                 )
@@ -135,6 +148,7 @@ final class StorageAppModel: ObservableObject {
             } catch {
                 stopChangeMonitoring()
                 state = .failed(String(describing: error))
+                liveScanProgress = nil
                 recordScanEnded()
             }
         }
@@ -630,7 +644,8 @@ final class StorageAppModel: ObservableObject {
     }
 
     private nonisolated static func performScan(
-        progress: @escaping @Sendable (String) async -> Void
+        progress: @escaping @Sendable (String) async -> Void,
+        live: (@Sendable (LiveScanProgress) -> Void)? = nil
     ) async throws
         -> StoragePresentation
     {
@@ -688,7 +703,8 @@ final class StorageAppModel: ObservableObject {
             do {
                 let traversal = try await index.stageTraversal(
                     at: volumeURL,
-                    scope: .wholeVolume
+                    scope: .wholeVolume,
+                    onProgress: live
                 )
                 await progress(
                     "Found \(traversal.entryCount.formatted()) entries; mapping sparse and shared physical extents…"

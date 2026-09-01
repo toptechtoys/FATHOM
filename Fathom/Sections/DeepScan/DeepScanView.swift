@@ -27,6 +27,7 @@ struct DeepScanView: View {
                     actionTitle: "Scanning…",
                     isBusy: true,
                     busySince: storage.scanStartedAt,
+                    liveProgress: storage.liveScanProgress,
                     action: {}
                 )
             case let .failed(reason):

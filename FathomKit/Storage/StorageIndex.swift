@@ -671,7 +671,8 @@ public actor StorageIndex {
     public func stageTraversal(
         at rootURL: URL,
         scope: ScanScope,
-        startedAt: Date = Date()
+        startedAt: Date = Date(),
+        onProgress: (@Sendable (LiveScanProgress) -> Void)? = nil
     ) throws -> StagedTraversalScan {
         guard let database = handle.pointer else {
             throw StorageIndexError.closed
@@ -733,6 +734,11 @@ public actor StorageIndex {
             // Read once into a local so the walk closure captures a value
             // rather than the actor.
             let batchSize = traversalBatchSize
+            // The walk is the longest phase by far, and until now it said
+            // nothing between its opening message and its closing one. The
+            // throttle turns millions of callbacks into about ten readouts a
+            // second, which is what a person can actually follow.
+            var progress = ScanProgressThrottle()
             let summary = try StorageScanner().walk(at: rootURL) { entry in
                 guard
                     let location = entry.traversalLocation,
@@ -743,6 +749,16 @@ public actor StorageIndex {
                     throw StorageIndexError.invalidScan(
                         reason: "A traversal record is missing required metadata"
                     )
+                }
+
+                if let onProgress,
+                   let update = progress.accumulate(
+                       path: entry.path,
+                       isDirectory: entry.kind == .directory,
+                       bytesOnDisk: allocatedSize,
+                       now: Date()
+                   ) {
+                    onProgress(update)
                 }
 
                 while
