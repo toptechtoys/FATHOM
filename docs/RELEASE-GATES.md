@@ -61,6 +61,48 @@ Results go in `REFERENCE-PASS.md`, which is a blank form rather than prose —
 these gates ask for figures to be recorded, and until now there was nowhere to
 record them.
 
+## Open findings from running the app
+
+**A continuity rescan has no floor under it.** `StorageAppModel.requestContinuityRescan`
+starts a full Deep Scan whenever FSEvents continuity breaks, and queues one if a
+scan is already running. Five paths reach it: FSEvents unpublished, FSEvents not
+attributable, an incremental refresh that threw, an FSEvents volume identity
+change, and the attribution causal window failing.
+
+The design is right — incremental data that cannot be trusted should not be
+served, and rebuilding is the honest answer. What is missing is a rate limit.
+There is no backoff, no minimum interval and no count: every trigger is a full
+scan.
+
+Observed 1 September 2026 on the M3 Max. A Deep Scan staged 3,211,878 entries,
+mapped 2,562,478 extents, reduced, and spent several more minutes writing the
+completed evidence set — about ten minutes end to end, and roughly 7 GB of
+index. One scan finished and a second began 155 seconds later without anyone
+touching the app.
+
+**That rescan is itself filesystem churn**, on a volume where churn is what
+breaks continuity. Nothing in the code prevents that from repeating, though a
+loop was not observed and is not claimed here.
+
+Deciding this needs a product call rather than a patch, because a floor changes
+what the app promises about freshness: it would have to say *the shown data is
+from the scan at 14:32* instead of rebuilding. Recorded rather than fixed.
+
+**Two things that are not defects, checked and cleared.** The progress message
+updates correctly through all six phases — a screenshot showing "Walking
+directory entries" three seconds into a scan is the message being right, not
+frozen. And `scanSelectedVolume` already guards against re-entry while
+`.scanning`.
+
+**The app's own cost is ungated.** Non-negotiable 8 makes the widget measure and
+publish its idle CPU, and gate 3 holds it to 0.2%. The app measures nothing about
+itself. It was observed at 9% CPU idle and 70–96% during a scan, with a `sample`
+showing the majority in Core Animation — `CA::Transaction`, `CA::Context::commit`,
+layer collection and shaders — rather than in the engine. No budget exists to
+compare that against.
+
+---
+
 ## Reference Mac mini M4 Pro
 
 1. Build the Release CLI and run
