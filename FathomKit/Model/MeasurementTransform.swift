@@ -159,12 +159,18 @@ public extension Measurement {
 public extension MemorySnapshot {
     /// How much of physical memory is in use, 0 to 1.
     ///
+    /// The numerator is `usedBytes` — active, wired and compressed — and not
+    /// physical total minus free. The second draws a chart that sits near 100%
+    /// on any Mac that has been awake a while, because macOS fills the rest
+    /// with file cache and gives it back on demand. That line said 97% on a
+    /// machine with zero swap and 91% of its memory available.
+    ///
     /// Unpublished if either half is unpublished: a fraction of an unknown
     /// total is not a fraction.
     var usedFraction: Measurement<Double> {
-        totalBytes.combined(with: freeBytes) { total, free in
+        usedBytes.combined(with: totalBytes) { used, total in
             guard total > 0 else { return 0 }
-            return Double(total - min(free, total)) / Double(total)
+            return Double(min(used, total)) / Double(total)
         }
     }
 }
