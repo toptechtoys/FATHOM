@@ -248,6 +248,8 @@ A SQLite index holds the file tree with physical sizes, clone family identifiers
 
 Incremental updates come from FSEvents, and Apple's own documentation catalogues the pitfalls. Events are *directory-granular*: they say something in this directory changed, never which file or its new size, so each event triggers a re-enumeration of that directory and a diff against the cached state. `kFSEventStreamEventFlagMustScanSubDirs` is set both on genuine recursive changes and whenever events are dropped, so it is the one flag that must be handled correctly. Device IDs change across reboots, so `FSEventsCopyUUIDForDevice()` must be stored and validated on resume, with a mismatch forcing a full rescan. Monitoring must start *before* the initial scan begins or changes during that scan are lost permanently. And Apple explicitly advises backup software to run periodic full scans regardless.
 
+A break in continuity — dropped events, an unattributable path, a volume that changed identity, an incremental refresh that threw — is answered with a full rescan, because incremental data that cannot be trusted is not served. That rescan is **held to one every thirty minutes**, counted from the moment the last scan ended. The floor exists because a Deep Scan writes gigabytes into a directory FSEvents is watching, which is itself the churn that breaks continuity; without it three scans ran in eleven minutes with none completing (1 September 2026, `RELEASE-GATES.md`). A trigger that lands inside the floor is *held*, not dropped: one rescan runs when the floor lifts, however many arrived. While it is held the Storage screen says so — *showing the last completed scan; rebuild held until 15:02* — because a held rescan means the product is promising a snapshot with a time on it, not live data, and the weaker promise is the one that must be stated.
+
 Two constraints specific to this product: watching `/` requires Full Disk Access and will fire constantly against `/private/var/folders`, so FATHOM watches a curated path set instead. And critically — **snapshots and purgeable space generate no FSEvents at all**, so the two largest space consumers are invisible to the incremental path and require independent polling.
 
 `FSEventsGetLastEventIdForDeviceBeforeTime()` answers "what changed since yesterday" directly. Apple hands us the differentiating query.
@@ -709,7 +711,7 @@ Containment is then checked **again at runtime**, immediately before any deletio
 | F13 | Trash on a different volume (`XDEV`) | Explicit choice, never silent | Offer alternative or abort |
 | F14 | Killed mid-reclaim | Recovery offer on next launch | Journal replay |
 | F15 | Recipe over-matches | "Recipe X matched 400k files" | Refuse, report, revocable |
-| F16 | FSEvents dropped events | Timeline shows "recomputing" | Queue full rescan of that subtree |
+| F16 | FSEvents continuity breaks | Storage shows "held until 15:02" with the reason | Full rescan, at most one per 30 min, held not dropped. See §7.4 |
 | F17 | Sleep gap in the series | Gap rendered as a gap | Never interpolate across sleep |
 | F18 | Not enough history for a forecast | Suppressed, not softened | Confidence floor |
 | F19 | Signature invalid on a fetched data file | Silent to the user, logged | Refuse entirely, never partially apply |
@@ -1029,3 +1031,47 @@ None of it touched a text-bearing surface's material, so the contrast gate's
 model still holds and it still passes. What it did invalidate is the responsive
 sweep in §23.6 and the two open observations in `RELEASE-GATES.md` gate 4: all
 three were taken against a layout that no longer exists.
+
+## 23.10 The scan says what it is doing, 1 September 2026
+
+Two changes from running the app on the M3 Max, both recorded with their
+evidence in `RELEASE-GATES.md` §*Open findings from running the app*.
+
+- **The continuity rescan has a floor.** §7.4 and F16 are amended above. The
+  design was already right — untrusted incremental evidence is rebuilt, not
+  served — and it had no rate limit, so the rebuild fed the churn that
+  triggered it. Thirty minutes, from three times the ten a scan took end to
+  end; held rather than dropped, so the promise to rebuild survives the cap;
+  and stated on the Storage screen, because the floor changes what the app
+  is promising about freshness and a weaker promise has to be said out loud.
+  `ContinuityRescanGovernor` in FathomKit holds the decision as a value
+  type, so it is tested; the app target has no test target.
+
+- **The Deep Scan screen shows what the walk is reading.** §23.9 added a live
+  elapsed clock because a screen with no moving number reads as hung. The
+  clock proved the app was alive; it could not prove it was getting anywhere,
+  and the traversal — the longest phase, four to five minutes of the
+  twenty-two measured — printed one message at its start and the next at its
+  end. The walk already called back on every entry with its path, kind and
+  size on disk, and threw all three away. It now publishes about ten
+  readouts a second: the folder being read, the running entry count, and the
+  running bytes.
+
+  ```
+  Running for 1 min, 33 sec
+  975,607 entries · 88.31 GB
+  ~/.claude/plugins/cache/bmad-m…_modules/astro/dist/core/session
+  ```
+
+  Measured cost during the traversal: 7.0–11.0% CPU with the readout against
+  8.9–13.5% without. Nothing detectable. The bytes are `stat(2).st_blocks ×
+  512`, already in the source index, so no `DataSource` case was added, and
+  the readout uses the existing 11.5pt caption at the minimum text opacity,
+  so nothing was added to the design system either. Home is shortened to
+  `~` by *both* of its paths — the walk starts at the volume root, so home
+  arrives firmlinked as `/System/Volumes/Data/Users/…`, and the first
+  version shortened nothing. That was found by looking at the screen, not by
+  reading the code.
+
+Neither change touched a text-bearing surface, so the contrast gate's model
+still holds.
