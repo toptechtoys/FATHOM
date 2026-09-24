@@ -1,7 +1,8 @@
 # AGENTS.md — FATHOM
 
-**Read this before writing any code.** Claude Code and Codex both read this file
-automatically. It is the contract for the build.
+**Read this before writing any code.** It is the contract for the build, and
+every coding agent working here reads it: Codex loads it directly, Claude Code
+through `CLAUDE.md`.
 
 ---
 
@@ -160,7 +161,9 @@ engine. See `RELEASE-GATES.md` gate 1.
 where a human can see the product's whole argument.
 
 **M3 — hardware truth.** SMART, SMC, IOReport. Endurance, SSD Health, Sensors.
-Verify the NVMe entitlement situation on Tahoe before designing around it.
+The NVMe SMART user client is unsupported on an Apple-silicon internal SSD, not
+withheld by an entitlement — see *The SMART log is still unrecorded* below, and
+confirm it on the reference M4 Pro before designing around it.
 
 **M4 — live monitors.** CPU, GPU, Memory, Network, Bluetooth. Cheap once the
 IOKit layer from M3 exists.
@@ -176,26 +179,24 @@ history, so they can only be honest after the app has been running for days.
 
 Home and Deep Scan assemble from the others and land last, not first.
 
-**Status, 25 August 2026.** M1–M7 are implemented, all twenty sections are on
-the Instrument Panel vocabulary, and the owner's native-feel pass has been
-applied across every one of them — 214pt labelled sidebar, type at ×1.32, card
-readouts and panels, filled action buttons. What is left is the
-reference-machine measurements in `RELEASE-GATES.md`.
+**Status.** M1–M7 are implemented, all twenty sections are on the Instrument
+Panel vocabulary, and the owner's native-feel pass has been applied across every
+one of them — 214pt labelled sidebar, type at ×1.32, card readouts and panels,
+filled action buttons. `RELEASE-GATES.md` is the live record of which
+reference-machine gates have passed and which are still open.
 
-**The interface has now been seen running, and it is worth knowing exactly how
-much that settles.** `project.yml` pins `ARCHS: arm64`; overriding it builds a
-working x86_64 app, and that ran on an Intel MacBookPro16,1 under macOS 26.
-Every screen was walked. Two defects turned up in the first ten minutes that
-the compiler, the contrast gate and the arithmetic had all passed: the
-readout row resolved to CSS `auto-fill` and stopped a third of the way across
-every section, and the `Layout` written to fix it trapped on SwiftUI's infinite
-width proposal and killed the app at launch with no crash report.
+**Running it on an Intel Mac.** `project.yml` pins `ARCHS: arm64`; overriding it
+builds a working x86_64 app, which runs on an Intel MacBookPro16,1 under macOS
+26 and shows every layout. It has caught defects the compiler, the contrast gate
+and the arithmetic all passed: a readout row that resolved to CSS `auto-fill`
+and stopped a third of the way across every section, and a `Layout` that trapped
+on SwiftUI's infinite width proposal and killed the app at launch with no crash
+report.
 
-What that host cannot answer is most of what remains. Every Apple-silicon
-reading renders *not published* on Intel — IOReport, SMC temperature,
-`perflevel1`, the NVMe SMART user client — so gate 2 is untouched, and gate 3's
-idle cost is meaningless anywhere but Apple silicon. **Run it anyway when you
-change a screen.** It is the cheapest check in this repository and it is the
+An Intel host cannot answer the Apple-silicon questions: IOReport, SMC
+temperature, `perflevel1` and the NVMe SMART user client all render *not
+published* there, and idle cost means nothing off Apple silicon. **Run it anyway
+when you change a screen.** It is the cheapest check in this repository and the
 only one that has ever caught a layout.
 
 ---
@@ -245,18 +246,16 @@ failed a build, and none of it was visible to inspection — which is why
 `check-contrast.py` now reads the field's layers and their order out of
 `FathomWorldBackground` and refuses to run if they are not what it composites.
 
-**Test against real bytes — half true since 30 August 2026, and the half
-matters.** Every hardware test used to assert *behaviour* only — that a tampered
-channel map fails its signature, that energy units convert only when named, that
-an absent channel reports the gap rather than a zero. Those are good tests and
-they are not the same thing. Behaviour tests prove the reader handles what it is
-given; a fixture proves it reads real bytes correctly.
+**Test against real bytes.** Behaviour tests — that a tampered channel map
+fails its signature, that energy units convert only when named, that an absent
+channel reports the gap rather than a zero — prove the reader handles what it is
+given. A fixture proves it reads real bytes correctly. Hardware code needs both.
 
-`FathomKitTests/Fixtures/` now holds recorded AppleSMC, IOReport and IOHID
-payloads, and `RecordedHardwareReplayTests.swift` replays them through the
-shipping decoders: 2,206 real SMC values, a 10,570-channel IOReport inventory, a
-664-channel energy delta and 45 IOHID sensors. A parser that misreads a real
-payload now fails a build.
+`FathomKitTests/Fixtures/` holds recorded AppleSMC, IOReport and IOHID payloads,
+and `RecordedSMCReplayTests.swift` and `RecordedIOReportReplayTests.swift` replay
+them through the shipping decoders: 2,206 real SMC values, a 10,570-channel
+IOReport inventory, a 664-channel energy delta and 45 IOHID sensors. A parser
+that misreads a real payload fails a build.
 
 **They came from a Mac15,9 M3 Max, not from the Mac mini M4 Pro that
 `RELEASE-GATES.md` names.** So gate 2's *comparison against the reference
@@ -269,10 +268,9 @@ two recordings cannot be mistaken for each other.
 omission.** The NVMe SMART user client returns IOReturn -536870201 on Apple
 silicon — `0xe00002c7`, `kIOReturnUnsupported`, not `kIOReturnNotPrivileged`.
 `AppleANS3CGv2Controller` does not advertise `NVMeSMARTCapable` and offers no
-such user client, so **no entitlement changes this**, and M3's instruction to
-"verify the NVMe entitlement situation on Tahoe" is answered: it is not an
-entitlement situation. Endurance on an Apple-silicon internal SSD needs a
-different source, or it stays *not published*.
+such user client, so **no entitlement changes this**. Endurance on an
+Apple-silicon internal SSD needs a different source, or it stays *not
+published*.
 
 Two production seams exist so the replay tests exercise the shipping path rather
 than a copy of it: `IOReportSampler.decodeDelta` and
@@ -280,7 +278,7 @@ than a copy of it: `IOReportSampler.decodeDelta` and
 `IOReportReader.decodeChannelInventory`. The live readers call them. **Keep it
 that way** — a decoder the tests reach but the app does not is worth nothing.
 
-Until then, do not write a test that asserts a reference figure from memory.
+Do not write a test that asserts a reference figure from memory.
 An invented fixture is worse than no fixture: it passes, and it certifies
 nothing.
 

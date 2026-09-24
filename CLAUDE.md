@@ -1,7 +1,9 @@
 # CLAUDE.md
 
-The build contract for this repository is **AGENTS.md**. Read it before writing
-any code. It is shared with Codex so there is one source of truth, not two.
+The build contract for this repository is **AGENTS.md**, imported here so it is
+always loaded. It is shared with Codex so there is one source of truth, not two.
+
+@AGENTS.md
 
 Quick orientation, in reading order:
 
@@ -12,12 +14,8 @@ Quick orientation, in reading order:
 5. `docs/fathom-app.html` — the visual spec, open it in a browser
 6. `docs/RELEASE-GATES.md` — everything still outstanding lives here
 
-The interface is implemented and **has now been run and looked at** — as an
-x86_64 build on an Intel Mac, which shows every layout and no Apple-silicon
-reading. It found two defects in the first ten minutes that the compiler, the
-contrast gate and the arithmetic had all passed, and it drove the owner's
-native-feel pass of 25 August. Read `AGENTS.md` §Build order before adding to
-it, and run it when you change a screen.
+Run the app when you change a screen. `AGENTS.md` §Build order says how to build
+it on an Intel host and what that build can and cannot show.
 
 The one rule that overrides everything: **never render a number you cannot trace
 to a row in FATHOM-DATA-SOURCES.md.** If you need a new number, add the row
