@@ -4,7 +4,8 @@
 every coding agent working here reads it: Codex loads it directly, Claude Code
 through `CLAUDE.md`.
 
----
+This file is the core. Detail that matters for one part of the codebase lives
+in `docs/agents/`; see *Where the rest lives*.
 
 ## What you are building
 
@@ -14,8 +15,6 @@ App Store, Developer ID signed and notarised.
 
 **One sentence:** every other Mac utility shows you a number it cannot justify;
 FATHOM shows you two numbers and names the one it does not know.
-
----
 
 ## Non-negotiables
 
@@ -54,57 +53,14 @@ matter how good the code is.
    crash telemetry without explicit opt-in.
 10. **Read-only means read-only.** The SSD Health screen cannot mutate anything.
 
----
-
 ## Repository layout
 
-```
-Package.swift           FathomKit, the C shims, the CLI, the test target
-project.yml             XcodeGen input; Fathom.xcodeproj is generated from it
-Fathom.xcodeproj
-Fathom/                 SwiftUI app
-  App/                  entry point, window, navigation
-  Design/               tokens, worlds, plate, grain, focus ring, fonts
-  Sections/             one folder per section, 20 total
-  Components/           rail, readout grid, panel, and 12 of the 13 panel
-                        types — Rule rows lives in Sections/Reclaim
-  Resources/            asset catalogue, Info.plist, entitlements
-FathomKit/              all measurement, no UI, fully testable
-  Storage/              FTS walk, two-number engine, clone + sparse detection
-  Hardware/             SMART, SMC, IOReport, IOHID, IOKit
-    ChannelMaps/        the Ed25519-signed IOReport channel map
-  System/               CPU, GPU, memory, network, bluetooth
-  Model/                Measurement<T> and the three-state type
-  Actions/              reclaim engine, recipe catalogue, cloud eviction,
-                        application catalogue, journal recovery
-    Recipes/            reclaim-recipes.json and its detached signature
-Sources/                the C shims Swift cannot reach directly
-  CFathomHardware/      IOKit, IOReport, IOHID
-  CFathomStorage/       fts(3), fgetattrlist, F_LOG2PHYS_EXT, SEEK_HOLE
-  CSQLite/              the amalgamation the storage index builds on
-FathomBar/              menu bar widget target
-FathomCLI/
-  FathomCLI.swift       the `fathom` binary RELEASE-GATES gate 1 runs
-FathomKitTests/         behaviour tests, plus the gate 2 replay tests
-  Fixtures/             recorded hardware payloads, declared with `.copy`
-tests/release.bats      the release script's own tests
-scripts/
-  check-contrast.py     the contrast gate; runs in CI
-  check-data-sources.py the data-source gate; runs in CI
-  build-prototype.py    regenerates docs/fathom-app.html
-  prototype-content.js  the prototype's section content, read by the above
-  release.sh            sign, notarise, staple; see §Distribution
-docs/
-  FATHOM-PRD.md
-  FATHOM-DESIGN.md
-  FATHOM-DATA-SOURCES.md
-  RELEASE-GATES.md      what the reference machine must still prove
-  REFERENCE-PASS.md     the blank form those gates are recorded on
-  M1-ENGINE-STATUS.md
-  FATHOM-LOGO-BRIEF.md
-  fathom-app.html       the locked visual reference
-  runbooks/
-```
+`Fathom/` is the SwiftUI app, 20 sections under `Fathom/Sections/`. `FathomKit/`
+is all measurement: no UI, fully testable. `FathomBar/` is the menu bar widget,
+`FathomCLI/` the `fathom` binary that `RELEASE-GATES.md` gate 1 runs, `Sources/`
+the C shims Swift cannot reach directly, `FathomKitTests/` the behaviour and
+replay tests. `Fathom.xcodeproj` is generated from `project.yml`. The full tree
+is in `docs/agents/layout.md`.
 
 **Presentation logic that makes a claim belongs in FathomKit, not beside the
 view.** A treemap whose areas are wrong misrepresents a volume as confidently as
@@ -112,8 +68,6 @@ a wrong number does, so `TreemapLayout` is tested. So are `SampleHistory`, which
 decides how a chart draws a second nobody measured, and `FindingEngine`, which
 decides what is worth saying at all. The rule of thumb: if getting it wrong
 would make the product lie, it is measurement, whatever it looks like.
-
----
 
 ## The central type
 
@@ -142,42 +96,13 @@ ratio with an unpublished denominator comes back unpublished rather than
 dividing by an invented number. The test is whether the gap can survive the
 call. If it cannot, do not write it.
 
----
-
 ## Build order
 
 Ship the moat first. Do not build twenty screens before the two-number engine
 works, because everything else depends on it being correct.
 
-**M1 — the engine.** `FathomKit/Storage`. FTS walk, allocated vs logical, clone
-detection via `F_LOG2PHYS_EXT`, sparse via `SEEK_HOLE`, snapshot enumeration.
-No UI. Ships when it walks at 15,000 entries per second or better and every
-number matches the reference machine fixtures. **The target is entries, not
-gigabytes**: a bare `find -xdev /` takes 126.1 s on a 315 GB volume holding 3.1
-million entries, so a wall-clock budget measured the disk rather than the
-engine. See `RELEASE-GATES.md` gate 1.
-
-**M2 — Explore and Storage.** The two screens that show the engine. First point
-where a human can see the product's whole argument.
-
-**M3 — hardware truth.** SMART, SMC, IOReport. Endurance, SSD Health, Sensors.
-The NVMe SMART user client is unsupported on an Apple-silicon internal SSD, not
-withheld by an entitlement — see *The SMART log is still unrecorded* below, and
-confirm it on the reference M4 Pro before designing around it.
-
-**M4 — live monitors.** CPU, GPU, Memory, Network, Bluetooth. Cheap once the
-IOKit layer from M3 exists.
-
-**M5 — the widget.** Menu bar. Measure its cost the day it first runs, not at
-the end.
-
-**M6 — action.** Reclaim, Applications, Cloud, Maintenance. Everything that
-moves a file. Trash-only, dry-run first, cost stated.
-
-**M7 — memory over time.** Timeline, Attribution, Weekly digest. These need
-history, so they can only be honest after the app has been running for days.
-
-Home and Deep Scan assemble from the others and land last, not first.
+The milestones, M1 (the engine) through M7 (memory over time), and the gate each
+ships on are in `docs/agents/build-and-gates.md`.
 
 **Status.** M1–M7 are implemented, all twenty sections are on the Instrument
 Panel vocabulary, and the owner's native-feel pass has been applied across every
@@ -185,21 +110,28 @@ one of them — 214pt labelled sidebar, type at ×1.32, card readouts and panels
 filled action buttons. `RELEASE-GATES.md` is the live record of which
 reference-machine gates have passed and which are still open.
 
-**Running it on an Intel Mac.** `project.yml` pins `ARCHS: arm64`; overriding it
-builds a working x86_64 app, which runs on an Intel MacBookPro16,1 under macOS
-26 and shows every layout. It has caught defects the compiler, the contrast gate
-and the arithmetic all passed: a readout row that resolved to CSS `auto-fill`
-and stopped a third of the way across every section, and a `Layout` that trapped
-on SwiftUI's infinite width proposal and killed the app at launch with no crash
-report.
+**Run the app when you change a screen.** `docs/agents/running-the-app.md` covers
+the Intel host build, what it cannot show, and how to check what you see.
 
-An Intel host cannot answer the Apple-silicon questions: IOReport, SMC
-temperature, `perflevel1` and the NVMe SMART user client all render *not
-published* there, and idle cost means nothing off Apple silicon. **Run it anyway
-when you change a screen.** It is the cheapest check in this repository and the
-only one that has ever caught a layout.
+## Where the rest lives
 
----
+Read these after this file, in order:
+
+1. `docs/FATHOM-DATA-SOURCES.md` — every number and the exact API behind it
+2. `docs/FATHOM-PRD.md` — what ships and why
+3. `docs/FATHOM-DESIGN.md` — the locked design system
+4. `docs/fathom-app.html` — the visual spec, open it in a browser
+5. `docs/RELEASE-GATES.md` — everything still outstanding lives here
+
+Build and test commands are in `README.md` §Build. The topic notes in
+`docs/agents/` hold detail for one part of the codebase; open the matching one
+before you change those files:
+
+- `layout.md` — the full repository tree
+- `design.md` — the native-feel rider, the contrast gate, the field check, labels
+- `hardware-testing.md` — recorded fixtures, replay tests, the unrecorded SMART log
+- `build-and-gates.md` — milestones M1–M7 and their gates, what CI covers
+- `running-the-app.md` — building on an Intel host, checking the number before a pixel
 
 ## Working agreements
 
@@ -214,94 +146,14 @@ and materials.
 If you believe a screen needs to change, change the prototype first and get it
 approved, then implement. Do not diverge silently in Swift.
 
-*Rider, 25 August 2026.* The owner reviewed the running app on screen and
-directed a native-feel pass that supersedes the prototype on five points —
-type renders ×1.32, the icon rail is a 214pt labelled sidebar, readout cells
-are separated cards, the prominent action is a filled button, and scanning
-screens carry an elapsed clock. Each is recorded with its values in
-`FATHOM-DESIGN.md` §*The native-feel pass*. The colour worlds, materials,
-grain, highlight and everything else still follow the prototype, and the
-prototype was regenerated on 25 August to fold these in, so it and the app
-agree again.
-
 It is generated by `scripts/build-prototype.py`, so edit that and re-run it
 rather than hand-editing 700 KB of embedded fonts.
+The owner's native-feel pass of 25 August is recorded as a rider in
+`docs/agents/design.md`.
 
 **Where the prototype and the contrast rule disagree, the rule wins — and you
-record it.** This has happened four times: the design's white materials — one
-flip, which took the readout cell, the data row and its hover from white tint to
-black — two semantic colours, the grain's blend, and the white highlight over
-the field, which the app draws at half the prototype's strength because 30% puts
-body text at 4.24:1. Each is documented in `FATHOM-DESIGN.md`
-with the measurement that forced it. Never silently soften a design value; state
-what it measured and what you changed it to.
-
-**And where they disagree for no reason, that is a defect.** The field was the
-last thing still carrying values from the direction the Instrument Panel
-replaced, because it was written before the prototype was and nobody re-read it
-afterwards: its gradient put the middle stop at 50% against the specified 60%,
-it painted a fourth layer under the plate that the prototype has no equivalent
-for, and it drew the grain over the highlight rather than under it. None of that
-failed a build, and none of it was visible to inspection — which is why
-`check-contrast.py` now reads the field's layers and their order out of
-`FathomWorldBackground` and refuses to run if they are not what it composites.
-
-**Test against real bytes.** Behaviour tests — that a tampered channel map
-fails its signature, that energy units convert only when named, that an absent
-channel reports the gap rather than a zero — prove the reader handles what it is
-given. A fixture proves it reads real bytes correctly. Hardware code needs both.
-
-`FathomKitTests/Fixtures/` holds recorded AppleSMC, IOReport and IOHID payloads,
-and `RecordedSMCReplayTests.swift` and `RecordedIOReportReplayTests.swift` replay
-them through the shipping decoders: 2,206 real SMC values, a 10,570-channel
-IOReport inventory, a 664-channel energy delta and 45 IOHID sensors. A parser
-that misreads a real payload fails a build.
-
-**They came from a Mac15,9 M3 Max, not from the Mac mini M4 Pro that
-`RELEASE-GATES.md` names.** So gate 2's *comparison against the reference
-machine* is still open; what closed is the narrower and more urgent gap, that no
-test had ever put real hardware bytes through these decoders at all. Capture
-again on the reference machine and commit both — the manifest names the Mac, so
-two recordings cannot be mistaken for each other.
-
-**The SMART log is still unrecorded, and that is a finding rather than an
-omission.** The NVMe SMART user client returns IOReturn -536870201 on Apple
-silicon — `0xe00002c7`, `kIOReturnUnsupported`, not `kIOReturnNotPrivileged`.
-`AppleANS3CGv2Controller` does not advertise `NVMeSMARTCapable` and offers no
-such user client, so **no entitlement changes this**. Endurance on an
-Apple-silicon internal SSD needs a different source, or it stays *not
-published*.
-
-Two production seams exist so the replay tests exercise the shipping path rather
-than a copy of it: `IOReportSampler.decodeDelta` and
-`TemperatureSensorReader.decodeSensors`, both alongside the older
-`IOReportReader.decodeChannelInventory`. The live readers call them. **Keep it
-that way** — a decoder the tests reach but the app does not is worth nothing.
-
-Do not write a test that asserts a reference figure from memory.
-An invented fixture is worse than no fixture: it passes, and it certifies
-nothing.
-
-**Make the app print the number before you believe a pixel.** Running it is
-the cheapest check here, and reading it wrong is the cheapest mistake. Three
-diagnoses in one day were wrong the same way: a window "opening below its
-minimum" that was measured off a screenshot at an assumed scale — the real
-scale is 0.52 px per point on the development display, and the window was
-opening at exactly its declared default; and twice, keyboard input "not being
-delivered" when it was arriving the whole time.
-
-Every one collapsed the moment something was instrumented to answer directly.
-A temporary overlay reporting `GRID 2,184x164` proved the readout row was
-sized correctly and specified wrongly. `defaults read com.exhibinaut.fathom`
-showed five saved window frames and named the real defect. An `NSEvent`
-counter beside a handler counter — arrivals versus calls — settled in one
-screenshot what two speculative fixes had not. `sample(1)` named the exact
-frame the Bluetooth read was parked in. Forty-eight timed reads turned a
-timeout somebody liked the sound of into one the machine chose.
-
-A screenshot shows you *that* something is wrong. It is very bad at *what*,
-and it will let you write a confident paragraph about a defect that does not
-exist. Add the counter, take the measurement, delete it afterwards.
+record it.** Never silently soften a design value; state what it measured and
+what you changed it to. The four cases so far are in `docs/agents/design.md`.
 
 **`perflevel0` is the performance cluster.** Not efficiency. This is the most
 common bug in Mac monitoring code and it was in our own prototype.
@@ -311,35 +163,12 @@ prototyping. Production reads the API.
 
 **Accessibility is not a phase.** Full VoiceOver labels, Dynamic Type, Reduce
 Motion honoured, contrast ≥ 4.5:1 on every surface, complete keyboard
-navigation. Build it in, do not retrofit.
-
-Contrast is gated rather than reviewed. `scripts/check-contrast.py` composites
-the whole stack from source — worlds, grain, highlight, plate, materials,
-semantic palette, focus ring, text alpha — and fails the build if any surface
-drops below the rule on any of the twenty worlds. **Anything you draw beneath
-the plate must be added to it.** Three separate layers have now quietly cost
-text contrast, and none was visible to inspection.
-
-Labels live in the shared components rather than the section views, so a label
-written beside the value it describes cannot drift from it — and a wrong one is
-wrong everywhere at once. A static per-view audit of labels, charts, motion
-gating and type scaling was done on 25 August and fixed what it found;
-VoiceOver itself has still never spoken this interface, which stays a
-reference-machine task in `RELEASE-GATES.md`.
-
-**CI runs every gate on arm64, and it is green.** The contrast gate, the
-data-source gate, the forbidden-API audit and the privacy-string check all fail
-the build for real. The forbidden-API audit greps `Fathom/`, `FathomKit/` and
-`FathomBar/` only, so `FathomCLI/`, `Sources/` and `scripts/` are ungated and
-were last checked clean by hand — do not read its green as covering them.
-Run them locally before you push anyway — they are fast — but remember a local
-run cross-compiles from whatever host you are on and CI does not. When the two
-disagree, CI is right.
+navigation. Build it in, do not retrofit. `scripts/check-contrast.py` gates
+contrast; what it covers, and what you must add to it, is in
+`docs/agents/design.md`.
 
 **Commit messages state the user-visible effect.** "Explore now shows 0 GB
 freeable for Docker's sparse image" beats "fix size calc".
-
----
 
 ## When you are unsure
 
